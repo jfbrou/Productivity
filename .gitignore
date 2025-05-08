@@ -1,6 +1,7 @@
 Graveyard/
 Data/
 Programs/*.ipynb
+Programs/*.h5
 Latex/*
 !Latex/*.tex
 !Latex/*.bib
