@@ -1,0 +1,177 @@
+\documentclass[12pt]{article}
+\usepackage{mathpazo, amsmath, amssymb, amsfonts, amsthm, microtype, tikz, titling, graphicx, booktabs, caption, subcaption, bm, xfrac, appendix, setspace, comment, float, nth, fnpct, makecell, multirow, tabularx, threeparttable, titling, array, lipsum, mathtools, tocloft, tocvsec2}
+\usepackage[margin=2.75cm]{geometry}
+\renewcommand{\baselinestretch}{1.15}
+\renewcommand{\arraystretch}{2}
+\setlength\droptitle{-2.5cm}
+%\setlength\parindent{0cm}
+\setlength{\parskip}{0.15cm}
+\definecolor{HEC}{rgb}{0, 0.1569, 0.3333}
+\usepackage[colorlinks, allcolors=HEC]{hyperref}
+\urlstyle{rm}
+\captionsetup[figure]{labelfont={color=HEC}}
+\captionsetup[table]{labelfont={color=HEC}}
+\usepackage[ruled, vlined]{algorithm2e}
+\setlength{\abovecaptionskip}{0.5cm}
+\usepackage[longnamesfirst]{natbib}
+
+% Command to reference subfigures
+\renewcommand{\thesubfigure}{(\alph{subfigure})}
+\captionsetup[sub]{labelformat=simple}
+
+% Define the path for the figures
+\graphicspath{{../Figures/}}
+
+% Define a command and the path for the tables
+\newcommand*\includetables[1]{\input{../Tables/#1.tex}}
+
+% Do not add sections of the main text to the appendix's table of content
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+
+% Command to comment within lines
+\newcommand{\ignore}[1]{}
+
+% Command to center table columns
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newlength\mcwidth
+
+% Mathematical commands
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\diag}[1]{\text{diag}\left(#1\right)}
+\newcommand{\partialof}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\totalof}[2]{\frac{\text{d} #1}{\text{d} #2}}
+\newcommand{\deltaof}[3]{\delta #1 [#2; #3]}
+\newcommand{\innerprod}[3]{\langle #1, #2 \rangle_{#3}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+
+% Command to resize equations
+\newcommand{\resizeeq}[2]{\resizebox{#2\hsize}{!}{$#1$}}
+
+% Command to make a small horizontal space
+\newcommand{\smallquad}{\hspace{0.5em}}
+
+% Title
+\title{\textbf{Productivity Growth in Canada}\thanks{We are grateful to Edward Xu for excellent research assistance.}}
+\author{
+\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1} \and
+\href{https://sites.google.com/view/nicolasvincent/home}{Nicolas Vincent}\textsuperscript{2}
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\footnotetext[1]{HEC Montr\'eal. E-mail: \href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}}
+\footnotetext[2]{HEC Montr\'eal. E-mail: \href{mailto:nicolas.vincent@hec.ca}{nicolas.vincent@hec.ca}}
+
+\begin{abstract}
+\end{abstract}
+
+\clearpage
+
+\section{Introduction}
+\label{s:introduction}
+
+\section{Theoretical Framework}
+\label{s:theoretical framework}
+
+\paragraph{Input-Output Definitions.} Consider an economy with $N$ industries indexed by $i \in \{1, \ldots, N\}$ and two factors of production: capital and labor. Let $\mathbf{b}_t$ be the $(N + 2) \times 1$ vector whose $i$-th element is equal to the share of industry $i$ in aggregate nominal value-added:
+\begin{equation*}
+    b_{it} \equiv \frac{P_{it} Y_{it}}{\sum_{j=1}^N P_{jt} Y_{jt}}, \quad \forall i \{1, \ldots, N\}.
+\end{equation*}
+The first $N$ elements of $\mathbf{b}_t$ correspond to industries, while the last two correspond to capital and labor. Since factors do not enter in final demand, the last two elements of $\mathbf{b}_t$ are equal to zero. Let us further define the cost-based input-output matrix $\bm{\Omega}_t$ of dimension $(N + 2) \times (N + 2)$ whose $(i, j)$-th element is equal to industry $i$'s expenditures on inputs from $j$ as a share of its total expenditures:
+\begin{equation*}
+    \Omega_{ijt} \equiv \frac{P_{jt} X_{ijt}}{\sum_{k=1}^N P_{kt} X_{ikt}}.
+\end{equation*}
+The first $N$ rows of $\bm{\Omega}_t$ correspond to industries, while the last two correspond to capital and labor. Since capital and labor require no intermediate inputs, the last two rows of $\bm{\Omega}_t$ are filled with zeros. The Leontief inverse of the cost-based input-output matrix is defined as:
+\begin{equation*}
+    \bm{\Psi}_t \equiv (\mathbf{I} - \bm{\Omega}_t)^{-1}.
+\end{equation*}
+Finally, we define the cost-based Domar weights as:
+\begin{equation*}
+    \bm{\lambda}_t^{\prime} \equiv \mathbf{b}_t^{\prime} \bm{\Psi}_t.
+\end{equation*}
+For expositional convenience, we denote by $\lambda_t^K$ and $\lambda_t^L$ the last two elements of $\bm{\lambda}_t^{\prime}$, which measure their importance in final demand, indirectly through the production network of the economy.
+
+\paragraph{Total-Factor Productivity.} As shown by \citet{Baqaee_Farhi_2019}, aggregate total-factor productivity (TFP) growth in inefficient economies can be calculated as:
+\begin{equation*}
+    \mathrm{d}\ln(A_t) = \mathrm{d}\ln(Y_t) - \lambda_t^K \mathrm{d}\ln(K_t) - \lambda_t^L \mathrm{d}\ln(L_t)
+\end{equation*}
+where $A_t$ is aggregate TFP, $Y_t$ is aggregate real value-added, $K_t$ is aggregate capital, and $L_t$ is aggregate labor. The growth rate of aggregate real value-added is given by:
+\begin{equation*}
+    \mathrm{d}\ln(Y_t) \equiv \sum_{i=1}^N b_{it} \mathrm{d}\ln(Y_{it}).
+\end{equation*}
+Here, the growth rate of real value-added in industry $i$ is given by:\footnote{Here, we make the assumption of constant returns to scale at the industry level.}
+\begin{equation*}
+    \mathrm{d}\ln(Y_{it}) = \mathrm{d}\ln(A_{it}) + \alpha_{it} \mathrm{d}\ln(K_{it}) + (1 - \alpha_{it}) \mathrm{d}\ln(L_{it})
+\end{equation*}
+where $A_{it}$ is industry $i$'s TFP, $K_{it}$ is its capital, $L_{it}$ is its labor, and $\alpha_{it}$ and $1 - \alpha_{it}$ are the elasticities of its output with respect to capital and labor, respectively. Under the assumption that the representative firm in industry $i$ minimizes its costs and is a price-taker in input markets, the elasticity of output with respect to capital is given by:
+\begin{equation*}
+    \alpha_{it} = \frac{r_{it} K_{it}}{r_{it} K_{it} + w_{it} L_{it}}.
+\end{equation*}
+The growth rate of aggregate capital is given by:
+\begin{equation*}
+    \mathrm{d}\ln(K_t) \equiv \sum_{i=1}^N \frac{r_{it} K_{it}}{\sum_{j=1}^N r_{jt} K_{jt}} \cdot \mathrm{d}\ln(K_{it})
+\end{equation*}
+and the growth rate of aggregate labor is given by:
+\begin{equation*}
+    \mathrm{d}\ln(L_t) \equiv \sum_{i=1}^N \frac{w_{it} L_{it}}{\sum_{j=1}^N w_{jt} L_{jt}} \cdot \mathrm{d}\ln(L_{it})
+\end{equation*}
+where $r_{it}$ and $w_{it}$ are the rental rate of capital and the wage rate in industry $i$ at time $t$, respectively.
+
+\paragraph{Productivity Growth Accounting.} Combining the above equations, we can express aggregate TFP growth as:
+\begin{align*}
+    \mathrm{d}\ln(A_t) &= \sum_{i=1}^N b_{it} \mathrm{d}\ln(A_{it}) \\
+    &+ \sum_{i=1}^N \left(b_{it} \alpha_{it} - \lambda_t^K  \cdot \frac{r_{it} K_{it}}{\sum_{j=1}^N r_{jt} K_{jt}}\right) \mathrm{d}\ln(K_{it}) \\
+    &+ \sum_{i=1}^N \left(b_{it} (1 - \alpha_{it}) - \lambda_t^L \cdot \frac{w_{it} L_{it}}{\sum_{j=1}^N w_{jt} L_{jt}}\right) \mathrm{d}\ln(L_{it}).
+\end{align*}
+Following \citet{Halperin_Mazlish_2024}, adding and subtracting the term $\sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})$ and summing from time $t_0$ to $t_1$, we can further decompose the cumulative aggregate TFP growth between these two dates into the following components:
+\begin{alignat}{2}
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) &= \sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Productivity}} \label{eq:productivity} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N \left(b_{it} \alpha_{it} - \lambda_t^K  \cdot \frac{r_{it} K_{it}}{\sum_{j=1}^N r_{jt} K_{jt}}\right) \mathrm{d}\ln(K_{it}) &&\quad \text{\textcolor{HEC}{Capital}} \label{eq:capital} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N \left(b_{it} (1 - \alpha_{it}) - \lambda_t^L \cdot \frac{w_{it} L_{it}}{\sum_{j=1}^N w_{jt} L_{jt}}\right) \mathrm{d}\ln(L_{it}) &&\quad \text{\textcolor{HEC}{Labor.}} \label{eq:labor}
+\end{alignat}
+In this equation, term \eqref{eq:productivity} weighs industry-level TFP growth by each industry's initial share of value-added. That is, if we freeze each industry's share of nominal value-added, we capture the contribution of within-industry productivity improvements alone--how much aggregate TFP has grown purely because each industry became more productive over time.
+
+Term \eqref{eq:baumol} instead weighs industry-level TFP growth by the change in each industry's share of value-added between dates $t_0$ and $t_1$. Therefore, it measures how the changing industrial composition of the economy contributes to aggregate TFP growth. This term is negative when industries with low productivity growth become more important in the economy, or vice-versa.
+
+Terms \eqref{eq:capital} and \eqref{eq:labor} capture the contribution of reallocating factors across sectors. It weighs changes in industry-level capital and labor inputs by the difference between two terms. The first term is the product of the industry's share of value-added and the elasticity of its output with respect to inputs. The second term is the product of the industry's share of total input expenditures and the elasticity of aggregate output with respect to inputs. Intuitively, moving inputs into industries where they are more productive than the economy-wide average and where the receiving industries are more important in output than costs (i.e., high markup industries) raises aggregate productivity growth.
+
+\section{Data}
+\label{s:data}
+
+To calculate and decompose aggregate TFP growth in Canada, we need data on the following variables:
+\begin{enumerate}
+    \item Industry-level nominal value-added ($\{P_{it} Y_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on gross domestic product at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level total-factor productivity ($\{A_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on multifactor productivity based on value-added at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level capital ($\{K_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on capital inputs at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level labor ($\{L_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on labor inputs at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level capital expenditures ($\{r_{it} K_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on capital cost at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level labor expenditures ($\{w_{it} L_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on labor compensation at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
+    \item Industry-level intermediate input expendiures ($\{\{P_{jt} X_{ijt}\}_{j=1}^N\}_{i=1}^N$): We use data from 1961 to 2019 on the symmetric input-output tables at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000101}{Table 36-10-0001-01} of Statistics Canada.
+\end{enumerate}
+
+
+\clearpage
+
+\bibliography{references}
+\bibliographystyle{aer}
+
+\clearpage
+\renewcommand{\contentsname}{Appendix}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{2}}
+\tableofcontents
+
+\clearpage
+\appendix
+\numberwithin{equation}{section}
+\renewcommand\thefigure{\thesection.\arabic{figure}}
+\renewcommand\thetable{\thesection.\arabic{table}}
+
+\end{document}
