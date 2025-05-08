@@ -116,32 +116,32 @@ where $A_{it}$ is industry $i$'s TFP, $K_{it}$ its capital input, $L_{it}$ its l
 \end{equation*}
 The growth rate of aggregate capital is given by:
 \begin{equation*}
-    \mathrm{d}\ln(K_t) \equiv \sum_{i=1}^N b_{it}^K \mathrm{d}\ln(K_{it}) \quad \text{where} \quad b_{it}^K \equiv \frac{r_{it} K_{it}}{\sum_{j=1}^N r_{jt} K_{jt}}
+    \mathrm{d}\ln(K_t) \equiv \sum_{i=1}^N \omega_{it}^K \mathrm{d}\ln(K_{it}) \quad \text{where} \quad \omega_{it}^K \equiv \frac{r_{it} K_{it}}{\sum_{j=1}^N r_{jt} K_{jt}}
 \end{equation*}
 and the growth rate of aggregate labor is given by:
 \begin{equation*}
-    \mathrm{d}\ln(L_t) \equiv \sum_{i=1}^N b_{it}^L \mathrm{d}\ln(L_{it}) \quad \text{where} \quad b_{it}^L \equiv \frac{w_{it} L_{it}}{\sum_{j=1}^N w_{jt} L_{jt}}
+    \mathrm{d}\ln(L_t) \equiv \sum_{i=1}^N \omega_{it}^L \mathrm{d}\ln(L_{it}) \quad \text{where} \quad \omega_{it}^L \equiv \frac{w_{it} L_{it}}{\sum_{j=1}^N w_{jt} L_{jt}}
 \end{equation*}
 and where $r_{it}$ and $w_{it}$ are the rental rate of capital and the wage rate in industry $i$ at time $t$, respectively.
 
 \paragraph{Productivity Growth Accounting.} Combining the above equations, we can express aggregate TFP growth as:
 \begin{align*}
     \mathrm{d}\ln(A_t) &= \sum_{i=1}^N b_{it} \mathrm{d}\ln(A_{it}) \\
-    &+ \sum_{i=1}^N (b_{it} \alpha_{it}^K - b_{it}^K \lambda_t^K) \mathrm{d}\ln(K_{it}) \\
-    &+ \sum_{i=1}^N (b_{it} \alpha_{it}^L - b_{it}^L \lambda_t^L) \mathrm{d}\ln(L_{it}).
+    &+ \sum_{i=1}^N (b_{it} \alpha_{it}^K - \omega_{it}^K \lambda_t^K) \mathrm{d}\ln(K_{it}) \\
+    &+ \sum_{i=1}^N (b_{it} \alpha_{it}^L - \omega_{it}^L \lambda_t^L) \mathrm{d}\ln(L_{it}).
 \end{align*}
 Following \citet{Halperin_Mazlish_2024}, adding and subtracting the term $\sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})$ and summing from time $t_0$ to $t_1$, we can further decompose the cumulative aggregate TFP growth between these two dates into the following components:
 \begin{alignat}{2}
     \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) &= \sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Productivity}} \label{eq:productivity} \\
     &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol} \\
-    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^K - b_{it}^K \lambda_t^K) \mathrm{d}\ln(K_{it}) &&\quad \text{\textcolor{HEC}{Capital}} \label{eq:capital} \\
-    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^L - b_{it}^L \lambda_t^L) \mathrm{d}\ln(L_{it}) &&\quad \text{\textcolor{HEC}{Labor.}} \label{eq:labor}
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^K - \omega_{it}^K \lambda_t^K) \mathrm{d}\ln(K_{it}) &&\quad \text{\textcolor{HEC}{Capital}} \label{eq:capital} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^L - \omega_{it}^L \lambda_t^L) \mathrm{d}\ln(L_{it}) &&\quad \text{\textcolor{HEC}{Labor.}} \label{eq:labor}
 \end{alignat}
 In this equation, term \eqref{eq:productivity} weighs industry-level TFP growth by each industry's initial share of value-added. That is, if we freeze each industry's share of nominal value-added, we capture the contribution of within-industry productivity improvements alone--how much aggregate TFP has grown purely because each industry became more productive over time.
 
 Term \eqref{eq:baumol} instead weighs industry-level TFP growth by the change in each industry's share of value-added between dates $t_0$ and $t_1$. Therefore, it measures how the changing industrial composition of the economy contributes to aggregate TFP growth. This term is negative when industries with low productivity growth become more important in the economy, or vice-versa.
 
-Terms \eqref{eq:capital} and \eqref{eq:labor} capture the contribution of reallocating factors across sectors. It weighs changes in industry-level capital and labor inputs by the difference between two terms. The first term is the product of the industry's share of total value-added and the elasticity of its output with respect to inputs. The second term is the product of the industry's share of total factor expenditures and the elasticity of aggregate output with respect to inputs. Intuitively, moving inputs into industries where they are more productive than the economy-wide average ($\alpha_{it}^K > \lambda_t^K$ or $\alpha_{it}^L > \lambda_t^L$) and where the receiving industries are more important in output than costs ($b_{it} > b_{it}^K$ or $b_{it} > b_{it}^L$) (i.e., high markup industries) raises aggregate productivity growth.
+Terms \eqref{eq:capital} and \eqref{eq:labor} capture the contribution of reallocating factors across sectors. It weighs changes in industry-level capital and labor inputs by the difference between two terms. The first term is the product of the industry's share of total value-added and the elasticity of its output with respect to inputs. The second term is the product of the industry's share of total factor expenditures and the elasticity of aggregate output with respect to inputs. Intuitively, moving inputs into industries where they are more productive than the economy-wide average ($\alpha_{it}^K > \lambda_t^K$ or $\alpha_{it}^L > \lambda_t^L$) and where the receiving industries are more important in output than costs ($b_{it} > \omega_{it}^K$ or $b_{it} > \omega_{it}^L$) (i.e., high markup industries) raises aggregate productivity growth.
 
 \section{Data}
 \label{s:data}
