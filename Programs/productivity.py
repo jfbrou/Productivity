@@ -83,9 +83,9 @@ df = df[df['year'] < 2020]
 
 # Calculate the share of value-added of each industry within year
 df['va_agg'] = df.groupby('year')['va'].transform('sum')
-df['va_share'] = df['va'] / df['va_agg']
-df['b'] = df.groupby('industry')['va_share'].transform(lambda x: x.rolling(2).mean())
-df = df.drop(columns=['va_agg', 'va_share'])
+df['b'] = df['va'] / df['va_agg']
+df['b'] = df.groupby('industry')['b'].transform(lambda x: x.rolling(2).mean())
+df = df.drop(columns=['va_agg'])
 
 # Calculate the share of value-added of each industry for years 1962, 1980, and 2000
 df = pd.merge(df, df.loc[df['year'] == 1962, ['industry', 'b']].rename(columns={'b': 'b_1962'}), on='industry', how='left')
@@ -94,6 +94,21 @@ df = pd.merge(df, df.loc[df['year'] == 2000, ['industry', 'b']].rename(columns={
 
 # Calculate the log difference of TFP within each industry
 df['tfp_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
+
+# Calculate the industry-level output elasticities of capital and labor
+df['alpha_k'] = df['capital_cost'] / (df['capital_cost'] + df['labor_cost'])
+df['alpha_k'] = df.groupby('industry')['alpha_k'].transform(lambda x: x.rolling(2).mean())
+df['alpha_l'] = df['labor_cost'] / (df['capital_cost'] + df['labor_cost'])
+df['alpha_l'] = df.groupby('industry')['alpha_l'].transform(lambda x: x.rolling(2).mean())
+
+# Calculate the share of total labor and capital costs of each industry within year
+df['capital_cost_agg'] = df.groupby('year')['capital_cost'].transform('sum')
+df['omega_k'] = df['capital_cost'] / df['capital_cost_agg']
+df['omega_k'] = df.groupby('industry')['omega_k'].transform(lambda x: x.rolling(2).mean())
+df['labor_cost_agg'] = df.groupby('year')['labor_cost'].transform('sum')
+df['omega_l'] = df['labor_cost'] / df['labor_cost_agg']
+df['omega_l'] = df.groupby('industry')['omega_l'].transform(lambda x: x.rolling(2).mean())
+df = df.drop(columns=['capital_cost_agg', 'labor_cost_agg'])
 
 # Calculate the productivity and Baumol terms between 1961 and 2019
 df_1962_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
