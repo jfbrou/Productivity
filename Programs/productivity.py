@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from stats_can import StatsCan
 from datetime import datetime
+from scipy import sparse
 
 # Initialize the StatsCan API
 sc = StatsCan()
@@ -18,11 +19,54 @@ rc('text', usetex=True)
 palette = ['#002855', '#26d07c', '#ff585d', '#f3d03e', '#0072ce', '#eb6fbd', '#00aec7', '#888b8d']
 
 ########################################################################
-# Prepare the Statistics Canada data                                   # 
+# Prepare the Table 36-10-0217-01 Statistics Canada data               # 
 ########################################################################
 
 # Retrieve the data from Table 36-10-0217-01
 df = sc.table_to_df('36-10-0217-01')
+
+# Define a NAICS code dictionary
+naics_map = {
+    'Accommodation and food services [72]': '72',
+    'Administrative and support, waste management and remediation services [56]':  '56',
+    'Arts, entertainment and recreation [71]': '71',
+    'Beverage and tobacco product manufacturing [312]': '312',
+    'Chemical manufacturing [325]': '325',
+    'Clothing, Leather and allied product manufacturing': '315-316',
+    'Computer and electronic product manufacturing [334]': '334',
+    'Construction [23]': '23', 
+    'Crop and animal production': '111-112',
+    'Electrical equipment, appliance and component manufacturing [335]': '335',
+    'Fabricated metal product manufacturing [332]': '332',
+    'Finance, insurance, real estate and renting and leasing': '52-53',
+    'Fishing, hunting and trapping [114]': '114', 
+    'Food manufacturing [311]': '311',
+    'Forestry and logging [113]': '113',
+    'Furniture and related product manufacturing [337]': '337',
+    'Health care and social assistance (except hospitals)': '62',
+    'Information and cultural industries [51]': '51',
+    'Machinery manufacturing [333]': '333',
+    'Mining (except oil and gas) [212]': '212',
+    'Miscellaneous manufacturing [339]': '339',
+    'Non-metallic mineral product manufacturing [327]': '327',
+    'Oil and gas extraction [211]': '211',
+    'Other services (except public administration) [81]': '81',
+    'Paper manufacturing [322]': '322',
+    'Petroleum and coal products manufacturing [324]': '324',
+    'Plastics and rubber products manufacturing [326]': '326',
+    'Primary metal manufacturing [331]': '331',
+    'Printing and related support activities [323]': '323',
+    'Professional, scientific and technical services [54]': '54',
+    'Retail trade [44-45]': '44-45',
+    'Support activities for agriculture and forestry [115]': '115',
+    'Support activities for mining and oil and gas extraction [213]': '213',
+    'Textile and textile product mills': '313-314',
+    'Transportation and warehousing [48-49]': '48-49',
+    'Transportation equipment manufacturing [336]': '336', 
+    'Utilities [221]': '221',
+    'Wholesale trade [41]': '41', 
+    'Wood product manufacturing [321]': '321'
+}
 
 # Drop several sectors and industries
 drop_list = [
@@ -50,10 +94,10 @@ df = df[~df['North American Industry Classification System (NAICS)'].isin(drop_l
 
 # Keep the relevant variables
 relevant_vars = [
-    'Multifactor productivity based on value-added',
     'Labour input',
     'Capital input',
     'Gross domestic product (GDP)', 
+    'Real gross domestic product (GDP)', 
     'Labour compensation',
     'Capital cost'
 ]
@@ -68,10 +112,10 @@ df = df.pivot_table(index=['North American Industry Classification System (NAICS
 df = df.rename(columns={
     'North American Industry Classification System (NAICS)': 'industry',
     'REF_DATE': 'date',
-    'Multifactor productivity based on value-added': 'tfp',
     'Labour input': 'labor',
     'Capital input': 'capital',
     'Gross domestic product (GDP)': 'va',
+    'Real gross domestic product (GDP)': 'real_va',
     'Labour compensation': 'labor_cost',
     'Capital cost': 'capital_cost'
 })
@@ -80,6 +124,27 @@ df = df.rename(columns={
 df['year'] = df['date'].dt.year
 df = df.drop(columns=['date'])
 df = df[df['year'] < 2020]
+
+# Map the industry to the NAICS code
+df['code'] = df['industry'].map(naics_map)
+
+# Rescale the variables to 1961=100
+df['real_va'] = df['real_va'] / df.loc[df['year'] == 1961, 'real_va'].values[0] * 100
+df['capital'] = df['capital'] / df.loc[df['year'] == 1961, 'capital'].values[0] * 100
+df['labor'] = df['labor'] / df.loc[df['year'] == 1961, 'labor'].values[0] * 100
+
+# Calculate TFP with and without the capital adjustment for every industry
+df['tfp'] = [np.nan] * df.shape[0]
+df['tfp_adj'] = [np.nan] * df.shape[0]
+df.loc[df['year'] == 1961, 'tfp'] = 100
+df.loc[df['year'] == 1961, 'tfp_adj'] = 100
+for i in df['industry'].unique():
+    for year in range(1962, 2019 + 1, 1):
+        alpha_now = df.loc[(df['year'] == year) & (df['industry'] == i), 'capital_cost'].iloc[0] / (df.loc[(df['year'] == year) & (df['industry'] == i), 'capital_cost'].iloc[0] + df.loc[(df['year'] == year) & (df['industry'] == i), 'labor_cost'].iloc[0])
+        alpha_prev = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital_cost'].iloc[0] / (df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital_cost'].iloc[0] + df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor_cost'].iloc[0])
+        alpha = 0.5 * (alpha_now + alpha_prev)
+        df.loc[(df['year'] == year) & (df['industry'] == i), 'tfp'] = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'tfp'].iloc[0] * np.exp(np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0]) - alpha * np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital'].iloc[0]) - (1 - alpha) * np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'labor'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor'].iloc[0]))
+        df.loc[(df['year'] == year) & (df['industry'] == i), 'tfp_adj'] = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'tfp_adj'].iloc[0] * np.exp(np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0]) - (alpha / (1 - alpha)) * np.log((df.loc[(df['year'] == year) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0]) / (df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0])) - np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'labor'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor'].iloc[0]))
 
 # Calculate the share of value-added of each industry within year
 df['va_agg'] = df.groupby('year')['va'].transform('sum')
@@ -92,8 +157,9 @@ df = pd.merge(df, df.loc[df['year'] == 1962, ['industry', 'b']].rename(columns={
 df = pd.merge(df, df.loc[df['year'] == 1980, ['industry', 'b']].rename(columns={'b': 'b_1980'}), on='industry', how='left')
 df = pd.merge(df, df.loc[df['year'] == 2000, ['industry', 'b']].rename(columns={'b': 'b_2000'}), on='industry', how='left')
 
-# Calculate the log difference of TFP within each industry
+# Calculate the log difference of TFP, capital, and labor within each industry
 df['tfp_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
+df['tfp_adj_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
 
 # Calculate the industry-level output elasticities of capital and labor
 df['alpha_k'] = df['capital_cost'] / (df['capital_cost'] + df['labor_cost'])
@@ -117,6 +183,141 @@ df_1962_2019 = pd.merge(df_1962_2019, df.groupby('year', as_index=False).agg({'w
 df['between'] = (df['b'] - df['b_1962']) * df['tfp_growth']
 df_1962_2019 = pd.merge(df_1962_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
 df = df.drop(columns=['within', 'between'])
+
+########################################################################
+# Prepare the Table 36-10-0001-01 Statistics Canada data               # 
+########################################################################
+
+# Retrieve the data from Table 36-10-0001-01
+df_io = sc.table_to_df('36-10-0001-01')
+
+# Restrict on basic prices
+df_io = df_io[df_io['Valuation'] == 'Basic price']
+
+# Drop total supply and use, and codes ["BS551113", "BS610000"]
+df_io = df_io[df_io['Supply'] != 'Total supply']
+df_io = df_io[df_io['Use'] != 'Total use']
+
+# Keep the relevant columns
+df_io = df_io[['REF_DATE', 'Supply', 'Use', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Supply': 'supply', 'Use': 'use', 'VALUE': 'value'})
+
+# Recode the date column to year
+df_io['year'] = df_io['date'].dt.year
+df_io = df_io.drop(columns=['date'])
+df_io = df_io[df_io['year'] < 2020]
+
+# Identify the "supply" and "use" codes
+df_io['supply_code'] = df_io['supply'].str[-9:-1]
+df_io['use_code'] = df_io['use'].str[-9:-1]
+
+# Only keep the supply and use codes that start with "BS" (business sector)
+df_io = df_io[df_io['supply_code'].str.startswith('BS')]
+df_io = df_io[df_io['use_code'].str.startswith('BS')]
+
+# Drop the supply and use codes "BS551113" and "BS610000"
+df_io = df_io[~df_io['supply_code'].isin(['BS551113', 'BS610000'])]
+df_io = df_io[~df_io['use_code'].isin(['BS551113', 'BS610000'])]
+
+# Define aggregated codes at the 3-digit NAICS level
+df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
+df_io['use_code_agg'] = df_io['use_code'].str[2:5]
+
+# Aggregate the data frame at the 3-digit NAICS level
+df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
+
+# Define an aggregation grouping
+group_list = {
+    '111': '111-112',
+    '112': '111-112',
+    '23A': '23',
+    '23B': '23',
+    '23C': '23',
+    '23D': '23',
+    '23E': '23',
+    '31A': '313-314',
+    '31B': '315-316',
+    '411': '41',
+    '412': '41',
+    '413': '41',
+    '414': '41',
+    '415': '41',
+    '416': '41',
+    '417': '41',
+    '418': '41',
+    '419': '41',
+    '441': '44-45',
+    '442': '44-45',
+    '443': '44-45',
+    '444': '44-45',
+    '445': '44-45',
+    '446': '44-45',
+    '447': '44-45',
+    '448': '44-45',
+    '451': '44-45',
+    '452': '44-45',
+    '453': '44-45',
+    '454': '44-45',
+    '481': '48-49',
+    '482': '48-49',
+    '483': '48-49',
+    '484': '48-49',
+    '485': '48-49',
+    '486': '48-49',
+    '488': '48-49',
+    '48A': '48-49',
+    '491': '48-49',
+    '492': '48-49',
+    '493': '48-49',
+    '511': '51',
+    '512': '51',
+    '515': '51',
+    '517': '51',
+    '518': '51',
+    '519': '51',
+    '521': '52-53',
+    '522': '52-53',
+    '524': '52-53',
+    '52A': '52-53',
+    '531': '52-53',
+    '532': '52-53',
+    '533': '52-53',
+    '541': '54',
+    '561': '56',
+    '562': '56',
+    '621': '62',
+    '623': '62',
+    '624': '62',
+    '713': '71',
+    '71A': '71',
+    '721': '72',
+    '722': '72',
+    '811': '81',
+    '812': '81',
+    '813': '81'
+}
+
+# Map the aggregation grouping
+df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
+df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
+
+# Aggregate the data frame at the coarser 3-digit NAICS level
+df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
+
+# Create a DataFrame with all possible combinations of codes
+all_codes = set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())
+df_io_all = pd.DataFrame([(supply, use, year) for supply in all_codes for use in all_codes for year in range(2013, 2019 + 1)], columns=['supply_code_agg', 'use_code_agg', 'year'])
+df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg', 'year'], how='left')
+df_io.loc[df_io['value'].isna(), 'value'] = 0
+
+# Calculate the cost share of each industry
+df_io['cost_share'] = df_io.groupby(['year', 'use_code_agg'])['value'].transform(lambda x: x / x.sum())
+
+# Create the cost-based IO matrices for each year
+io_matrices = {}
+for year in df_io['year'].unique():
+    df_io_year = df_io[df_io['year'] == year]
+    io_matrix = df_io_year.pivot(index='use_code_agg', columns='supply_code_agg', values='cost_share').values
+    io_matrices[year] = sparse.csr_matrix(io_matrix)
 
 ########################################################################
 # Plot the TFP decomposition                                           # 
