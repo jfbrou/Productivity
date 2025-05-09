@@ -304,20 +304,49 @@ df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io
 df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
 
 # Create a DataFrame with all possible combinations of codes
-all_codes = set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())
+all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
 df_io_all = pd.DataFrame([(supply, use, year) for supply in all_codes for use in all_codes for year in range(2013, 2019 + 1)], columns=['supply_code_agg', 'use_code_agg', 'year'])
 df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg', 'year'], how='left')
+
+# Include the capital and labor costs
+df_capital = df[['capital_cost', 'code', 'year']].rename(columns={'code': 'use_code_agg'})
+df_capital['supply_code_agg'] = 'capital'
+df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
+df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg', 'year'], how='left')
+df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+df_io = df_io.drop(columns=['capital_cost'])
+df_labor = df[['labor_cost', 'code', 'year']].rename(columns={'code': 'use_code_agg'})
+df_labor['supply_code_agg'] = 'labor'
+df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
+df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg', 'year'], how='left')
+df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+df_io = df_io.drop(columns=['labor_cost'])
+
+# Fill in the missing values with 0
 df_io.loc[df_io['value'].isna(), 'value'] = 0
 
 # Calculate the cost share of each industry
 df_io['cost_share'] = df_io.groupby(['year', 'use_code_agg'])['value'].transform(lambda x: x / x.sum())
+df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
+
+# Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 
 # Create the cost-based IO matrices for each year
-io_matrices = {}
+df_lambda = pd.DataFrame({'year': df['year'].unique()})
+df_lambda['lambda_k'] = np.nan
+df_lambda['lambda_l'] = np.nan
 for year in df_io['year'].unique():
     df_io_year = df_io[df_io['year'] == year]
     io_matrix = df_io_year.pivot(index='use_code_agg', columns='supply_code_agg', values='cost_share').values
-    io_matrices[year] = sparse.csr_matrix(io_matrix)
+    io_matrix = sparse.csr_matrix(io_matrix)
+    b = df.loc[df['year'] == year, ['code', 'va']].sort_values(by=['code'])['va'].values
+    b = b / b.sum()
+    b = np.append(b, [0, 0])
+    lambda_tilde = np.matmul(b.transpose(), np.linalg.inv(np.eye(io_matrix.shape[0]) - io_matrix))
+    df_lambda.loc[df_lambda['year'] == year, 'lambda_k'] = lambda_tilde[0, -2]
+    df_lambda.loc[df_lambda['year'] == year, 'lambda_l'] = lambda_tilde[0, -1]
+
 
 ########################################################################
 # Plot the TFP decomposition                                           # 
