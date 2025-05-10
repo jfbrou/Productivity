@@ -347,13 +347,12 @@ for year in df_io['year'].unique():
     df_lambda.loc[df_lambda['year'] == year, 'lambda_k'] = lambda_tilde[0, -2]
     df_lambda.loc[df_lambda['year'] == year, 'lambda_l'] = lambda_tilde[0, -1]
 
-
 ########################################################################
 # Plot the TFP decomposition                                           # 
 ########################################################################
 
 # Initialize the figure
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots(figsize=(8, 5))
 
 # Set the background color of the figure to transparent
 fig.patch.set_alpha(0.0)
@@ -364,9 +363,9 @@ ax.plot(df_1962_2019['year'], 100 * (df_1962_2019['productivity'].cumsum() + df_
 ax.plot(df_1962_2019['year'], 100 * (df_1962_2019['productivity'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
 
 # Set the horizontal axis
-ax.set_xlim(1961, 2019)
-ax.set_xticks(range(1965, 2015 + 1, 5))
-ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
+ax.set_xlim(1961, 2020)
+ax.set_xticks(range(1965, 2020 + 1, 5))
+ax.set_xticklabels(range(1965, 2020 + 1, 5), fontsize=12)
 
 # Set the vertical axis
 ax.set_ylim(100, 150)
@@ -389,4 +388,153 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 # Save and close the figure
 fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'baumol.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot TFP growth against growth in value-added across industries      # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va']]
+
+# Calculate the growth rates
+df_baumol.loc[:, ['tfp', 'va']] = df_baumol.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_baumol = df_baumol.dropna(subset=['tfp', 'va'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol['tfp'], df_baumol['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+
+# Plot the OLS regression line
+slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['va'], 1)
+x = np.linspace(-0.02, 0.03, 100)
+y = slope * x + intercept
+ax.plot(x, y, color=palette[0], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.02, 0.03)
+ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(0, 0.12)
+ax.set_yticks(np.arange(0, 0.12 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 12 + 1, 2)], fontsize=12)
+ax.set_ylabel('Annual GDP growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Identify the oil and gas extraction industry
+position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'va'].values[0])
+ax.text(position_211[0] + 0.003, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=(position_211[0], position_211[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the computer and electronic product manufacturing industry
+position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'va'].values[0])
+ax.text(position_334[0] - 0.005, position_334[1] + 0.03, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] - 0.005, position_334[1] + 0.025), xytext=(position_334[0], position_334[1] + 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the arts, entertainment and recreation industry
+position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'va'].values[0])
+ax.text(position_71[0] + 0.0065, position_71[1] + 0.02, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.015), xytext=(position_71[0] + 0.00025, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the wood product manufacturing industry
+position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'va'].values[0])
+ax.text(position_321[0] + 0.005, position_321[1] - 0.03, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.025), xytext=(position_321[0], position_321[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'va_tfp_growth.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot TFP growth against growth in prices across industries           # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
+
+# Calculate the price in each industry
+df_baumol['price'] = df_baumol['va'] / df_baumol['real_va']
+
+# Calculate the growth rates
+df_baumol.loc[:, ['tfp', 'price']] = df_baumol.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_baumol = df_baumol.dropna(subset=['tfp', 'price'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol['tfp'], df_baumol['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+
+# Plot the OLS regression line
+slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['price'], 1)
+x = np.linspace(-0.02, 0.03, 100)
+y = slope * x + intercept
+ax.plot(x, y, color=palette[0], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.02, 0.03)
+ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(0, 0.06)
+ax.set_yticks(np.arange(0, 0.06 + 0.01, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 6 + 1, 1)], fontsize=12)
+ax.set_ylabel('Annual price growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Identify the oil and gas extraction industry
+position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'price'].values[0])
+ax.text(position_211[0] + 0.0035, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=(position_211[0], position_211[1] - 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the computer and electronic product manufacturing industry
+position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'price'].values[0])
+ax.text(position_334[0] - 0.0125, position_334[1], 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] - 0.007, position_334[1]), xytext=(position_334[0] - 0.00025, position_334[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the arts, entertainment and recreation industry
+position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'price'].values[0])
+ax.text(position_71[0] + 0.01, position_71[1] + 0.0075, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_71[0] + 0.01, position_71[1] + 0.005), xytext=(position_71[0] + 0.00025, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Identify the wood product manufacturing industry
+position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'price'].values[0])
+ax.text(position_321[0] + 0.005, position_321[1] + 0.01, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] + 0.0075), xytext=(position_321[0], position_321[1] + 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth.png'), transparent=True, dpi=300)
 plt.close()
