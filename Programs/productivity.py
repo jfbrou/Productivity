@@ -689,3 +689,267 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'wage_tfp_growth.png'), transparent=True, dpi=300)
 plt.close()
+
+########################################################################
+# Plot TFP growth against growth in value-added across industries for  #
+# the two periods of the analysis                                      # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'va']]
+df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va']]
+
+# Calculate the growth rates
+df_baumol_1.loc[:, ['tfp', 'va']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'va'])
+df_baumol_2.loc[:, ['tfp', 'va']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
+df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'va'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol_1['tfp'], df_baumol_1['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_baumol_2['tfp'], df_baumol_2['va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+
+# Plot the OLS regression lines
+x = np.linspace(-0.03, 0.04, 100)
+slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['va'], 1)
+slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['va'], 1)
+y_1 = slope_1 * x + intercept_1
+y_2 = slope_2 * x + intercept_2
+ax.plot(x, y_1, color=palette[1], linestyle='dotted')
+ax.plot(x, y_2, color=palette[2], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.03, 0.04)
+ax.set_xticks(np.arange(-0.03, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(-0.02, 0.18)
+ax.set_yticks(np.arange(-0.02, 0.18 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 18 + 1, 2)], fontsize=12)
+ax.set_ylabel('Annual GDP growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(loc='upper right', fontsize=12, frameon=False, markerscale=1.5, handlelength=1.5, handletextpad=0.5, borderpad=0.5)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'va_tfp_growth_period.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot TFP growth against growth in real value-added across industries #
+# for the two periods of the analysis                                  # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'real_va']]
+df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'real_va']]
+
+# Calculate the growth rates
+df_baumol_1.loc[:, ['tfp', 'real_va']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'real_va']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'real_va'])
+df_baumol_2.loc[:, ['tfp', 'real_va']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'real_va']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
+df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'real_va'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol_1['tfp'], df_baumol_1['real_va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_baumol_2['tfp'], df_baumol_2['real_va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+
+# Plot the OLS regression lines
+x = np.linspace(-0.03, 0.04, 100)
+slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['real_va'], 1)
+slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['real_va'], 1)
+y_1 = slope_1 * x + intercept_1
+y_2 = slope_2 * x + intercept_2
+ax.plot(x, y_1, color=palette[1], linestyle='dotted')
+ax.plot(x, y_2, color=palette[2], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.03, 0.04)
+ax.set_xticks(np.arange(-0.03, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(-0.04, 0.1)
+ax.set_yticks(np.arange(-0.04, 0.1 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-4, 10 + 1, 2)], fontsize=12)
+ax.set_ylabel('Annual real GDP growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(loc='lower right', fontsize=12, frameon=False, markerscale=1.5, handlelength=1.5, handletextpad=0.5, borderpad=0.5)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'real_va_tfp_growth_period.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot TFP growth against growth in prices across industries for the   #
+# two periods of the analysis                                          # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
+df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
+
+# Calculate the price in each industry
+df_baumol_1['price'] = df_baumol_1['va'] / df_baumol_1['real_va']
+df_baumol_2['price'] = df_baumol_2['va'] / df_baumol_2['real_va']
+
+# Calculate the growth rates
+df_baumol_1.loc[:, ['tfp', 'price']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'price'])
+df_baumol_2.loc[:, ['tfp', 'price']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
+df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'price'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol_1['tfp'], df_baumol_1['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_baumol_2['tfp'], df_baumol_2['price'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+
+# Plot the OLS regression lines
+x = np.linspace(-0.03, 0.04, 100)
+slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['price'], 1)
+slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['price'], 1)
+y_1 = slope_1 * x + intercept_1
+y_2 = slope_2 * x + intercept_2
+ax.plot(x, y_1, color=palette[1], linestyle='dotted')
+ax.plot(x, y_2, color=palette[2], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.03, 0.04)
+ax.set_xticks(np.arange(-0.03, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(-0.02, 0.14)
+ax.set_yticks(np.arange(-0.02, 0.14 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 14 + 1, 2)], fontsize=12)
+ax.set_ylabel('Annual price growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(loc='upper right', fontsize=12, frameon=False, markerscale=1.5, handlelength=1.5, handletextpad=0.5, borderpad=0.5)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth_period.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot TFP growth against growth in wages across industries for the    #
+# two periods of the analysis                                          # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'labor_cost', 'hours']]
+df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'labor_cost', 'hours']]
+
+# Calculate the average wage within each industry
+df_baumol_1['wage'] = df_baumol_1['labor_cost'] / df_baumol_1['hours']
+df_baumol_2['wage'] = df_baumol_2['labor_cost'] / df_baumol_2['hours']
+
+# Calculate the growth rates
+df_baumol_1.loc[:, ['tfp', 'wage']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'wage']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'wage'])
+df_baumol_2.loc[:, ['tfp', 'wage']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
+df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'wage'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol_1['tfp'], df_baumol_1['wage'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_baumol_2['tfp'], df_baumol_2['wage'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+
+# Plot the OLS regression lines
+x = np.linspace(-0.03, 0.04, 100)
+slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['wage'], 1)
+slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['wage'], 1)
+y_1 = slope_1 * x + intercept_1
+y_2 = slope_2 * x + intercept_2
+ax.plot(x, y_1, color=palette[1], linestyle='dotted')
+ax.plot(x, y_2, color=palette[2], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.03, 0.04)
+ax.set_xticks(np.arange(-0.03, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual TFP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(0.02, 0.1)
+ax.set_yticks(np.arange(0.02, 0.1 + 0.01, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(2, 10 + 1, 1)], fontsize=12)
+ax.set_ylabel('Annual wage growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(loc='lower right', fontsize=12, frameon=False, markerscale=1.5, handlelength=1.5, handletextpad=0.5, borderpad=0.5)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'wage_tfp_growth_period.png'), transparent=True, dpi=300)
+plt.close()

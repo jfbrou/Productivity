@@ -160,28 +160,28 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 \section{Empirical Results}
 \label{s:empirical results}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \caption{Price and TFP Growth}
     \includegraphics[width=0.7\textwidth]{price_tfp_growth.png}
     \label{fig:price_tfp_growth}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \caption{Wage and TFP Growth}
     \includegraphics[width=0.7\textwidth]{wage_tfp_growth.png}
     \label{fig:wage_tfp_growth}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \caption{Nominal GDP and TFP Growth}
     \includegraphics[width=0.7\textwidth]{va_tfp_growth.png}
     \label{fig:va_tfp_growth}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[h]
     \centering
     \caption{Real GDP and TFP Growth}
     \includegraphics[width=0.7\textwidth]{real_va_tfp_growth.png}
@@ -203,5 +203,45 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 \numberwithin{equation}{section}
 \renewcommand\thefigure{\thesection.\arabic{figure}}
 \renewcommand\thetable{\thesection.\arabic{table}}
+
+\section{Empirical Appendix}
+
+\begin{figure}[h]
+    \centering
+    \caption{Prices, Wages, and TFP Growth}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Prices}
+        \includegraphics[width=\textwidth]{price_tfp_growth_period.png}
+        \label{fig:price_tfp_growth_period}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Wages}
+        \includegraphics[width=\textwidth]{wage_tfp_growth_period.png}
+        \label{fig:wage_tfp_growth_period}
+    \end{subfigure}
+    \label{fig:price_wage_tfp_growth_period}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{GDP and TFP Growth}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Nominal GDP}
+        \includegraphics[width=\textwidth]{va_tfp_growth_period.png}
+        \label{fig:va_tfp_growth_period}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Real GDP}
+        \includegraphics[width=\textwidth]{real_va_tfp_growth_period.png}
+        \label{fig:real_va_tfp_growth_period}
+    \end{subfigure}
+    \label{fig:gdp_tfp_growth_period}
+\end{figure}
 
 \end{document}
