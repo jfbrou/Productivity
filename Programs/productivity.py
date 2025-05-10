@@ -542,6 +542,62 @@ fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth.
 plt.close()
 
 ########################################################################
+# Plot real GDP growth against growth in prices across industries      # 
+########################################################################
+
+# Only keep the relevant years and columns
+df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
+
+# Calculate the price in each industry
+df_baumol['price'] = df_baumol['va'] / df_baumol['real_va']
+
+# Calculate the growth rates
+df_baumol.loc[:, ['real_va', 'price']] = df_baumol.groupby('code', as_index=False)[['real_va', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_baumol = df_baumol.dropna(subset=['real_va', 'price'])
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.scatter(df_baumol['real_va'], df_baumol['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+
+# Plot the OLS regression line
+slope, intercept = np.polyfit(df_baumol['real_va'], df_baumol['price'], 1)
+x = np.linspace(-0.02, 0.06, 100)
+y = slope * x + intercept
+ax.plot(x, y, color=palette[0], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.02, 0.06)
+ax.set_xticks(np.arange(-0.02, 0.06 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 6 + 1, 1)], fontsize=12)
+ax.set_xlabel('Annual real GDP growth', fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(0, 0.06)
+ax.set_yticks(np.arange(0, 0.06 + 0.01, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 6 + 1, 1)], fontsize=12)
+ax.set_ylabel('Annual price growth', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_real_va_growth.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
 # Plot TFP growth against growth in real value-added across industries # 
 ########################################################################
 
@@ -575,9 +631,9 @@ ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
 ax.set_xlabel('Annual TFP growth', fontsize=12)
 
 # Set the vertical axis
-ax.set_ylim(-0.02, 0.08)
-ax.set_yticks(np.arange(-0.02, 0.08 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 8 + 1, 2)], fontsize=12)
+ax.set_ylim(-0.02, 0.1)
+ax.set_yticks(np.arange(-0.02, 0.1 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 10 + 1, 2)], fontsize=12)
 ax.set_ylabel('Annual real GDP growth', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
@@ -604,7 +660,7 @@ ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.02), xytext=(pos
 # Identify the wood product manufacturing industry
 position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'real_va'].values[0])
 ax.text(position_321[0] + 0.005, position_321[1] - 0.02, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.015), xytext=(position_321[0], position_321[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.015), xytext=(position_321[0], position_321[1] - 0.00125), arrowprops=dict(arrowstyle='->', color='k', lw=1))
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
@@ -796,9 +852,9 @@ ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
 ax.set_xlabel('Annual TFP growth', fontsize=12)
 
 # Set the vertical axis
-ax.set_ylim(-0.04, 0.1)
-ax.set_yticks(np.arange(-0.04, 0.1 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(-4, 10 + 1, 2)], fontsize=12)
+ax.set_ylim(-0.08, 0.12)
+ax.set_yticks(np.arange(-0.08, 0.12 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-8, 12 + 1, 2)], fontsize=12)
 ax.set_ylabel('Annual real GDP growth', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
@@ -932,9 +988,9 @@ ax.set_xticklabels([str(x) + r'\%' for x in range(-3, 4 + 1, 1)], fontsize=12)
 ax.set_xlabel('Annual TFP growth', fontsize=12)
 
 # Set the vertical axis
-ax.set_ylim(0.02, 0.1)
-ax.set_yticks(np.arange(0.02, 0.1 + 0.01, 0.01))
-ax.set_yticklabels([str(x) + r'\%' for x in range(2, 10 + 1, 1)], fontsize=12)
+ax.set_ylim(-0.02, 0.14)
+ax.set_yticks(np.arange(-0.02, 0.14 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 14 + 1, 2)], fontsize=12)
 ax.set_ylabel('Annual wage growth', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
