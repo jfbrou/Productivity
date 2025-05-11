@@ -154,8 +154,8 @@ df['b'] = df['va'] / df['va_agg']
 df['b'] = df.groupby('industry')['b'].transform(lambda x: x.rolling(2).mean())
 df = df.drop(columns=['va_agg'])
 
-# Calculate the share of value-added of each industry for years 1962, 1980, and 2000
-df = pd.merge(df, df.loc[df['year'] == 1962, ['industry', 'b']].rename(columns={'b': 'b_1962'}), on='industry', how='left')
+# Calculate the share of value-added of each industry for years 1961, 1980, and 2000
+df = pd.merge(df, df.loc[df['year'] == 1962, ['industry', 'b']].rename(columns={'b': 'b_1961'}), on='industry', how='left')
 df = pd.merge(df, df.loc[df['year'] == 1980, ['industry', 'b']].rename(columns={'b': 'b_1980'}), on='industry', how='left')
 df = pd.merge(df, df.loc[df['year'] == 2000, ['industry', 'b']].rename(columns={'b': 'b_2000'}), on='industry', how='left')
 
@@ -179,12 +179,28 @@ df['omega_l'] = df.groupby('industry')['omega_l'].transform(lambda x: x.rolling(
 df = df.drop(columns=['capital_cost_agg', 'labor_cost_agg'])
 
 # Calculate the productivity and Baumol terms between 1961 and 2019
-df_1962_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
-df['within'] = df['b_1962'] * df['tfp_growth']
-df_1962_2019 = pd.merge(df_1962_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1962']) * df['tfp_growth']
-df_1962_2019 = pd.merge(df_1962_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
+df_1961_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
+df['within'] = df['b_1961'] * df['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
+df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
 df = df.drop(columns=['within', 'between'])
+
+# Calculate the productivity and Baumol terms between 1961 and 1980
+df_1961_1980 = pd.DataFrame({'year': range(1961, 1980 + 1)})
+df['within'] = df['b_1961'] * df['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
+df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
+
+# Calculate the productivity and Baumol terms between 1980 and 2019
+df_1980_2019 = pd.DataFrame({'year': range(1980, 2019 + 1)})
+df['within'] = df['b_1980'] * df['tfp_growth']
+df_1980_2019 = pd.merge(df_1980_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
+df['between'] = (df['b'] - df['b_1980']) * df['tfp_growth']
+df_1980_2019 = pd.merge(df_1980_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
+df_1980_2019.loc[df_1980_2019['year'] == 1980, 'productivity'] = 0
+df_1980_2019.loc[df_1980_2019['year'] == 1980, 'baumol'] = 0
 
 ########################################################################
 # Prepare the Table 36-10-0001-01 Statistics Canada data               # 
@@ -361,8 +377,8 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.plot(df_1962_2019['year'], 100 * (df_1962_2019['productivity'].cumsum() + df_1962_2019['baumol'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
-ax.plot(df_1962_2019['year'], 100 * (df_1962_2019['productivity'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['baumol'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
 
 # Set the horizontal axis
 ax.set_xlim(1961, 2020)
@@ -391,6 +407,57 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'baumol.png'), transparent=True, dpi=300)
 plt.close()
+
+########################################################################
+# Tabulate the TFP growth decomposition for 1961-1980 and 1980-2019    # 
+########################################################################
+
+# Calculate the different terms for the two periods
+productivity_1980_2019= 100 * df_1980_2019['productivity'].cumsum().iloc[-1] / (2019 - 1980)
+baumol_1980_2019 = 100 * df_1980_2019['baumol'].cumsum().iloc[-1] / (2019 - 1980)
+total_1980_2019 = productivity_1980_2019 + baumol_1980_2019
+productivity_1961_1980 = 100 * df_1961_1980['productivity'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980 = 100 * df_1961_1980['baumol'].cumsum().iloc[-1] / (1980 - 1961)
+total_1961_1980 = productivity_1961_1980 + baumol_1961_1980
+productivity_1961_2019 = 100 * df_1961_2019['productivity'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019 = 100 * df_1961_2019['baumol'].cumsum().iloc[-1] / (2019 - 1961)
+total_1961_2019 = productivity_1961_2019 + baumol_1961_2019
+
+# Write a table with the TFP growth decomposition
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_growth.tex'), 'w')
+lines = [r'\begin{table}[h]',
+         r'\centering',
+         r'\begin{threeparttable}',
+         r'\caption{TFP Growth Decomposition}',
+         r'\begin{tabular}{lcccc}',
+         r'\hline',
+         r'\hline',
+         r'& & 1961-2019 & 1961-1980 & 1980-2019 \\',
+         r'\hline',
+         r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1980_2019) + r'\% \\',
+         r'Baumol & & ' + '{:.2f}'.format(baumol_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1980_2019) + r'\% \\',
+         r'Capital & & & & \\',
+         r'Labor & & & & \\',
+         r'\hline',
+         r'Total & & ' + '{:.2f}'.format(total_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(total_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(total_1980_2019) + r'\% \\',
+         r'\hline',
+         r'\hline',
+         r'\end{tabular}',
+         r'\begin{tablenotes}[flushleft]',
+         r'\footnotesize',
+         r'\item Note:',
+         r'\end{tablenotes}',
+         r'\label{tab:tfp_growth}',
+         r'\end{threeparttable}',
+         r'\end{table}']
+table.write('\n'.join(lines))
+table.close()
 
 ########################################################################
 # Plot TFP growth against growth in value-added across industries      # 
