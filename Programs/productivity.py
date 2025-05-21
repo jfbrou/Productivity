@@ -7,6 +7,7 @@ from matplotlib import rc
 from stats_can import StatsCan
 from datetime import datetime
 from scipy import sparse
+import xlrd
 
 # Initialize the StatsCan API
 sc = StatsCan()
@@ -1076,3 +1077,396 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'wage_tfp_growth_period.png'), transparent=True, dpi=300)
 plt.close()
+
+########################################################################
+#               Prepare IO tables (2010-2012) - L97 version            #
+########################################################################
+
+# Affichage amélioré
+pd.set_option('display.max_colwidth', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_rows', 500)
+pd.set_option('display.max_columns', None)
+
+# Fonction pour traiter un fichier IO pour une année donnée
+def process_io_file(year):
+    # Chemin dynamique selon l’année
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # dossier /Programs/
+    base_dir = os.path.dirname(current_dir)  # dossier /Productivity/
+    path = os.path.join(base_dir, "IO Tables", f"IOTs national symmetric domestic and imports L97 {year}.xlsx")
+
+    # Lecture du fichier
+    df_raw = pd.read_excel(path, sheet_name="Total", header=None)
+
+    # Enlever les lignes inutiles
+    df_io = df_raw.iloc[10:189, :].drop(index=11).reset_index(drop=True)
+
+    # Enlever les colonnes inutiles
+    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :178]
+
+    # De matrice à tableau long
+    df_io.columns = df_io.iloc[0]  # ligne 0 devient les noms de colonnes
+    df_io = df_io[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutiles
+    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
+    df_long = pd.melt(
+        df_io,
+        id_vars='supply_code',
+        var_name='use_code',
+        value_name='value'
+    )
+
+    # Convertir les valeurs en float
+    df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
+
+    # Arrondir la colonne "value"
+    df_long['value'] = df_long['value'].round(0)
+
+    # Ajouter la variable année
+    df_long['year'] = year
+    df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
+
+    # Changer les titres de colonnes
+    df_long = df_long.rename(columns={
+        'supply_code': 'supply_code_agg',
+        'use_code': 'use_code_agg'
+    })
+
+    # Extraire les trois chiffres après "BS"
+    df_long['supply_code_agg'] = df_long['supply_code_agg'].str[2:5]
+    df_long['use_code_agg'] = df_long['use_code_agg'].str[2:5]
+
+    return df_long
+
+df_io_2010 = process_io_file(2010)
+df_io_2011 = process_io_file(2011)
+df_io_2012 = process_io_file(2012)
+
+########################################################################
+#             Prepare IO tables (2009) - L61 version                   #
+########################################################################
+
+year = 2009
+
+current_dir = os.path.dirname(os.path.abspath(__file__))         
+base_dir = os.path.dirname(current_dir)                           
+path = os.path.join(base_dir, "IO Tables", "IOTs national symmetric domestic and imports L61 2009.xls")
+
+df_io_2009 = pd.read_excel(path, sheet_name="Total", header=None)
+
+# Enlever les lignes inutiles
+df_io_2009 = df_io_2009.iloc[10:102, :].drop(index=11).reset_index(drop=True)
+
+# Enlever les colonnes inutiles
+df_io_2009 = df_io_2009.drop(df_io_2009.columns[[0, 2]], axis=1).iloc[:, :91]
+
+# Enlever industries "Education"
+df_io_2009 = df_io_2009.drop(df_io_2009.columns[84], axis=1)
+
+# De matrice à tableau long
+df_io_2009.columns = df_io_2009.iloc[0]  # ligne 0 devient les noms de colonnes
+df_io_2009 = df_io_2009[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutile
+df_io_2009 = df_io_2009.rename(columns={df_io_2009.columns[0]: 'supply_code'})
+
+df_long = pd.melt(
+    df_io_2009,
+    id_vars='supply_code',
+    var_name='use_code',
+    value_name='value'
+)
+
+# Convertir les valeurs en float
+df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
+
+# Arrondir la colonne "value"
+df_long['value'] = df_long['value'].round(0)
+
+# Ajouter la variable année
+df_long['year'] = year
+df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
+
+# Changer les titres de colonnes
+df_io_2009 = df_long.rename(columns={
+    'supply_code': 'supply_code_agg',
+    'use_code': 'use_code_agg'
+})
+
+# Extraire les trois chiffres après "BS"
+df_io_2009['supply_code_agg'] = df_io_2009['supply_code_agg'].str[2:5]
+df_io_2009['use_code_agg'] = df_io_2009['use_code_agg'].str[2:5]
+
+
+########################################################################
+#         Prepare IO tables (1997–2008) – L-Public version             #
+########################################################################
+
+# Fonction pour traiter un fichier IO pour une année donnée
+def process_io_file(year):
+    # Chemin dynamique selon l’année
+    current_dir = os.path.dirname(os.path.abspath(__file__))  # dossier /Programs/
+    base_dir = os.path.dirname(current_dir)  # dossier /Productivity/
+    path = os.path.join(base_dir, "IO Tables", f"IOTs national symmetric domestic and imports L-Public {year}.xls")
+
+
+    # Lecture du fichier
+    df_raw = pd.read_excel(path, sheet_name="Total", header=None)
+
+    # Enlever les lignes inutiles
+    df_io = df_raw.iloc[13:108, :].drop(index=14).reset_index(drop=True)
+
+    # Enlever les colonnes inutiles
+    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :94]
+
+    # De matrice à tableau long
+    df_io.columns = df_io.iloc[0]  # ligne 0 devient les noms de colonnes
+    df_io = df_io[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutiles
+    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
+    df_long = pd.melt(
+        df_io,
+        id_vars='supply_code',
+        var_name='use_code',
+        value_name='value'
+    )
+
+    # Convertir les valeurs en float
+    df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
+
+    # Arrondir la colonne "value"
+    df_long['value'] = df_long['value'].round(0)
+
+    # Ajouter la variable année
+    df_long['year'] = year
+    df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
+
+    # Changer les titres de colonnes
+    df_long = df_long.rename(columns={
+        'supply_code': 'supply_code_agg',
+        'use_code': 'use_code_agg'
+    })
+
+    return df_long
+
+df_io_1997 = process_io_file(1997)
+df_io_1998 = process_io_file(1998)
+df_io_1999 = process_io_file(1999)
+df_io_2000 = process_io_file(2000)
+df_io_2001 = process_io_file(2001)
+df_io_2002 = process_io_file(2002)
+df_io_2003 = process_io_file(2003)
+df_io_2004 = process_io_file(2004)
+df_io_2005 = process_io_file(2005)
+df_io_2006 = process_io_file(2006)
+df_io_2007 = process_io_file(2007)
+df_io_2008 = process_io_file(2008)
+
+print(df_io_1998.head(100))
+
+
+########################################################################
+#                        Mapping dictionaries                          #
+########################################################################
+
+##### 1. Mapping des anciennes IO Tables vers les nouvelles en utilisant les codes NAICS et le dictionnaire group_list
+
+# Dictionary for 2009
+productivity_dict_ = {
+    "11A": "111-112",
+    "113": "113",
+    "114": "114",
+    "115": "115",
+    "211": "211",
+    "212": "212",
+    "213": "212",
+    "221": "221",
+    "23A": "23",
+    "23B": "23",
+    "23C": "23",
+    "23D": "23",
+    "23E": "23",
+    "311": "311",
+    "312": "312",
+    "31A": "313-314",
+    "31B": "315-316",
+    "321": "321",
+    "322": "322",
+    "323": "324",
+    "324": "325",
+    "325": "325",
+    "326": "326",
+    "327": "327",
+    "331": "331",
+    "332": "332",
+    "333": "333",
+    "334": "334",
+    "335": "335",
+    "336": "336",
+    "337": "337",
+    "339": "339",
+    "410": "41",
+    "4A0": "44-45",
+    "481": "48-49",
+    "482": "48-49",
+    "483": "48-49",
+    "484": "48-49",
+    "48B": "48-49",
+    "486": "48-49",
+    "49A": "48-49",
+    "493": "48-49",
+    "512": "51",
+    "515": "51",
+    "51B": "51",
+    "52B": "52-53",
+    "524": "52-53",
+    "531": "52-53",
+    "53B": "52-53",
+    "5A0": "52-53",
+    "541": "54",
+    "561": "56",
+    "562": "56",
+    "620": "62",
+    "710": "71",
+    "720": "72",
+    "811": "81",
+    "81A": "81",
+    "813": "81"
+}
+
+# Dictionary for 1997–2008 productivity mapping
+productivity_dict_ = {
+    "11A0": "111-112",
+    "1130": "113",
+    "1140": "114",
+    "1150": "115",
+    "2111": "211",
+    "2121": "212",
+    "2122": "212",
+    "2123": "212",
+    "2131": "213",
+    "2211": "221",
+    "221A": "221",
+    "230A": "23",
+    "230X": "23",
+    "230H": "23",
+    "230I": "23",
+    "3111": "311",
+    "3113": "311",
+    "3114": "311",
+    "3115": "311",
+    "3116": "311",
+    "3117": "311",
+    "311A": "311",
+    "312A": "312",
+    "312B": "312",
+    "312C": "312",
+    "312D": "312",
+    "3122": "312",
+    "31A0": "313-314",
+    "3150": "315-316",
+    "3160": "315-316",
+    "3210": "321",
+    "3221": "322",
+    "3222": "322",
+    "3231": "323",
+    "3241": "324",
+    "3251": "325",
+    "3252": "325",
+    "3253": "325",
+    "3254": "325",
+    "325A": "325",
+    "3261": "326",
+    "3262": "326",
+    "3273": "327",
+    "327A": "327",
+    "3310": "331",
+    "3320": "332",
+    "3330": "333",
+    "3341": "334",
+    "334A": "334",
+    "3352": "335",
+    "335A": "335",
+    "3361": "336",
+    "3362": "336",
+    "3363": "336",
+    "3364": "336",
+    "3365": "336",
+    "3366": "336",
+    "3369": "336",
+    "3370": "337",
+    "3390": "339",
+    "4100": "41",
+    "4A00": "44-45",
+    "4810": "48-49",
+    "4820": "48-49",
+    "4830": "48-49",
+    "4840": "48-49",
+    "4850": "48-49",
+    "4860": "48-49",
+    "48B0": "48-49",
+    "49A0": "48-49",
+    "4930": "48-49",
+    "5120": "51",
+    "5131": "51",
+    "513A": "51",
+    "51A0": "51",
+    "5A01": "52-53",
+    "5A02": "52-53",
+    "5A03": "52-53",
+    "5A04": "52-53",
+    "5A05": "52-53",
+    "5A06": "52-53",
+    "5418": "54",
+    "541A": "54",
+    "541B": "54",
+    "5610": "56",
+    "5620": "56",
+    "62A0": "62",
+    "7100": "71",
+    "7200": "72",
+    "8110": "81",
+    "813A": "81",
+    "81A0": "81"
+}
+
+##### 2. On mappe maintenant le tout au DataFrame de productivité
+
+# Dictionary for 2010–2012 productivity mapping
+productivity_dict_ = {
+    "111-112": "Crop and animal production",
+    "113": "Forestry and logging [113]",
+    "114": "Fishing, hunting and trapping [114]",
+    "115": "Support activities for agriculture and forestry [115]",
+    "211": "Oil and gas extraction [211]",
+    "212": "Mining (except oil and gas) [212]",
+    "213": "Support activities for mining and oil and gas extraction [213]",
+    "221": "Utilities [221]",
+    "23": "Construction [23]",
+    "311": "Food manufacturing [311]",
+    "312": "Beverage and tobacco product manufacturing [312]",
+    "313-314": "Textile and textile product mills",
+    "315-316": "Clothing, Leather and allied product manufacturing",
+    "321": "Wood product manufacturing [321]",
+    "322": "Paper manufacturing [322]",
+    "323": "Printing and related support activities [323]",
+    "324": "Petroleum and coal products manufacturing [324]",
+    "325": "Chemical manufacturing [325]",
+    "326": "Plastics and rubber products manufacturing [326]",
+    "327": "Non-metallic mineral product manufacturing [327]",
+    "331": "Primary metal manufacturing [331]",
+    "332": "Fabricated metal product manufacturing [332]",
+    "333": "Machinery manufacturing [333]",
+    "334": "Computer and electronic product manufacturing [334]",
+    "335": "Electrical equipment, appliance and component manufacturing [335]",
+    "336": "Transportation equipment manufacturing [336]",
+    "337": "Furniture and related product manufacturing [337]",
+    "339": "Miscellaneous manufacturing [339]",
+    "41": "Wholesale trade [41]",
+    "44-45": "Retail trade [44–45]",
+    "48-49": "Transportation and warehousing [48–49]",
+    "51": "Information and cultural industries [51]",
+    "52-53": "Finance, insurance, real estate and renting and leasing",
+    "54": "Professional, scientific and technical services [54]",
+    "56": "Administrative and support, waste management and remediation services [56]",
+    "62": "Health care and social assistance (except hospitals)",
+    "71": "Arts, entertainment and recreation [71]",
+    "72": "Accommodation and food services [72]",
+    "81": "Other services (except public administration) [81]",
+}
