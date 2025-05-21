@@ -19,13 +19,6 @@ rc('text', usetex=True)
 # Define my color palette
 palette = ['#002855', '#26d07c', '#ff585d', '#f3d03e', '#0072ce', '#eb6fbd', '#00aec7', '#888b8d']
 
-########################################################################
-# Prepare the Table 36-10-0217-01 Statistics Canada data               # 
-########################################################################
-
-# Retrieve the data from Table 36-10-0217-01
-df = sc.table_to_df('36-10-0217-01')
-
 # Define a NAICS code dictionary
 naics_map = {
     'Accommodation and food services [72]': '72',
@@ -69,6 +62,100 @@ naics_map = {
     'Wood product manufacturing [321]': '321'
 }
 
+# Define a NAICS aggregation grouping
+group_list = {
+    '11A': '111-112',
+    '111': '111-112',
+    '112': '111-112',
+    '23A': '23',
+    '23B': '23',
+    '23C': '23',
+    '23D': '23',
+    '23E': '23',
+    '31A': '313-314',
+    '31B': '315-316',
+    '410': '41',
+    '411': '41',
+    '412': '41',
+    '413': '41',
+    '414': '41',
+    '415': '41',
+    '416': '41',
+    '417': '41',
+    '418': '41',
+    '419': '41',
+    '4A0': '44-45',
+    '441': '44-45',
+    '442': '44-45',
+    '443': '44-45',
+    '444': '44-45',
+    '445': '44-45',
+    '446': '44-45',
+    '447': '44-45',
+    '448': '44-45',
+    '451': '44-45',
+    '452': '44-45',
+    '453': '44-45',
+    '454': '44-45',
+    '48B': '48-49',
+    '481': '48-49',
+    '482': '48-49',
+    '483': '48-49',
+    '484': '48-49',
+    '485': '48-49',
+    '486': '48-49',
+    '488': '48-49',
+    '48A': '48-49',
+    '49A': '48-49',
+    '491': '48-49',
+    '492': '48-49',
+    '493': '48-49',
+    '51A': '51',
+    '51B': '51',
+    '511': '51',
+    '512': '51',
+    '515': '51',
+    '517': '51',
+    '518': '51',
+    '519': '51',
+    '5A0': '52-53',
+    '521': '52-53',
+    '522': '52-53',
+    '524': '52-53',
+    '52A': '52-53',
+    '52B': '52-53',
+    '53A': '52-53',
+    '53B': '52-53',
+    '531': '52-53',
+    '532': '52-53',
+    '533': '52-53',
+    '541': '54',
+    '561': '56',
+    '562': '56',
+    '620': '62',
+    '621': '62',
+    '623': '62',
+    '624': '62',
+    '710': '71',
+    '713': '71',
+    '71A': '71',
+    '720': '72',
+    '721': '72',
+    '722': '72',
+    '81A': '81',
+    '811': '81',
+    '812': '81',
+    '813': '81',
+    '814': '81'
+}
+
+########################################################################
+# Prepare the Table 36-10-0217-01 Statistics Canada data               # 
+########################################################################
+
+# Retrieve the data from Table 36-10-0217-01
+df = sc.table_to_df('36-10-0217-01')
+
 # Drop several sectors and industries
 drop_list = [
     'Agriculture, forestry, fishing and hunting [11]',
@@ -95,6 +182,7 @@ df = df[~df['North American Industry Classification System (NAICS)'].isin(drop_l
 
 # Keep the relevant variables
 relevant_vars = [
+    'Multifactor productivity based on value-added',
     'Labour input',
     'Capital input',
     'Gross domestic product (GDP)', 
@@ -114,6 +202,7 @@ df = df.pivot_table(index=['North American Industry Classification System (NAICS
 df = df.rename(columns={
     'North American Industry Classification System (NAICS)': 'industry',
     'REF_DATE': 'date',
+    'Multifactor productivity based on value-added': 'tfp',
     'Labour input': 'labor',
     'Capital input': 'capital',
     'Gross domestic product (GDP)': 'va',
@@ -132,21 +221,19 @@ df = df[df['year'] < 2020]
 df['code'] = df['industry'].map(naics_map)
 
 # Rescale the variables to 1961=100
+df['tfp'] = df['tfp'] / df.loc[df['year'] == 1961, 'tfp'].values[0] * 100
 df['real_va'] = df['real_va'] / df.loc[df['year'] == 1961, 'real_va'].values[0] * 100
 df['capital'] = df['capital'] / df.loc[df['year'] == 1961, 'capital'].values[0] * 100
 df['labor'] = df['labor'] / df.loc[df['year'] == 1961, 'labor'].values[0] * 100
 
-# Calculate TFP with and without the capital adjustment for every industry
-df['tfp'] = [np.nan] * df.shape[0]
+# Calculate TFP with the capital adjustment for every industry
 df['tfp_adj'] = [np.nan] * df.shape[0]
-df.loc[df['year'] == 1961, 'tfp'] = 100
 df.loc[df['year'] == 1961, 'tfp_adj'] = 100
 for i in df['industry'].unique():
     for year in range(1962, 2019 + 1, 1):
         alpha_now = df.loc[(df['year'] == year) & (df['industry'] == i), 'capital_cost'].iloc[0] / (df.loc[(df['year'] == year) & (df['industry'] == i), 'capital_cost'].iloc[0] + df.loc[(df['year'] == year) & (df['industry'] == i), 'labor_cost'].iloc[0])
         alpha_prev = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital_cost'].iloc[0] / (df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital_cost'].iloc[0] + df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor_cost'].iloc[0])
         alpha = 0.5 * (alpha_now + alpha_prev)
-        df.loc[(df['year'] == year) & (df['industry'] == i), 'tfp'] = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'tfp'].iloc[0] * np.exp(np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0]) - alpha * np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital'].iloc[0]) - (1 - alpha) * np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'labor'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor'].iloc[0]))
         df.loc[(df['year'] == year) & (df['industry'] == i), 'tfp_adj'] = df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'tfp_adj'].iloc[0] * np.exp(np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0]) - (alpha / (1 - alpha)) * np.log((df.loc[(df['year'] == year) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year) & (df['industry'] == i), 'real_va'].iloc[0]) / (df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'capital'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'real_va'].iloc[0])) - np.log(df.loc[(df['year'] == year) & (df['industry'] == i), 'labor'].iloc[0] / df.loc[(df['year'] == year - 1) & (df['industry'] == i), 'labor'].iloc[0]))
 
 # Calculate the share of value-added of each industry within year
@@ -204,7 +291,7 @@ df_1980_2019.loc[df_1980_2019['year'] == 1980, 'productivity'] = 0
 df_1980_2019.loc[df_1980_2019['year'] == 1980, 'baumol'] = 0
 
 ########################################################################
-# Prepare the Table 36-10-0001-01 Statistics Canada data               # 
+# Prepare the Table 36-10-0001-01 Statistics Canada data (2013-2019)   # 
 ########################################################################
 
 # Retrieve the data from Table 36-10-0001-01
@@ -212,10 +299,6 @@ df_io = sc.table_to_df('36-10-0001-01')
 
 # Restrict on basic prices
 df_io = df_io[df_io['Valuation'] == 'Basic price']
-
-# Drop total supply and use, and codes ["BS551113", "BS610000"]
-df_io = df_io[df_io['Supply'] != 'Total supply']
-df_io = df_io[df_io['Use'] != 'Total use']
 
 # Keep the relevant columns
 df_io = df_io[['REF_DATE', 'Supply', 'Use', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Supply': 'supply', 'Use': 'use', 'VALUE': 'value'})
@@ -243,77 +326,6 @@ df_io['use_code_agg'] = df_io['use_code'].str[2:5]
 
 # Aggregate the data frame at the 3-digit NAICS level
 df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
-
-# Define an aggregation grouping
-group_list = {
-    '111': '111-112',
-    '112': '111-112',
-    '23A': '23',
-    '23B': '23',
-    '23C': '23',
-    '23D': '23',
-    '23E': '23',
-    '31A': '313-314',
-    '31B': '315-316',
-    '411': '41',
-    '412': '41',
-    '413': '41',
-    '414': '41',
-    '415': '41',
-    '416': '41',
-    '417': '41',
-    '418': '41',
-    '419': '41',
-    '441': '44-45',
-    '442': '44-45',
-    '443': '44-45',
-    '444': '44-45',
-    '445': '44-45',
-    '446': '44-45',
-    '447': '44-45',
-    '448': '44-45',
-    '451': '44-45',
-    '452': '44-45',
-    '453': '44-45',
-    '454': '44-45',
-    '481': '48-49',
-    '482': '48-49',
-    '483': '48-49',
-    '484': '48-49',
-    '485': '48-49',
-    '486': '48-49',
-    '488': '48-49',
-    '48A': '48-49',
-    '491': '48-49',
-    '492': '48-49',
-    '493': '48-49',
-    '511': '51',
-    '512': '51',
-    '515': '51',
-    '517': '51',
-    '518': '51',
-    '519': '51',
-    '521': '52-53',
-    '522': '52-53',
-    '524': '52-53',
-    '52A': '52-53',
-    '531': '52-53',
-    '532': '52-53',
-    '533': '52-53',
-    '541': '54',
-    '561': '56',
-    '562': '56',
-    '621': '62',
-    '623': '62',
-    '624': '62',
-    '713': '71',
-    '71A': '71',
-    '721': '72',
-    '722': '72',
-    '811': '81',
-    '812': '81',
-    '813': '81'
-}
 
 # Map the aggregation grouping
 df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
@@ -349,6 +361,362 @@ df_io['cost_share'] = df_io.groupby(['year', 'use_code_agg'])['value'].transform
 df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
 
 # Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io_13_19 = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
+
+########################################################################
+# Prepare the I-O tables from Statistics Canada data for 2010-2012     # 
+########################################################################
+
+# Create an empty DataFrame
+df_io_10_12 = pd.DataFrame()
+
+# Iterate over the years 2010 to 2012
+for year in range(2010, 2012 + 1):
+    # Load the data
+    df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L97 ' + str(year) + '.xlsx'), sheet_name="Domestic", header=None)
+
+    # Drop useless rows and columns
+    df_io = df_io.iloc[10:, :].drop(index=11).reset_index(drop=True)
+    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :-1]
+
+    # Reshape the data
+    df_io.columns = df_io.iloc[0]
+    df_io = df_io[1:].reset_index(drop=True)
+    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
+    df_io = pd.melt(
+        df_io,
+        id_vars='supply_code',
+        var_name='use_code',
+        value_name='value'
+    )
+
+    # Convert the values to float
+    df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
+
+    # Only keep the supply and use codes that start with "BS" (business sector)
+    df_io = df_io[df_io['supply_code'].str.startswith('BS')]
+    df_io = df_io[df_io['use_code'].str.startswith('BS')]
+
+    # Drop the supply and use codes "BS551113" and "BS610000"
+    df_io = df_io[~df_io['supply_code'].isin(['BS551113', 'BS610000'])]
+    df_io = df_io[~df_io['use_code'].isin(['BS551113', 'BS610000'])]
+
+    # Define aggregated codes at the 3-digit NAICS level
+    df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
+    df_io['use_code_agg'] = df_io['use_code'].str[2:5]
+
+    # Aggregate the data frame at the 3-digit NAICS level
+    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
+
+    # Map the aggregation grouping
+    df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
+    df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
+
+    # Aggregate the data frame at the coarser 3-digit NAICS level
+    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
+
+    # Create a DataFrame with all possible combinations of codes
+    all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
+    df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
+    df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
+
+    # Include the capital and labor costs
+    df_capital = df.loc[df['year'] == year, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_capital['supply_code_agg'] = 'capital'
+    df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
+    df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
+    df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+    df_io = df_io.drop(columns=['capital_cost'])
+    df_labor = df.loc[df['year'] == year, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_labor['supply_code_agg'] = 'labor'
+    df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
+    df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
+    df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+    df_io = df_io.drop(columns=['labor_cost'])
+
+    # Fill in the missing values with 0
+    df_io.loc[df_io['value'].isna(), 'value'] = 0
+
+    # Calculate the cost share of each industry
+    df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
+    df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
+
+    # Sort the data frame by year, use_code_agg, and supply_code_agg
+    df_io = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
+
+    # Create the year column
+    df_io['year'] = year
+
+    # Append the data to the DataFrame
+    df_io_10_12 = pd.concat([df_io_10_12, df_io], ignore_index=True)
+
+# Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io_10_12 = df_io_10_12.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
+
+########################################################################
+# Prepare the I-O table from Statistics Canada data for 2009           # 
+########################################################################
+
+# Load the data
+df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L61 2009.xls'), sheet_name="Domestic", header=None)
+
+# Drop useless rows and columns
+df_io = df_io.iloc[10:, :].drop(index=11).reset_index(drop=True)
+df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :-1]
+
+# Reshape the data
+df_io.columns = df_io.iloc[0]
+df_io = df_io[1:].reset_index(drop=True)
+df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
+df_io = pd.melt(
+    df_io,
+    id_vars='supply_code',
+    var_name='use_code',
+    value_name='value'
+)
+
+# Convert the values to float
+df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
+
+# Only keep the supply and use codes that start with "BS" (business sector)
+df_io = df_io[df_io['supply_code'].str.startswith('BS')]
+df_io = df_io[df_io['use_code'].str.startswith('BS')]
+
+# Drop the supply and use code "BS61000"
+df_io = df_io[~df_io['supply_code'].isin(['BS61000'])]
+df_io = df_io[~df_io['use_code'].isin(['BS61000'])]
+
+# Define aggregated codes at the 3-digit NAICS level
+df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
+df_io['use_code_agg'] = df_io['use_code'].str[2:5]
+
+# Aggregate the data frame at the 3-digit NAICS level
+df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
+
+# Map the aggregation grouping
+df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
+df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
+
+# Aggregate the data frame at the coarser 3-digit NAICS level
+df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
+
+# Create a DataFrame with all possible combinations of codes
+all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
+df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
+df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
+
+# Include the capital and labor costs
+df_capital = df.loc[df['year'] == 2009, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+df_capital['supply_code_agg'] = 'capital'
+df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
+df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
+df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+df_io = df_io.drop(columns=['capital_cost'])
+df_labor = df.loc[df['year'] == 2009, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+df_labor['supply_code_agg'] = 'labor'
+df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
+df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
+df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+df_io = df_io.drop(columns=['labor_cost'])
+
+# Fill in the missing values with 0
+df_io.loc[df_io['value'].isna(), 'value'] = 0
+
+# Calculate the cost share of each industry
+df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
+df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
+
+# Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io_09 = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
+
+# Create the year column
+df_io_09['year'] = 2009
+
+########################################################################
+# Prepare the I-O tables from Statistics Canada data for 1997-2008     # 
+########################################################################
+
+# Define a NAICS aggregation grouping for 1997-2008
+group_list_97_08 = {
+    '11A0': '111-112',
+    '1130': '113',
+    '1140': '114',
+    '1150': '115',
+    '2111': '211',
+    '2121': '212',
+    '2122': '212',
+    '2123': '212',
+    '2131': '213',
+    '2211': '221',
+    '221A': '221',
+    '230A': '23',
+    '230X': '23',
+    '230H': '23',
+    '230I': '23',
+    '3111': '311',
+    '3113': '311',
+    '3114': '311',
+    '3115': '311',
+    '3116': '311',
+    '3117': '311',
+    '311A': '311',
+    '312A': '312',
+    '312B': '312',
+    '312C': '312',
+    '312D': '312',
+    '3122': '312',
+    '31A0': '313-314',
+    '3150': '315-316',
+    '3160': '315-316',
+    '3210': '321',
+    '3221': '322',
+    '3222': '322',
+    '3231': '323',
+    '3241': '324',
+    '3251': '325',
+    '3252': '325',
+    '3253': '325',
+    '3254': '325',
+    '325A': '325',
+    '3261': '326',
+    '3262': '326',
+    '3273': '327',
+    '327A': '327',
+    '3310': '331',
+    '3320': '332',
+    '3330': '333',
+    '3341': '334',
+    '334A': '334',
+    '3352': '335',
+    '335A': '335',
+    '3361': '336',
+    '3362': '336',
+    '3363': '336',
+    '3364': '336',
+    '3365': '336',
+    '3366': '336',
+    '3369': '336',
+    '3370': '337',
+    '3390': '339',
+    '4100': '41',
+    '4A00': '44-45',
+    '4810': '48-49',
+    '4820': '48-49',
+    '4830': '48-49',
+    '4840': '48-49',
+    '4850': '48-49',
+    '4860': '48-49',
+    '48B0': '48-49',
+    '49A0': '48-49',
+    '4930': '48-49',
+    '5120': '51',
+    '5131': '51',
+    '513A': '51',
+    '51A0': '51',
+    '51B0': '51',
+    '5A01': '52-53',
+    '5A02': '52-53',
+    '5A03': '52-53',
+    '5A04': '52-53',
+    '5A05': '52-53',
+    '5A06': '52-53',
+    '5418': '54',
+    '541A': '54',
+    '541B': '54',
+    '5610': '56',
+    '5620': '56',
+    '62A0': '62',
+    '7100': '71',
+    '7200': '72',
+    '8110': '81',
+    '813A': '81',
+    '81A0': '81'
+}
+
+# Create an empty DataFrame
+df_io_97_08 = pd.DataFrame()
+
+# Iterate over the years 1997 to 2008
+for year in range(1997, 2008 + 1):
+    # Load the data
+    df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L-Public ' + str(year) + '.xls'), sheet_name="Domestic", header=None)
+
+    # Drop useless rows and columns
+    df_io = df_io.iloc[13:107, :].drop(index=14).reset_index(drop=True)
+    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :93]
+
+    # Reshape the data
+    df_io.columns = df_io.iloc[0]
+    df_io = df_io[1:].reset_index(drop=True)
+    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
+    df_io = pd.melt(
+        df_io,
+        id_vars='supply_code',
+        var_name='use_code',
+        value_name='value'
+    )
+
+    # Convert the values to float
+    df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
+
+    # Drop the supply and use code "611A"
+    df_io = df_io[~df_io['supply_code'].isin(['611A'])]
+    df_io = df_io[~df_io['use_code'].isin(['611A'])]
+
+    # Rename the supply and use codes
+    df_io = df_io.rename(columns={'supply_code': 'supply_code_agg', 'use_code': 'use_code_agg'})
+
+    # Map the aggregation grouping
+    df_io.loc[df_io['supply_code_agg'].isin(group_list_97_08.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list_97_08.keys()), 'supply_code_agg'].map(group_list_97_08)
+    df_io.loc[df_io['use_code_agg'].isin(group_list_97_08.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list_97_08.keys()), 'use_code_agg'].map(group_list_97_08)
+
+    # Aggregate the data frame at the coarser 3-digit NAICS level
+    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
+
+    # Create a DataFrame with all possible combinations of codes
+    all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
+    df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
+    df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
+
+    # Include the capital and labor costs
+    df_capital = df.loc[df['year'] == year, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_capital['supply_code_agg'] = 'capital'
+    df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
+    df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
+    df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+    df_io = df_io.drop(columns=['capital_cost'])
+    df_labor = df.loc[df['year'] == year, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_labor['supply_code_agg'] = 'labor'
+    df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
+    df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
+    df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+    df_io = df_io.drop(columns=['labor_cost'])
+
+    # Fill in the missing values with 0
+    df_io.loc[df_io['value'].isna(), 'value'] = 0
+
+    # Calculate the cost share of each industry
+    df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
+    df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
+
+    # Sort the data frame by year, use_code_agg, and supply_code_agg
+    df_io = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
+
+    # Create the year column
+    df_io['year'] = year
+
+    # Append the data to the DataFrame
+    df_io_97_08 = pd.concat([df_io_97_08, df_io], ignore_index=True)
+
+# Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io_97_08 = df_io_97_08.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
+    
+########################################################################
+# Append the I-O tables across all years                               # 
+########################################################################
+
+# Concatenate the data frames
+df_io = pd.concat([df_io_13_19, df_io_10_12, df_io_09, df_io_97_08], ignore_index=True)
 df_io = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 
 # Create the cost-based IO matrices for each year
@@ -461,15 +829,19 @@ table.write('\n'.join(lines))
 table.close()
 
 ########################################################################
-# Plot TFP growth against growth in value-added across industries      # 
+# Plot TFP growth against several variables by industry                #
 ########################################################################
 
 # Only keep the relevant years and columns
-df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va']]
+df_tfp = df.loc[(df['year'] == 1961) | (df['year'] == 2019), ['year', 'code', 'tfp', 'va', 'real_va', 'labor_cost', 'hours']]
+
+# Calculate the price and wage in each industry
+df_tfp['price'] = df_tfp['va'] / df_tfp['real_va']
+df_tfp['wage'] = df_tfp['labor_cost'] / df_tfp['hours']
 
 # Calculate the growth rates
-df_baumol.loc[:, ['tfp', 'va']] = df_baumol.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
-df_baumol = df_baumol.dropna(subset=['tfp', 'va'])
+df_tfp.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_tfp = df_tfp.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
 
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -479,25 +851,25 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol['tfp'], df_baumol['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+ax.scatter(df_tfp['tfp'], df_tfp['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, zorder=3)
 
 # Plot the OLS regression line
-slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['va'], 1)
-x = np.linspace(-0.02, 0.03, 100)
+slope, intercept = np.polyfit(df_tfp['tfp'], df_tfp['va'], 1)
+x = np.linspace(-0.02, 0.04, 100)
 y = slope * x + intercept
 ax.plot(x, y, color=palette[0], linestyle='dotted')
 
 # Set the horizontal axis
-ax.set_xlim(-0.02, 0.03)
-ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
-ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
-ax.set_xlabel('Annual TFP growth', fontsize=12)
+ax.set_xlim(-0.02, 0.04)
+ax.set_xticks(np.arange(-0.02, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 4 + 1, 1)], fontsize=14)
+ax.set_xlabel('Annual TFP growth', fontsize=14)
 
 # Set the vertical axis
 ax.set_ylim(0, 0.12)
 ax.set_yticks(np.arange(0, 0.12 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(0, 12 + 1, 2)], fontsize=12)
-ax.set_ylabel('Annual GDP growth', fontsize=12, rotation=0, ha='left')
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 12 + 1, 2)], fontsize=14)
+ax.set_ylabel('Annual GDP growth', fontsize=14, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -506,24 +878,24 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'va'].values[0])
+position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'va'].values[0])
 ax.text(position_211[0] + 0.003, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=(position_211[0], position_211[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'va'].values[0])
-ax.text(position_334[0] - 0.005, position_334[1] + 0.03, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_334[0] - 0.005, position_334[1] + 0.025), xytext=(position_334[0], position_334[1] + 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'va'].values[0])
+ax.text(position_334[0] + 0.002, position_334[1] + 0.015, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] + 0.002, position_334[1] + 0.01), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'va'].values[0])
+position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'va'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.02, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.015), xytext=(position_71[0] + 0.00025, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.015), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'va'].values[0])
-ax.text(position_321[0] + 0.005, position_321[1] - 0.03, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.025), xytext=(position_321[0], position_321[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'va'].values[0])
+ax.text(position_321[0] + 0.0075, position_321[1] - 0.025, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.02), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
@@ -533,20 +905,6 @@ fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'va_tfp_growth.png'), transparent=True, dpi=300)
 plt.close()
 
-########################################################################
-# Plot TFP growth against growth in prices across industries           # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
-
-# Calculate the price in each industry
-df_baumol['price'] = df_baumol['va'] / df_baumol['real_va']
-
-# Calculate the growth rates
-df_baumol.loc[:, ['tfp', 'price']] = df_baumol.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
-df_baumol = df_baumol.dropna(subset=['tfp', 'price'])
-
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -555,25 +913,25 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol['tfp'], df_baumol['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+ax.scatter(df_tfp['tfp'], df_tfp['real_va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, zorder=3)
 
 # Plot the OLS regression line
-slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['price'], 1)
-x = np.linspace(-0.02, 0.03, 100)
+slope, intercept = np.polyfit(df_tfp['tfp'], df_tfp['real_va'], 1)
+x = np.linspace(-0.02, 0.04, 100)
 y = slope * x + intercept
 ax.plot(x, y, color=palette[0], linestyle='dotted')
 
 # Set the horizontal axis
-ax.set_xlim(-0.02, 0.03)
-ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
-ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
-ax.set_xlabel('Annual TFP growth', fontsize=12)
+ax.set_xlim(-0.02, 0.04)
+ax.set_xticks(np.arange(-0.02, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 4 + 1, 1)], fontsize=14)
+ax.set_xlabel('Annual TFP growth', fontsize=14)
 
 # Set the vertical axis
-ax.set_ylim(0, 0.06)
-ax.set_yticks(np.arange(0, 0.06 + 0.01, 0.01))
-ax.set_yticklabels([str(x) + r'\%' for x in range(0, 6 + 1, 1)], fontsize=12)
-ax.set_ylabel('Annual price growth', fontsize=12, rotation=0, ha='left')
+ax.set_ylim(-0.04, 0.08)
+ax.set_yticks(np.arange(-0.04, 0.08 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 10 + 1, 2)], fontsize=14)
+ax.set_ylabel('Annual real GDP growth', fontsize=14, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -582,153 +940,24 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'price'].values[0])
-ax.text(position_211[0] + 0.0035, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=(position_211[0], position_211[1] - 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
-
-# Identify the computer and electronic product manufacturing industry
-position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'price'].values[0])
-ax.text(position_334[0] - 0.0125, position_334[1], 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_334[0] - 0.007, position_334[1]), xytext=(position_334[0] - 0.00025, position_334[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
-
-# Identify the arts, entertainment and recreation industry
-position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'price'].values[0])
-ax.text(position_71[0] + 0.01, position_71[1] + 0.0075, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_71[0] + 0.01, position_71[1] + 0.005), xytext=(position_71[0] + 0.00025, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
-
-# Identify the wood product manufacturing industry
-position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'price'].values[0])
-ax.text(position_321[0] + 0.005, position_321[1] + 0.01, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] + 0.0075), xytext=(position_321[0], position_321[1] + 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
-
-# Add a note about the data source
-ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
-
-# Save and close the figure
-fig.tight_layout()
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth.png'), transparent=True, dpi=300)
-plt.close()
-
-########################################################################
-# Plot real GDP growth against growth in prices across industries      # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
-
-# Calculate the price in each industry
-df_baumol['price'] = df_baumol['va'] / df_baumol['real_va']
-
-# Calculate the growth rates
-df_baumol.loc[:, ['real_va', 'price']] = df_baumol.groupby('code', as_index=False)[['real_va', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
-df_baumol = df_baumol.dropna(subset=['real_va', 'price'])
-
-# Initialize the figure
-fig, ax = plt.subplots(figsize=(8, 6))
-
-# Set the background color of the figure to transparent
-fig.patch.set_alpha(0.0)
-ax.patch.set_alpha(0.0)
-
-# Plot the data
-ax.scatter(df_baumol['real_va'], df_baumol['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
-
-# Plot the OLS regression line
-slope, intercept = np.polyfit(df_baumol['real_va'], df_baumol['price'], 1)
-x = np.linspace(-0.02, 0.06, 100)
-y = slope * x + intercept
-ax.plot(x, y, color=palette[0], linestyle='dotted')
-
-# Set the horizontal axis
-ax.set_xlim(-0.02, 0.06)
-ax.set_xticks(np.arange(-0.02, 0.06 + 0.001, 0.01))
-ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 6 + 1, 1)], fontsize=12)
-ax.set_xlabel('Annual real GDP growth', fontsize=12)
-
-# Set the vertical axis
-ax.set_ylim(0, 0.06)
-ax.set_yticks(np.arange(0, 0.06 + 0.01, 0.01))
-ax.set_yticklabels([str(x) + r'\%' for x in range(0, 6 + 1, 1)], fontsize=12)
-ax.set_ylabel('Annual price growth', fontsize=12, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
-
-# Remove the top and right axes
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-
-# Add a note about the data source
-ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
-
-# Save and close the figure
-fig.tight_layout()
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_real_va_growth.png'), transparent=True, dpi=300)
-plt.close()
-
-########################################################################
-# Plot TFP growth against growth in real value-added across industries # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'real_va']]
-
-# Calculate the growth rates
-df_baumol.loc[:, ['tfp', 'real_va']] = df_baumol.groupby('code', as_index=False)[['tfp', 'real_va']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
-df_baumol = df_baumol.dropna(subset=['tfp', 'real_va'])
-
-# Initialize the figure
-fig, ax = plt.subplots(figsize=(8, 6))
-
-# Set the background color of the figure to transparent
-fig.patch.set_alpha(0.0)
-ax.patch.set_alpha(0.0)
-
-# Plot the data
-ax.scatter(df_baumol['tfp'], df_baumol['real_va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
-
-# Plot the OLS regression line
-slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['real_va'], 1)
-x = np.linspace(-0.02, 0.03, 100)
-y = slope * x + intercept
-ax.plot(x, y, color=palette[0], linestyle='dotted')
-
-# Set the horizontal axis
-ax.set_xlim(-0.02, 0.03)
-ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
-ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
-ax.set_xlabel('Annual TFP growth', fontsize=12)
-
-# Set the vertical axis
-ax.set_ylim(-0.02, 0.1)
-ax.set_yticks(np.arange(-0.02, 0.1 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 10 + 1, 2)], fontsize=12)
-ax.set_ylabel('Annual real GDP growth', fontsize=12, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
-
-# Remove the top and right axes
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-
-# Identify the oil and gas extraction industry
-position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'real_va'].values[0])
+position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'real_va'].values[0])
 ax.text(position_211[0] + 0.004, position_211[1] - 0.025, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0225), xytext=(position_211[0], position_211[1] - 0.001), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0225), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'real_va'].values[0])
-ax.text(position_334[0] - 0.005, position_334[1] + 0.03, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_334[0] - 0.005, position_334[1] + 0.025), xytext=(position_334[0], position_334[1] + 0.00075), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'real_va'].values[0])
+ax.text(position_334[0] + 0.002, position_334[1] + 0.02, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] + 0.002, position_334[1] + 0.015), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'real_va'].values[0])
+position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'real_va'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.025, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.02), xytext=(position_71[0] + 0.0003, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.02), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'real_va'].values[0])
-ax.text(position_321[0] + 0.005, position_321[1] - 0.02, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.015), xytext=(position_321[0], position_321[1] - 0.00125), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'real_va'].values[0])
+ax.text(position_321[0] + 0.0075, position_321[1] - 0.02, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.015), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
@@ -738,19 +967,67 @@ fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'real_va_tfp_growth.png'), transparent=True, dpi=300)
 plt.close()
 
-########################################################################
-# Plot TFP growth against growth in wages across industries            # 
-########################################################################
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 6))
 
-# Only keep the relevant years and columns
-df_baumol = df.loc[(df['year'] == 1962) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'labor_cost', 'hours']]
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
 
-# Calculate the average wage within each industry
-df_baumol['wage'] = df_baumol['labor_cost'] / df_baumol['hours']
+# Plot the data
+ax.scatter(df_tfp['tfp'], df_tfp['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, zorder=3)
 
-# Calculate the growth rates
-df_baumol.loc[:, ['tfp', 'wage']] = df_baumol.groupby('code', as_index=False)[['tfp', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
-df_baumol = df_baumol.dropna(subset=['tfp', 'wage'])
+# Plot the OLS regression line
+slope, intercept = np.polyfit(df_tfp['tfp'], df_tfp['price'], 1)
+x = np.linspace(-0.02, 0.04, 100)
+y = slope * x + intercept
+ax.plot(x, y, color=palette[0], linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(-0.02, 0.04)
+ax.set_xticks(np.arange(-0.02, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 4 + 1, 1)], fontsize=14)
+ax.set_xlabel('Annual TFP growth', fontsize=14)
+
+# Set the vertical axis
+ax.set_ylim(0, 0.07)
+ax.set_yticks(np.arange(0, 0.07 + 0.01, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 7 + 1, 1)], fontsize=14)
+ax.set_ylabel('Annual price growth', fontsize=14, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Identify the oil and gas extraction industry
+position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'price'].values[0])
+ax.text(position_211[0] + 0.0035, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.019), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Identify the computer and electronic product manufacturing industry
+position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'price'].values[0])
+ax.text(position_334[0] - 0.0125, position_334[1], 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] - 0.006, position_334[1]), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Identify the arts, entertainment and recreation industry
+position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'price'].values[0])
+ax.text(position_71[0] + 0.01, position_71[1] + 0.0075, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_71[0] + 0.01, position_71[1] + 0.005), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Identify the wood product manufacturing industry
+position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'price'].values[0])
+ax.text(position_321[0] + 0.009, position_321[1], 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_321[0] + 0.005, position_321[1]), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth.png'), transparent=True, dpi=300)
+plt.close()
 
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -760,25 +1037,25 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol['tfp'], df_baumol['wage'], color=palette[1], edgecolor='k', linewidths=0.75, s=75)
+ax.scatter(df_tfp['tfp'], df_tfp['wage'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, zorder=3)
 
 # Plot the OLS regression line
-slope, intercept = np.polyfit(df_baumol['tfp'], df_baumol['wage'], 1)
-x = np.linspace(-0.02, 0.03, 100)
+slope, intercept = np.polyfit(df_tfp['tfp'], df_tfp['wage'], 1)
+x = np.linspace(-0.02, 0.04, 100)
 y = slope * x + intercept
 ax.plot(x, y, color=palette[0], linestyle='dotted')
 
 # Set the horizontal axis
-ax.set_xlim(-0.02, 0.03)
-ax.set_xticks(np.arange(-0.02, 0.03 + 0.001, 0.01))
-ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 3 + 1, 1)], fontsize=12)
-ax.set_xlabel('Annual TFP growth', fontsize=12)
+ax.set_xlim(-0.02, 0.04)
+ax.set_xticks(np.arange(-0.02, 0.04 + 0.001, 0.01))
+ax.set_xticklabels([str(x) + r'\%' for x in range(-2, 4 + 1, 1)], fontsize=14)
+ax.set_xlabel('Annual TFP growth', fontsize=14)
 
 # Set the vertical axis
-ax.set_ylim(0.02, 0.08)
-ax.set_yticks(np.arange(0.02, 0.08 + 0.01, 0.01))
-ax.set_yticklabels([str(x) + r'\%' for x in range(2, 8 + 1, 1)], fontsize=12)
-ax.set_ylabel('Annual wage growth', fontsize=12, rotation=0, ha='left')
+ax.set_ylim(0.02, 0.09)
+ax.set_yticks(np.arange(0.02, 0.09 + 0.01, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(2, 9 + 1, 1)], fontsize=14)
+ax.set_ylabel('Annual wage growth', fontsize=14, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -787,24 +1064,24 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_baumol.loc[df_baumol['code'] == '211', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '211', 'wage'].values[0])
+position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'wage'].values[0])
 ax.text(position_211[0] + 0.004, position_211[1] - 0.015, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0135), xytext=(position_211[0], position_211[1] - 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0135), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_baumol.loc[df_baumol['code'] == '334', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '334', 'wage'].values[0])
-ax.text(position_334[0] - 0.005, position_334[1] + 0.01, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_334[0] - 0.005, position_334[1] + 0.0075), xytext=(position_334[0], position_334[1] + 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'wage'].values[0])
+ax.text(position_334[0] + 0.001, position_334[1] + 0.01, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_334[0] + 0.001, position_334[1] + 0.0075), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_baumol.loc[df_baumol['code'] == '71', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '71', 'wage'].values[0])
+position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'wage'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.015, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.0125), xytext=(position_71[0] + 0.0003, position_71[1]), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.0125), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_baumol.loc[df_baumol['code'] == '321', 'tfp'].values[0], df_baumol.loc[df_baumol['code'] == '321', 'wage'].values[0])
+position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'wage'].values[0])
 ax.text(position_321[0] + 0.005, position_321[1] - 0.015, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
-ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.0125), xytext=(position_321[0], position_321[1] - 0.0005), arrowprops=dict(arrowstyle='->', color='k', lw=1))
+ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.0125), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
@@ -815,19 +1092,25 @@ fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'wage_tfp_growth.p
 plt.close()
 
 ########################################################################
-# Plot TFP growth against growth in value-added across industries for  #
-# the two periods of the analysis                                      # 
+# Plot TFP growth against several variables across industries for the  #
+# two periods of the analysis                                          # 
 ########################################################################
 
 # Only keep the relevant years and columns
-df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'va']]
-df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va']]
+df_tfp_1 = df.loc[(df['year'] == 1961) | (df['year'] == 1980), ['year', 'code', 'tfp', 'va', 'real_va', 'labor_cost', 'hours']]
+df_tfp_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'code', 'tfp', 'va', 'real_va', 'labor_cost', 'hours']]
+
+# Calculate the price and wage in each industry
+df_tfp_1['price'] = df_tfp_1['va'] / df_tfp_1['real_va']
+df_tfp_1['wage'] = df_tfp_1['labor_cost'] / df_tfp_1['hours']
+df_tfp_2['price'] = df_tfp_2['va'] / df_tfp_2['real_va']
+df_tfp_2['wage'] = df_tfp_2['labor_cost'] / df_tfp_2['hours']
 
 # Calculate the growth rates
-df_baumol_1.loc[:, ['tfp', 'va']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
-df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'va'])
-df_baumol_2.loc[:, ['tfp', 'va']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
-df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'va'])
+df_tfp_1.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_1.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_tfp_1 = df_tfp_1.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
+df_tfp_2.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_2.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
+df_tfp_2 = df_tfp_2.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
 
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -837,13 +1120,13 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol_1['tfp'], df_baumol_1['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
-ax.scatter(df_baumol_2['tfp'], df_baumol_2['va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+ax.scatter(df_tfp_1['tfp'], df_tfp_1['va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_tfp_2['tfp'], df_tfp_2['va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
 
 # Plot the OLS regression lines
 x = np.linspace(-0.03, 0.04, 100)
-slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['va'], 1)
-slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['va'], 1)
+slope_1, intercept_1 = np.polyfit(df_tfp_1['tfp'], df_tfp_1['va'], 1)
+slope_2, intercept_2 = np.polyfit(df_tfp_2['tfp'], df_tfp_2['va'], 1)
 y_1 = slope_1 * x + intercept_1
 y_2 = slope_2 * x + intercept_2
 ax.plot(x, y_1, color=palette[1], linestyle='dotted')
@@ -878,21 +1161,6 @@ fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'va_tfp_growth_period.png'), transparent=True, dpi=300)
 plt.close()
 
-########################################################################
-# Plot TFP growth against growth in real value-added across industries #
-# for the two periods of the analysis                                  # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'real_va']]
-df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'real_va']]
-
-# Calculate the growth rates
-df_baumol_1.loc[:, ['tfp', 'real_va']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'real_va']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
-df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'real_va'])
-df_baumol_2.loc[:, ['tfp', 'real_va']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'real_va']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
-df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'real_va'])
-
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -901,13 +1169,13 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol_1['tfp'], df_baumol_1['real_va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
-ax.scatter(df_baumol_2['tfp'], df_baumol_2['real_va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+ax.scatter(df_tfp_1['tfp'], df_tfp_1['real_va'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_tfp_2['tfp'], df_tfp_2['real_va'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
 
 # Plot the OLS regression lines
 x = np.linspace(-0.03, 0.04, 100)
-slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['real_va'], 1)
-slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['real_va'], 1)
+slope_1, intercept_1 = np.polyfit(df_tfp_1['tfp'], df_tfp_1['real_va'], 1)
+slope_2, intercept_2 = np.polyfit(df_tfp_2['tfp'], df_tfp_2['real_va'], 1)
 y_1 = slope_1 * x + intercept_1
 y_2 = slope_2 * x + intercept_2
 ax.plot(x, y_1, color=palette[1], linestyle='dotted')
@@ -942,25 +1210,6 @@ fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'real_va_tfp_growth_period.png'), transparent=True, dpi=300)
 plt.close()
 
-########################################################################
-# Plot TFP growth against growth in prices across industries for the   #
-# two periods of the analysis                                          # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
-df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'va', 'real_va']]
-
-# Calculate the price in each industry
-df_baumol_1['price'] = df_baumol_1['va'] / df_baumol_1['real_va']
-df_baumol_2['price'] = df_baumol_2['va'] / df_baumol_2['real_va']
-
-# Calculate the growth rates
-df_baumol_1.loc[:, ['tfp', 'price']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
-df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'price'])
-df_baumol_2.loc[:, ['tfp', 'price']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'price']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
-df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'price'])
-
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -969,13 +1218,13 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol_1['tfp'], df_baumol_1['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
-ax.scatter(df_baumol_2['tfp'], df_baumol_2['price'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+ax.scatter(df_tfp_1['tfp'], df_tfp_1['price'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_tfp_2['tfp'], df_tfp_2['price'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
 
 # Plot the OLS regression lines
 x = np.linspace(-0.03, 0.04, 100)
-slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['price'], 1)
-slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['price'], 1)
+slope_1, intercept_1 = np.polyfit(df_tfp_1['tfp'], df_tfp_1['price'], 1)
+slope_2, intercept_2 = np.polyfit(df_tfp_2['tfp'], df_tfp_2['price'], 1)
 y_1 = slope_1 * x + intercept_1
 y_2 = slope_2 * x + intercept_2
 ax.plot(x, y_1, color=palette[1], linestyle='dotted')
@@ -1010,25 +1259,6 @@ fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'price_tfp_growth_period.png'), transparent=True, dpi=300)
 plt.close()
 
-########################################################################
-# Plot TFP growth against growth in wages across industries for the    #
-# two periods of the analysis                                          # 
-########################################################################
-
-# Only keep the relevant years and columns
-df_baumol_1 = df.loc[(df['year'] == 1962) | (df['year'] == 1980), ['year', 'industry', 'code', 'tfp', 'labor_cost', 'hours']]
-df_baumol_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2019), ['year', 'industry', 'code', 'tfp', 'labor_cost', 'hours']]
-
-# Calculate the average wage within each industry
-df_baumol_1['wage'] = df_baumol_1['labor_cost'] / df_baumol_1['hours']
-df_baumol_2['wage'] = df_baumol_2['labor_cost'] / df_baumol_2['hours']
-
-# Calculate the growth rates
-df_baumol_1.loc[:, ['tfp', 'wage']] = df_baumol_1.groupby('code', as_index=False)[['tfp', 'wage']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
-df_baumol_1 = df_baumol_1.dropna(subset=['tfp', 'wage'])
-df_baumol_2.loc[:, ['tfp', 'wage']] = df_baumol_2.groupby('code', as_index=False)[['tfp', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 1980))
-df_baumol_2 = df_baumol_2.dropna(subset=['tfp', 'wage'])
-
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -1037,13 +1267,13 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.scatter(df_baumol_1['tfp'], df_baumol_1['wage'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
-ax.scatter(df_baumol_2['tfp'], df_baumol_2['wage'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
+ax.scatter(df_tfp_1['tfp'], df_tfp_1['wage'], color=palette[1], edgecolor='k', linewidths=0.75, s=75, label='1961-1980')
+ax.scatter(df_tfp_2['tfp'], df_tfp_2['wage'], color=palette[2], edgecolor='k', linewidths=0.75, s=75, label='1980-2019')
 
 # Plot the OLS regression lines
 x = np.linspace(-0.03, 0.04, 100)
-slope_1, intercept_1 = np.polyfit(df_baumol_1['tfp'], df_baumol_1['wage'], 1)
-slope_2, intercept_2 = np.polyfit(df_baumol_2['tfp'], df_baumol_2['wage'], 1)
+slope_1, intercept_1 = np.polyfit(df_tfp_1['tfp'], df_tfp_1['wage'], 1)
+slope_2, intercept_2 = np.polyfit(df_tfp_2['tfp'], df_tfp_2['wage'], 1)
 y_1 = slope_1 * x + intercept_1
 y_2 = slope_2 * x + intercept_2
 ax.plot(x, y_1, color=palette[1], linestyle='dotted')
@@ -1077,396 +1307,3 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 fig.tight_layout()
 fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'wage_tfp_growth_period.png'), transparent=True, dpi=300)
 plt.close()
-
-########################################################################
-#               Prepare IO tables (2010-2012) - L97 version            #
-########################################################################
-
-# Affichage amélioré
-pd.set_option('display.max_colwidth', None)
-pd.set_option('display.width', None)
-pd.set_option('display.max_rows', 500)
-pd.set_option('display.max_columns', None)
-
-# Fonction pour traiter un fichier IO pour une année donnée
-def process_io_file(year):
-    # Chemin dynamique selon l’année
-    current_dir = os.path.dirname(os.path.abspath(__file__))  # dossier /Programs/
-    base_dir = os.path.dirname(current_dir)  # dossier /Productivity/
-    path = os.path.join(base_dir, "IO Tables", f"IOTs national symmetric domestic and imports L97 {year}.xlsx")
-
-    # Lecture du fichier
-    df_raw = pd.read_excel(path, sheet_name="Total", header=None)
-
-    # Enlever les lignes inutiles
-    df_io = df_raw.iloc[10:189, :].drop(index=11).reset_index(drop=True)
-
-    # Enlever les colonnes inutiles
-    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :178]
-
-    # De matrice à tableau long
-    df_io.columns = df_io.iloc[0]  # ligne 0 devient les noms de colonnes
-    df_io = df_io[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutiles
-    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
-    df_long = pd.melt(
-        df_io,
-        id_vars='supply_code',
-        var_name='use_code',
-        value_name='value'
-    )
-
-    # Convertir les valeurs en float
-    df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
-
-    # Arrondir la colonne "value"
-    df_long['value'] = df_long['value'].round(0)
-
-    # Ajouter la variable année
-    df_long['year'] = year
-    df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
-
-    # Changer les titres de colonnes
-    df_long = df_long.rename(columns={
-        'supply_code': 'supply_code_agg',
-        'use_code': 'use_code_agg'
-    })
-
-    # Extraire les trois chiffres après "BS"
-    df_long['supply_code_agg'] = df_long['supply_code_agg'].str[2:5]
-    df_long['use_code_agg'] = df_long['use_code_agg'].str[2:5]
-
-    return df_long
-
-df_io_2010 = process_io_file(2010)
-df_io_2011 = process_io_file(2011)
-df_io_2012 = process_io_file(2012)
-
-########################################################################
-#             Prepare IO tables (2009) - L61 version                   #
-########################################################################
-
-year = 2009
-
-current_dir = os.path.dirname(os.path.abspath(__file__))         
-base_dir = os.path.dirname(current_dir)                           
-path = os.path.join(base_dir, "IO Tables", "IOTs national symmetric domestic and imports L61 2009.xls")
-
-df_io_2009 = pd.read_excel(path, sheet_name="Total", header=None)
-
-# Enlever les lignes inutiles
-df_io_2009 = df_io_2009.iloc[10:102, :].drop(index=11).reset_index(drop=True)
-
-# Enlever les colonnes inutiles
-df_io_2009 = df_io_2009.drop(df_io_2009.columns[[0, 2]], axis=1).iloc[:, :91]
-
-# Enlever industries "Education"
-df_io_2009 = df_io_2009.drop(df_io_2009.columns[84], axis=1)
-
-# De matrice à tableau long
-df_io_2009.columns = df_io_2009.iloc[0]  # ligne 0 devient les noms de colonnes
-df_io_2009 = df_io_2009[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutile
-df_io_2009 = df_io_2009.rename(columns={df_io_2009.columns[0]: 'supply_code'})
-
-df_long = pd.melt(
-    df_io_2009,
-    id_vars='supply_code',
-    var_name='use_code',
-    value_name='value'
-)
-
-# Convertir les valeurs en float
-df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
-
-# Arrondir la colonne "value"
-df_long['value'] = df_long['value'].round(0)
-
-# Ajouter la variable année
-df_long['year'] = year
-df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
-
-# Changer les titres de colonnes
-df_io_2009 = df_long.rename(columns={
-    'supply_code': 'supply_code_agg',
-    'use_code': 'use_code_agg'
-})
-
-# Extraire les trois chiffres après "BS"
-df_io_2009['supply_code_agg'] = df_io_2009['supply_code_agg'].str[2:5]
-df_io_2009['use_code_agg'] = df_io_2009['use_code_agg'].str[2:5]
-
-
-########################################################################
-#         Prepare IO tables (1997–2008) – L-Public version             #
-########################################################################
-
-# Fonction pour traiter un fichier IO pour une année donnée
-def process_io_file(year):
-    # Chemin dynamique selon l’année
-    current_dir = os.path.dirname(os.path.abspath(__file__))  # dossier /Programs/
-    base_dir = os.path.dirname(current_dir)  # dossier /Productivity/
-    path = os.path.join(base_dir, "IO Tables", f"IOTs national symmetric domestic and imports L-Public {year}.xls")
-
-
-    # Lecture du fichier
-    df_raw = pd.read_excel(path, sheet_name="Total", header=None)
-
-    # Enlever les lignes inutiles
-    df_io = df_raw.iloc[13:108, :].drop(index=14).reset_index(drop=True)
-
-    # Enlever les colonnes inutiles
-    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :94]
-
-    # De matrice à tableau long
-    df_io.columns = df_io.iloc[0]  # ligne 0 devient les noms de colonnes
-    df_io = df_io[1:].reset_index(drop=True)  # supprimer la ligne d'entêtes, maintenant inutiles
-    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
-    df_long = pd.melt(
-        df_io,
-        id_vars='supply_code',
-        var_name='use_code',
-        value_name='value'
-    )
-
-    # Convertir les valeurs en float
-    df_long['value'] = pd.to_numeric(df_long['value'], errors='coerce')
-
-    # Arrondir la colonne "value"
-    df_long['value'] = df_long['value'].round(0)
-
-    # Ajouter la variable année
-    df_long['year'] = year
-    df_long = df_long[['supply_code', 'use_code', 'year', 'value']]
-
-    # Changer les titres de colonnes
-    df_long = df_long.rename(columns={
-        'supply_code': 'supply_code_agg',
-        'use_code': 'use_code_agg'
-    })
-
-    return df_long
-
-df_io_1997 = process_io_file(1997)
-df_io_1998 = process_io_file(1998)
-df_io_1999 = process_io_file(1999)
-df_io_2000 = process_io_file(2000)
-df_io_2001 = process_io_file(2001)
-df_io_2002 = process_io_file(2002)
-df_io_2003 = process_io_file(2003)
-df_io_2004 = process_io_file(2004)
-df_io_2005 = process_io_file(2005)
-df_io_2006 = process_io_file(2006)
-df_io_2007 = process_io_file(2007)
-df_io_2008 = process_io_file(2008)
-
-print(df_io_1998.head(100))
-
-
-########################################################################
-#                        Mapping dictionaries                          #
-########################################################################
-
-##### 1. Mapping des anciennes IO Tables vers les nouvelles en utilisant les codes NAICS et le dictionnaire group_list
-
-# Dictionary for 2009
-productivity_dict_ = {
-    "11A": "111-112",
-    "113": "113",
-    "114": "114",
-    "115": "115",
-    "211": "211",
-    "212": "212",
-    "213": "212",
-    "221": "221",
-    "23A": "23",
-    "23B": "23",
-    "23C": "23",
-    "23D": "23",
-    "23E": "23",
-    "311": "311",
-    "312": "312",
-    "31A": "313-314",
-    "31B": "315-316",
-    "321": "321",
-    "322": "322",
-    "323": "324",
-    "324": "325",
-    "325": "325",
-    "326": "326",
-    "327": "327",
-    "331": "331",
-    "332": "332",
-    "333": "333",
-    "334": "334",
-    "335": "335",
-    "336": "336",
-    "337": "337",
-    "339": "339",
-    "410": "41",
-    "4A0": "44-45",
-    "481": "48-49",
-    "482": "48-49",
-    "483": "48-49",
-    "484": "48-49",
-    "48B": "48-49",
-    "486": "48-49",
-    "49A": "48-49",
-    "493": "48-49",
-    "512": "51",
-    "515": "51",
-    "51B": "51",
-    "52B": "52-53",
-    "524": "52-53",
-    "531": "52-53",
-    "53B": "52-53",
-    "5A0": "52-53",
-    "541": "54",
-    "561": "56",
-    "562": "56",
-    "620": "62",
-    "710": "71",
-    "720": "72",
-    "811": "81",
-    "81A": "81",
-    "813": "81"
-}
-
-# Dictionary for 1997–2008 productivity mapping
-productivity_dict_ = {
-    "11A0": "111-112",
-    "1130": "113",
-    "1140": "114",
-    "1150": "115",
-    "2111": "211",
-    "2121": "212",
-    "2122": "212",
-    "2123": "212",
-    "2131": "213",
-    "2211": "221",
-    "221A": "221",
-    "230A": "23",
-    "230X": "23",
-    "230H": "23",
-    "230I": "23",
-    "3111": "311",
-    "3113": "311",
-    "3114": "311",
-    "3115": "311",
-    "3116": "311",
-    "3117": "311",
-    "311A": "311",
-    "312A": "312",
-    "312B": "312",
-    "312C": "312",
-    "312D": "312",
-    "3122": "312",
-    "31A0": "313-314",
-    "3150": "315-316",
-    "3160": "315-316",
-    "3210": "321",
-    "3221": "322",
-    "3222": "322",
-    "3231": "323",
-    "3241": "324",
-    "3251": "325",
-    "3252": "325",
-    "3253": "325",
-    "3254": "325",
-    "325A": "325",
-    "3261": "326",
-    "3262": "326",
-    "3273": "327",
-    "327A": "327",
-    "3310": "331",
-    "3320": "332",
-    "3330": "333",
-    "3341": "334",
-    "334A": "334",
-    "3352": "335",
-    "335A": "335",
-    "3361": "336",
-    "3362": "336",
-    "3363": "336",
-    "3364": "336",
-    "3365": "336",
-    "3366": "336",
-    "3369": "336",
-    "3370": "337",
-    "3390": "339",
-    "4100": "41",
-    "4A00": "44-45",
-    "4810": "48-49",
-    "4820": "48-49",
-    "4830": "48-49",
-    "4840": "48-49",
-    "4850": "48-49",
-    "4860": "48-49",
-    "48B0": "48-49",
-    "49A0": "48-49",
-    "4930": "48-49",
-    "5120": "51",
-    "5131": "51",
-    "513A": "51",
-    "51A0": "51",
-    "5A01": "52-53",
-    "5A02": "52-53",
-    "5A03": "52-53",
-    "5A04": "52-53",
-    "5A05": "52-53",
-    "5A06": "52-53",
-    "5418": "54",
-    "541A": "54",
-    "541B": "54",
-    "5610": "56",
-    "5620": "56",
-    "62A0": "62",
-    "7100": "71",
-    "7200": "72",
-    "8110": "81",
-    "813A": "81",
-    "81A0": "81"
-}
-
-##### 2. On mappe maintenant le tout au DataFrame de productivité
-
-# Dictionary for 2010–2012 productivity mapping
-productivity_dict_ = {
-    "111-112": "Crop and animal production",
-    "113": "Forestry and logging [113]",
-    "114": "Fishing, hunting and trapping [114]",
-    "115": "Support activities for agriculture and forestry [115]",
-    "211": "Oil and gas extraction [211]",
-    "212": "Mining (except oil and gas) [212]",
-    "213": "Support activities for mining and oil and gas extraction [213]",
-    "221": "Utilities [221]",
-    "23": "Construction [23]",
-    "311": "Food manufacturing [311]",
-    "312": "Beverage and tobacco product manufacturing [312]",
-    "313-314": "Textile and textile product mills",
-    "315-316": "Clothing, Leather and allied product manufacturing",
-    "321": "Wood product manufacturing [321]",
-    "322": "Paper manufacturing [322]",
-    "323": "Printing and related support activities [323]",
-    "324": "Petroleum and coal products manufacturing [324]",
-    "325": "Chemical manufacturing [325]",
-    "326": "Plastics and rubber products manufacturing [326]",
-    "327": "Non-metallic mineral product manufacturing [327]",
-    "331": "Primary metal manufacturing [331]",
-    "332": "Fabricated metal product manufacturing [332]",
-    "333": "Machinery manufacturing [333]",
-    "334": "Computer and electronic product manufacturing [334]",
-    "335": "Electrical equipment, appliance and component manufacturing [335]",
-    "336": "Transportation equipment manufacturing [336]",
-    "337": "Furniture and related product manufacturing [337]",
-    "339": "Miscellaneous manufacturing [339]",
-    "41": "Wholesale trade [41]",
-    "44-45": "Retail trade [44–45]",
-    "48-49": "Transportation and warehousing [48–49]",
-    "51": "Information and cultural industries [51]",
-    "52-53": "Finance, insurance, real estate and renting and leasing",
-    "54": "Professional, scientific and technical services [54]",
-    "56": "Administrative and support, waste management and remediation services [56]",
-    "62": "Health care and social assistance (except hospitals)",
-    "71": "Arts, entertainment and recreation [71]",
-    "72": "Accommodation and food services [72]",
-    "81": "Other services (except public administration) [81]",
-}
