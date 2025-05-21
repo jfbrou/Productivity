@@ -710,7 +710,17 @@ for year in range(1997, 2008 + 1):
 
 # Sort the data frame by year, use_code_agg, and supply_code_agg
 df_io_97_08 = df_io_97_08.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-    
+
+########################################################################
+# Prepare the I-O tables from Statistics Canada data for 1961-2008     #
+########################################################################
+
+# Retrieve the data from Table 36-10-0407-01
+df_io = sc.table_to_df('36-10-0407-01')
+
+# Keep the relevant columns
+df_io = df_io[['REF_DATE', 'Inputs-outputs', 'North American Industry Classification System (NAICS)', 'Commodity', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Inputs-outputs': 'io', 'North American Industry Classification System (NAICS)': 'naics', 'Commodity': 'commodity', 'VALUE': 'value'})
+
 ########################################################################
 # Append the I-O tables across all years                               # 
 ########################################################################
