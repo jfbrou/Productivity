@@ -22,7 +22,7 @@ palette = ['#002855', '#26d07c', '#ff585d', '#f3d03e', '#0072ce', '#eb6fbd', '#0
 # Define a NAICS code dictionary
 naics_map = {
     'Accommodation and food services [72]': '72',
-    'Administrative and support, waste management and remediation services [56]':  '56',
+    'Administrative and support, waste management and remediation services [56]': '56',
     'Arts, entertainment and recreation [71]': '71',
     'Beverage and tobacco product manufacturing [312]': '312',
     'Chemical manufacturing [325]': '325',
@@ -720,6 +720,193 @@ df_io = sc.table_to_df('36-10-0407-01')
 
 # Keep the relevant columns
 df_io = df_io[['REF_DATE', 'Inputs-outputs', 'North American Industry Classification System (NAICS)', 'Commodity', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Inputs-outputs': 'io', 'North American Industry Classification System (NAICS)': 'naics', 'Commodity': 'commodity', 'VALUE': 'value'})
+
+# Recode the date column to year
+df_io['year'] = df_io['date'].dt.year
+df_io = df_io.drop(columns=['date'])
+df_io = df_io[df_io['year'] < 2020]
+
+# Create an input and an output DataFrame
+df_i = df_io[df_io['io'] == 'Inputs'].drop(columns=['io'])
+df_o = df_io[df_io['io'] == 'Outputs'].drop(columns=['io'])
+
+# Define a NAICS mapping for the 1961-2008 I-O tables
+group_list_61_08 = {
+    'Accommodation and food services': '72',
+    'Administrative and support services': '56',
+    'Air, rail, water and scenic and sightseeing transportation and support activities for transportation': '48-49',
+    'Arts, entertainment and recreation': '71',
+    'Beverage and tobacco product manufacturing': '312',
+    'Broadcasting and telecommunications': '51', 
+    'Chemical manufacturing': '325',
+    'Clothing manufacturing': '315-316',
+    'Computer and electronic product manufacturing': '334', 
+    'Construction': '23',
+    'Crop and animal production': '111-112', 
+    'Electric power generation, transmission and distribution': '221',
+    'Electrical equipment, appliance and component manufacturing': '335',
+    'Fabricated metal product manufacturing': '332',
+    'Finance, insurance, real estate and rental and leasing': '52-53',
+    'Fishing, hunting and trapping': '114', 
+    'Food manufacturing': '311',
+    'Forestry and logging': '113',
+    'Furniture and related product manufacturing': '337',
+    'Health care and social assistance': '62',
+    'Leather and allied product manufacturing': '315-316',
+    'Machinery manufacturing': '333', 
+    'Mining (except oil and gas)': '212',
+    'Miscellaneous manufacturing': '339',
+    'Motion picture and sound recording industries': '51',
+    'Natural gas distribution, water and other systems': '221',
+    'Non-metallic mineral product manufacturing': '327',
+    'Oil and gas extraction': '211',
+    'Operating, office, cafeteria and laboratory supplies': 'FC1',
+    'Paper manufacturing': '322',
+    'Personal and laundry services and private households': '81',
+    'Petroleum and coal products manufacturing': '324',
+    'Pipeline transportation': '48-49',
+    'Plastics and rubber products manufacturing': '326',
+    'Postal service and couriers and messengers': '48-49',
+    'Primary metal manufacturing': '331',
+    'Printing and related support activities': '323',
+    'Professional, scientific and technical services': '54',
+    'Publishing industries, information services and data processing services': '51',
+    'Publishing, broadcasting, telecommunications, and other information services': '51',
+    'Repair and maintenance': '81', 
+    'Retail trade': '44-45',
+    'Support activities for agriculture and forestry': '115',
+    'Support activities for mining and oil and gas extraction': '213',
+    'Textile and textile product mills': '313-314', 
+    'Transit and ground passenger transportation': '48-49',
+    'Transportation equipment manufacturing': '336', 
+    'Transportation margins': 'FC2',
+    'Travel, entertainment, advertising and promotion': 'FC3',
+    'Truck transportation': '48-49', 
+    'Warehousing and storage': '48-49',
+    'Waste management and remediation services': '56', 
+    'Wholesale trade': '41',
+    'Wood product manufacturing': '321'
+}
+
+# Map the aggregation grouping
+df_i = df_i[df_i['naics'].isin(group_list_61_08.keys())]
+df_i['naics'] = df_i['naics'].map(group_list_61_08)
+df_o = df_o[df_o['naics'].isin(group_list_61_08.keys())]
+df_o['naics'] = df_o['naics'].map(group_list_61_08)
+
+# Drop the "Total commodities" rows
+df_i = df_i[df_i['commodity'] != 'Total commodities']
+df_o = df_o[df_o['commodity'] != 'Total commodities']
+
+# Recode "Transportation margins" as "Other transportation and storage"
+df_i = df_i[df_i['naics'] != 'FC2']
+df_i.loc[df_i['commodity'] == 'Transportation margins', 'commodity'] = 'Other transportation and storage'
+df_i = df_i.groupby(['year', 'naics', 'commodity'], as_index=False).aggregate({'value': 'sum'})
+df_o = df_o[df_o['naics'] != 'FC2']
+
+# Reallocate the intermediate inputs of the first fictive industry to actual industries
+fc1_output = df_o.loc[df_o['naics'] == 'FC1', 'commodity'].unique()[0]
+df_o = df_o[df_o['naics'] != 'FC1']
+df_i_fc1 = df_i[df_i['naics'] == 'FC1']
+df_i = df_i[df_i['naics'] != 'FC1']
+df_i_fc1['share'] = df_i_fc1.groupby('year', as_index=False)['value'].transform(lambda x: x / x.sum())
+df_i = pd.merge(df_i.loc[df_i['commodity'] != fc1_output, :], df_i.loc[df_i['commodity'] == fc1_output, ['year', 'naics', 'value']].rename(columns={'value': 'value_fc1'}), how='left', on=['year', 'naics'])
+df_i['value_fc1'] = df_i['value_fc1'].fillna(0)
+df_i = pd.merge(df_i, df_i_fc1[['year', 'commodity', 'share']], how='left', on=['year', 'commodity'])
+df_i['share'] = df_i['share'].fillna(0)
+df_i['value'] = df_i['value'] + df_i['value_fc1'] * df_i['share']
+df_i = df_i.drop(columns=['value_fc1', 'share'])
+
+# Reallocate the intermediate inputs of the third fictive industry to actual industries
+fc3_output = df_o.loc[df_o['naics'] == 'FC3', 'commodity'].unique()[0]
+df_o = df_o[df_o['naics'] != 'FC3']
+df_i_fc3 = df_i[df_i['naics'] == 'FC3']
+df_i = df_i[df_i['naics'] != 'FC3']
+df_i_fc3['share'] = df_i_fc3.groupby('year', as_index=False)['value'].transform(lambda x: x / x.sum())
+df_i = pd.merge(df_i.loc[df_i['commodity'] != fc3_output, :], df_i.loc[df_i['commodity'] == fc3_output, ['year', 'naics', 'value']].rename(columns={'value': 'value_fc3'}), how='left', on=['year', 'naics'])
+df_i['value_fc3'] = df_i['value_fc3'].fillna(0)
+df_i = pd.merge(df_i, df_i_fc3[['year', 'commodity', 'share']], how='left', on=['year', 'commodity'])
+df_i['share'] = df_i['share'].fillna(0)
+df_i['value'] = df_i['value'] + df_i['value_fc3'] * df_i['share']
+df_i = df_i.drop(columns=['value_fc3', 'share'])
+
+# Drop the non-common commodities
+df_o = df_o[~df_o['commodity'].isin(set(df_o['commodity'].unique()) - set(df_i['commodity'].unique()))]
+df_i = df_i[~df_i['commodity'].isin(set(df_i['commodity'].unique()) - set(df_o['commodity'].unique()))]
+
+# Create an empty DataFrame
+df_io_61_08_ita = pd.DataFrame()
+df_io_61_08_cta = pd.DataFrame()
+
+# Iterate over the years 1961 to 2008
+for y in range(1961, 2008 + 1):
+    # Create the input and output DataFrames for the current year
+    U = df_i.loc[df_i['year'] == y].pivot_table(index='commodity', columns='naics', values='value', aggfunc='sum', fill_value=0).astype(float)
+    V = df_o.loc[df_o['year'] == y].pivot_table(index='commodity', columns='naics', values='value', aggfunc='sum', fill_value=0).astype(float)
+    U, V = U.align(V, join='outer', axis=0, fill_value=0)
+    x_ita = V.sum(axis=0)
+    x_cta = V.sum(axis=1)
+    Xinv_ita = 1 / x_ita.replace(0, float('inf'))
+    Xinv_cta = 1 / x_cta.replace(0, float('inf'))
+    B_ita = V.mul(Xinv_ita, axis=1)
+    B_cta = V.mul(Xinv_cta, axis=0)
+    Z_ita = B_ita.T.dot(U)
+    Z_cta = B_cta.T.dot(U)
+    Z_ita.index.name = 'supply_code_agg'
+    Z_cta.index.name = 'supply_code_agg'
+    Z_ita = Z_ita.reset_index().melt(id_vars='supply_code_agg', var_name='use_code_agg', value_name='value')
+    Z_cta = Z_cta.reset_index().melt(id_vars='supply_code_agg', var_name='use_code_agg', value_name='value')
+
+    # Create a DataFrame with all possible combinations of codes
+    all_codes_ita = list(set(Z_ita['supply_code_agg'].unique()) | set(Z_ita['use_code_agg'].unique())) + ['capital', 'labor']
+    all_codes_cta = list(set(Z_cta['supply_code_agg'].unique()) | set(Z_cta['use_code_agg'].unique())) + ['capital', 'labor']
+    Z_all_ita = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
+    Z_all_cta = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
+    Z_ita = pd.merge(Z_all_ita, Z_ita, on=['supply_code_agg', 'use_code_agg'], how='left')
+    Z_cta = pd.merge(Z_all_cta, Z_cta, on=['supply_code_agg', 'use_code_agg'], how='left')
+
+    # Include the capital and labor costs
+    df_capital = df.loc[df['year'] == y, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_capital['supply_code_agg'] = 'capital'
+    df_capital['capital_cost'] = df_capital['capital_cost']
+    Z_ita = pd.merge(Z_ita, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
+    Z_cta = pd.merge(Z_cta, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
+    Z_ita.loc[(Z_ita['supply_code_agg'] == 'capital') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_ita.loc[(Z_ita['supply_code_agg'] == 'capital') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+    Z_cta.loc[(Z_cta['supply_code_agg'] == 'capital') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_cta.loc[(Z_cta['supply_code_agg'] == 'capital') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
+    Z_ita = Z_ita.drop(columns=['capital_cost'])
+    Z_cta = Z_cta.drop(columns=['capital_cost'])
+    df_labor = df.loc[df['year'] == y, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
+    df_labor['supply_code_agg'] = 'labor'
+    df_labor['labor_cost'] = df_labor['labor_cost']
+    Z_ita = pd.merge(Z_ita, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
+    Z_cta = pd.merge(Z_cta, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
+    Z_ita.loc[(Z_ita['supply_code_agg'] == 'labor') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_ita.loc[(Z_ita['supply_code_agg'] == 'labor') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+    Z_cta.loc[(Z_cta['supply_code_agg'] == 'labor') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_cta.loc[(Z_cta['supply_code_agg'] == 'labor') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
+    Z_ita = Z_ita.drop(columns=['labor_cost'])
+    Z_cta = Z_cta.drop(columns=['labor_cost'])
+
+    # Fill in the missing values with 0
+    Z_ita.loc[Z_ita['value'].isna(), 'value'] = 0
+    Z_cta.loc[Z_cta['value'].isna(), 'value'] = 0
+
+    # Calculate the cost share of each industry
+    Z_ita['cost_share'] = Z_ita.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
+    Z_cta['cost_share'] = Z_cta.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
+    Z_ita.loc[Z_ita['cost_share'].isna(), 'cost_share'] = 0
+    Z_cta.loc[Z_cta['cost_share'].isna(), 'cost_share'] = 0
+
+    # Sort the data frame by year, use_code_agg, and supply_code_agg
+    Z_ita = Z_ita.sort_values(by=['use_code_agg', 'supply_code_agg'])
+    Z_cta = Z_cta.sort_values(by=['use_code_agg', 'supply_code_agg'])
+
+    # Append the data to the DataFrame
+    df_io_61_08_ita = pd.concat([df_io_61_08_ita, Z_ita.assign(year=y)], ignore_index=True)
+    df_io_61_08_cta = pd.concat([df_io_61_08_cta, Z_cta.assign(year=y)], ignore_index=True)
+
+
+# Sort the data frame by year, use_code_agg, and supply_code_agg
+df_io_61_08_ita = df_io_61_08_ita.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
+df_io_61_08_cta = df_io_61_08_cta.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 
 ########################################################################
 # Append the I-O tables across all years                               # 
