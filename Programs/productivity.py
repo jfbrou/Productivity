@@ -250,6 +250,8 @@ df = pd.merge(df, df.loc[df['year'] == 2000, ['industry', 'b']].rename(columns={
 # Calculate the log difference of TFP, capital, and labor within each industry
 df['tfp_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
 df['tfp_adj_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
+df['capital_growth'] = df.groupby('industry')['capital'].transform(lambda x: np.log(x).diff())
+df['labor_growth'] = df.groupby('industry')['labor'].transform(lambda x: np.log(x).diff())
 
 # Calculate the industry-level output elasticities of capital and labor
 df['alpha_k'] = df['capital_cost'] / (df['capital_cost'] + df['labor_cost'])
@@ -265,30 +267,6 @@ df['labor_cost_agg'] = df.groupby('year')['labor_cost'].transform('sum')
 df['omega_l'] = df['labor_cost'] / df['labor_cost_agg']
 df['omega_l'] = df.groupby('industry')['omega_l'].transform(lambda x: x.rolling(2).mean())
 df = df.drop(columns=['capital_cost_agg', 'labor_cost_agg'])
-
-# Calculate the productivity and Baumol terms between 1961 and 2019
-df_1961_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df = df.drop(columns=['within', 'between'])
-
-# Calculate the productivity and Baumol terms between 1961 and 1980
-df_1961_1980 = pd.DataFrame({'year': range(1961, 1980 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-
-# Calculate the productivity and Baumol terms between 1980 and 2019
-df_1980_2019 = pd.DataFrame({'year': range(1980, 2019 + 1)})
-df['within'] = df['b_1980'] * df['tfp_growth']
-df_1980_2019 = pd.merge(df_1980_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1980']) * df['tfp_growth']
-df_1980_2019 = pd.merge(df_1980_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df_1980_2019.loc[df_1980_2019['year'] == 1980, 'productivity'] = 0
-df_1980_2019.loc[df_1980_2019['year'] == 1980, 'baumol'] = 0
 
 ########################################################################
 # Prepare the Table 36-10-0001-01 Statistics Canada data (2013-2019)   # 
@@ -908,12 +886,15 @@ for y in range(1961, 2008 + 1):
 df_io_61_08_ita = df_io_61_08_ita.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 df_io_61_08_cta = df_io_61_08_cta.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 
+# Only keep the years 1961 to 1996 from the CTA approach
+df_io_61_96 = df_io_61_08_cta[df_io_61_08_cta['year'] < 1997]
+
 ########################################################################
-# Append the I-O tables across all years                               # 
+# Append the I-O tables across all years and calculate the lambda's    # 
 ########################################################################
 
 # Concatenate the data frames
-df_io = pd.concat([df_io_13_19, df_io_10_12, df_io_09, df_io_97_08], ignore_index=True)
+df_io = pd.concat([df_io_13_19, df_io_10_12, df_io_09, df_io_97_08, df_io_61_96], ignore_index=True)
 df_io = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
 
 # Create the cost-based IO matrices for each year
@@ -931,6 +912,29 @@ for year in df_io['year'].unique():
     df_lambda.loc[df_lambda['year'] == year, 'lambda_k'] = lambda_tilde[0, -2]
     df_lambda.loc[df_lambda['year'] == year, 'lambda_l'] = lambda_tilde[0, -1]
 
+# Take the average of successive years
+df_lambda['lambda_k'] = df_lambda['lambda_k'].rolling(2).mean()
+df_lambda['lambda_l'] = df_lambda['lambda_l'].rolling(2).mean()
+
+# Merge the lambda's with the original data
+df = pd.merge(df, df_lambda[['year', 'lambda_k', 'lambda_l']], on='year', how='left')
+
+########################################################################
+# Calculate the TFP growth decomposition for different periods         #
+########################################################################
+
+# Calculate the productivity and Baumol terms between 1961 and 2019
+df_1961_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
+df['within'] = df['b_1961'] * df['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
+df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
+df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
+
 ########################################################################
 # Plot the TFP decomposition                                           # 
 ########################################################################
@@ -943,8 +947,8 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['baumol'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
-ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['baumol'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
 
 # Set the horizontal axis
 ax.set_xlim(1961, 2020)
