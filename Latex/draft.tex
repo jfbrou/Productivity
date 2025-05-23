@@ -160,15 +160,6 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 \section{Empirical Results}
 \label{s:empirical results}
 
-\includetables{tfp_growth}
-
-\begin{figure}[h]
-    \centering
-    \caption{TFP Growth Decomposition}
-    \includegraphics[width=0.7\textwidth]{baumol.png}
-    \label{fig:baumol}
-\end{figure}
-
 \begin{figure}[h]
     \centering
     \caption{Price and TFP Growth}
@@ -197,6 +188,76 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
     \label{fig:real_va_tfp_growth}
 \end{figure}
 
+\begin{figure}[h]
+    \centering
+    \caption{Input Cost Shares and TFP Growth}
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Capital}
+        \includegraphics[width=\textwidth]{capital_share_tfp_growth.png}
+        \label{fig:capital_share_tfp_growth}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.48\textwidth}
+        \centering
+        \caption{Labor}
+        \includegraphics[width=\textwidth]{labor_share_tfp_growth.png}
+        \label{fig:labor_share_tfp_growth}
+    \end{subfigure}
+    \label{fig:input_share_tfp_growth}
+\end{figure}
+
+\includetables{tfp_growth}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth and the Baumol Effect}
+    \includegraphics[width=0.7\textwidth]{baumol.png}
+    \label{fig:baumol}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth Decomposition}
+    \includegraphics[width=0.7\textwidth]{tfp_decomposition.png}
+    \label{fig:decomposition}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{Industrial Contributions to TFP Growth}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_total.png}
+    \label{fig:tfp_contribution_total}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{Industrial Contributions to TFP Growth (Productivity)}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_productivity.png}
+    \label{fig:tfp_contribution_productivity}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{Industrial Contributions to TFP Growth (Baumol)}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_baumol.png}
+    \label{fig:tfp_contribution_baumol}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{Industrial Contributions to TFP Growth (Capital)}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_capital.png}
+    \label{fig:tfp_contribution_capital}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{Industrial Contributions to TFP Growth (Labor)}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_labor.png}
+    \label{fig:tfp_contribution_labor}
+\end{figure}
+
 \clearpage
 
 \bibliography{references}
@@ -214,6 +275,15 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 \renewcommand\thetable{\thesection.\arabic{table}}
 
 \section{Empirical Appendix}
+
+\includetables{tfp_growth_no_oge}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth and the Baumol Effect (without O\&G)}
+    \includegraphics[width=0.7\textwidth]{baumol_no_oge.png}
+    \label{fig:baumol_no_oge}
+\end{figure}
 
 \begin{figure}[h]
     \centering
