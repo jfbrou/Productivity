@@ -325,7 +325,7 @@ drop_list = [
 df_cl = df_cl[~df_cl['North American Industry Classification System (NAICS)'].isin(drop_list)]
 
 # Keep the relevant variables
-df_cl = df_cl[df_cl['Multifactor productivity and related variables'].isin(['Gross domestic product (GDP)', 'Capital cost', 'Labour compensation',])]
+df_cl = df_cl[df_cl['Multifactor productivity and related variables'].isin(['Gross output', 'Gross domestic product (GDP)', 'Capital cost', 'Labour compensation',])]
 
 # Reshape the DataFrame
 df_cl = df_cl.pivot_table(index=['North American Industry Classification System (NAICS)', 'REF_DATE'], 
@@ -336,6 +336,7 @@ df_cl = df_cl.pivot_table(index=['North American Industry Classification System 
 df_cl = df_cl.rename(columns={
     'North American Industry Classification System (NAICS)': 'industry',
     'REF_DATE': 'date',
+    'Gross output': 'sales',
     'Gross domestic product (GDP)': 'va', 
     'Capital cost': 'capital_cost',
     'Labour compensation': 'labor_cost'
@@ -820,6 +821,7 @@ df_61_96 = df_61_08_cta[df_61_08_cta['year'] < 1997]
 
 # Concatenate the data frames
 df = pd.concat([df_13_19, df_10_12, df_09, df_97_08, df_61_96], ignore_index=True)
+df = pd.merge(df, df_cl[['year', 'naics', 'sales']].rename(columns={'naics': 'use_naics_agg'}), how='left', on=['year', 'use_naics_agg'])
 df = df.sort_values(by=['year', 'use_naics_agg', 'supply_naics_agg'])
 
 # Create the cost-based IO matrices for each year and calculate the lambda's
@@ -827,19 +829,32 @@ df_lambda = pd.DataFrame([(year, naics) for naics in df_cl['naics'].unique() for
 df_lambda['lambda'] = np.nan
 df_lambda['lambda_k'] = np.nan
 df_lambda['lambda_l'] = np.nan
+df_lambda['wedge'] = np.nan
 for year in df_lambda['year'].unique():
     df_year = df[df['year'] == year]
-    df_year = df_year.pivot(index='use_naics_agg', columns='supply_naics_agg', values='cost_share')
-    naics_list = df_year.index.tolist()
-    Omega = sparse.csr_matrix(df_year.values)
+    if year < 1997:
+        df_year['revenue_share'] = df_year['value'] / df_year['sales']
+    else:
+        df_year['revenue_share'] = df_year['value'] / (1000 * df_year['sales'])
+    df_year.loc[df_year['revenue_share'].isna(), 'revenue_share'] = 0
+    df_year_cost = df_year.pivot(index='use_naics_agg', columns='supply_naics_agg', values='cost_share')
+    df_year_revenue = df_year.pivot(index='use_naics_agg', columns='supply_naics_agg', values='revenue_share')
+    naics_list = df_year_cost.index.tolist()
+    Omega_tilde = sparse.csr_matrix(df_year_cost.values)
+    Omega = sparse.csr_matrix(df_year_revenue.values)
     b = df_cl.loc[df_cl['year'] == year, ['naics', 'va']].sort_values(by=['naics'])['va'].values
     b = b / b.sum()
     b = np.append(b, [0, 0])
-    lambda_tilde = np.matmul(b.transpose(), np.linalg.inv(np.eye(Omega.shape[0]) - Omega))
-    d = dict([(naics_list[i], lambda_tilde[0, i]) for i in range(len(naics_list) - 2)])
-    df_lambda.loc[df_lambda['year'] == year, 'lambda'] = df_lambda[df_lambda['year'] == year]['naics'].map(d)
+    lambda_tilde = np.matmul(b.transpose(), np.linalg.inv(np.eye(Omega_tilde.shape[0]) - Omega_tilde))
+    numerator = np.sum(np.matmul(Omega_tilde[:-2, :-2].todense(), Omega[:-2, :-2].todense()), axis=1)
+    denominator = np.sum(np.matmul(Omega[:-2, :-2].todense(), Omega[:-2, :-2].todense()), axis=1)
+    wedge = numerator / denominator
+    d_lambda = dict([(naics_list[i], lambda_tilde[0, i]) for i in range(len(naics_list) - 2)])
+    d_wedge = dict([(naics_list[i], wedge.flatten()[0, i]) for i in range(len(naics_list) - 2)])
+    df_lambda.loc[df_lambda['year'] == year, 'lambda'] = df_lambda[df_lambda['year'] == year]['naics'].map(d_lambda)
     df_lambda.loc[df_lambda['year'] == year, 'lambda_k'] = lambda_tilde[0, -2]
     df_lambda.loc[df_lambda['year'] == year, 'lambda_l'] = lambda_tilde[0, -1]
+    df_lambda.loc[df_lambda['year'] == year, 'wedge'] = df_lambda[df_lambda['year'] == year]['naics'].map(d_wedge)
 
 # Take the average of successive years
 df_lambda['lambda'] = df_lambda.groupby('naics')['lambda'].transform(lambda x: x.rolling(2).mean())
