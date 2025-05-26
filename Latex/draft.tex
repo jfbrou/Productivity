@@ -132,16 +132,29 @@ and where $r_{it}$ and $w_{it}$ are the rental rate of capital and the wage rate
 \end{align*}
 Following \citet{Halperin_Mazlish_2024}, adding and subtracting the term $\sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})$ and summing from time $t_0$ to $t_1$, we can further decompose the cumulative aggregate TFP growth between these two dates into the following components:
 \begin{alignat}{2}
-    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) &= \sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Productivity}} \label{eq:productivity} \\
-    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol} \\
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) &= \sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Productivity}} \label{eq:productivity_1} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol_1} \\
     &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^K - \omega_{it}^K \lambda_t^K) \mathrm{d}\ln(K_{it}) &&\quad \text{\textcolor{HEC}{Capital}} \label{eq:capital} \\
     &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} \alpha_{it}^L - \omega_{it}^L \lambda_t^L) \mathrm{d}\ln(L_{it}) &&\quad \text{\textcolor{HEC}{Labor.}} \label{eq:labor}
 \end{alignat}
-In this equation, term \eqref{eq:productivity} weighs industry-level TFP growth by each industry's initial share of value-added. That is, if we freeze each industry's share of nominal value-added, we capture the contribution of within-industry productivity improvements alone--how much aggregate TFP has grown purely because each industry became more productive over time.
+In this equation, term \eqref{eq:productivity_1} weighs industry-level TFP growth by each industry's initial share of value-added. That is, if we freeze each industry's share of nominal value-added, we capture the contribution of within-industry productivity improvements alone--how much aggregate TFP has grown purely because each industry became more productive over time.
 
-Term \eqref{eq:baumol} instead weighs industry-level TFP growth by the change in each industry's share of value-added between dates $t_0$ and $t_1$. Therefore, it measures how the changing industrial composition of the economy contributes to aggregate TFP growth. This term is negative when industries with low productivity growth become more important in the economy, or vice-versa.
+Term \eqref{eq:baumol_1} instead weighs industry-level TFP growth by the change in each industry's share of value-added between dates $t_0$ and $t_1$. Therefore, it measures how the changing industrial composition of the economy contributes to aggregate TFP growth. This term is negative when industries with low productivity growth become more important in the economy, or vice-versa.
 
 Terms \eqref{eq:capital} and \eqref{eq:labor} capture the contribution of reallocating factors across sectors. It weighs changes in industry-level capital and labor inputs by the difference between two terms. The first term is the product of the industry's share of total value-added and the elasticity of its output with respect to inputs. The second term is the product of the industry's share of total factor expenditures and the elasticity of aggregate output with respect to inputs. Intuitively, moving inputs into industries where they are more productive than the economy-wide average ($\alpha_{it}^K > \lambda_t^K$ or $\alpha_{it}^L > \lambda_t^L$) and where the receiving industries are more important in output than costs ($b_{it} > \omega_{it}^K$ or $b_{it} > \omega_{it}^L$) (i.e., high markup industries) raises aggregate productivity growth.
+
+\citet{Baqaee_Farhi_2019} also show that aggregate TFP growth in inefficient economies can be approximated as:
+\begin{equation*}
+    \mathrm{d}\ln(A_t) = \underbrace{\sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(A_{it})}_{\text{Technology}} - \underbrace{\sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(\mu_{it}) - \lambda_t^K \mathrm{d}\ln(\Gamma_t^K) - \lambda_t^L \mathrm{d}\ln(\Gamma_t^L)}_{\text{Allocative efficiency}}
+\end{equation*}
+where $\mu_{it}$ is the wedge between the price of industry $i$'s output and the cost of its inputs, and $\Gamma_t^K$ and $\Gamma_t^L$ are the aggregate capital and labor shares of value-added, respectively. They decompose aggregate TFP growth into a technology component and an allocative efficiency component. However, since wedges are not directly observable, we treat them as residuals using the definition of aggregate TFP growth above.
+
+Following the same logic as above, we can further decompose cumulative aggregate TFP growth between two dates $t_0$ and $t_1$ into the following components:
+\begin{alignat}{2}
+    &\sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) = \sum_{t=t_0}^{t_1} \sum_{i=1}^N \lambda_{it_0} \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Productivity}} \label{eq:productivity_2} \\
+    &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (\lambda_{it} - \lambda_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol_2} \\
+    &- \sum_{t=t_0}^{t_1} \sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(\mu_{it}) - \lambda_t^K \mathrm{d}\ln(\Gamma_t^K) - \lambda_t^L \mathrm{d}\ln(\Gamma_t^L) &&\quad \text{\textcolor{HEC}{Allocative efficiency.}} \label{eq:misallocation}
+\end{alignat}
 
 \section{Data}
 \label{s:data}
@@ -154,7 +167,7 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
     \item Industry-level labor ($\{L_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on labor inputs at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
     \item Industry-level capital expenditures ($\{r_{it} K_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on capital cost at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
     \item Industry-level labor expenditures ($\{w_{it} L_{it}\}_{i=1}^N$): We use data from 1961 to 2019 on labor compensation at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610021701}{Table 36-10-0217-01} of Statistics Canada.
-    \item Industry-level intermediate input expendiures ($\{\{P_{jt} X_{ijt}\}_{j=1}^N\}_{i=1}^N$): We use data from 1961 to 2019 on the symmetric input-output tables at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000101}{Table 36-10-0001-01} of Statistics Canada.
+    \item Industry-level intermediate input expendiures ($\{\{P_{jt} X_{ijt}\}_{j=1}^N\}_{i=1}^N$): We use data from 1961 to 2019 on the symmetric input-output tables at the 3-digit NAICS level from \href{https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610000101}{Table 36-10-0001-01} of Statistics Canada and its previous versions.
 \end{enumerate}
 
 \section{Empirical Results}
@@ -207,7 +220,9 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
     \label{fig:input_share_tfp_growth}
 \end{figure}
 
-\includetables{tfp_growth}
+\includetables{tfp_decomposition_1}
+
+\includetables{tfp_decomposition_2}
 
 \begin{figure}[h]
     \centering
@@ -218,44 +233,44 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 
 \begin{figure}[h]
     \centering
-    \caption{TFP Growth Decomposition}
-    \includegraphics[width=0.7\textwidth]{tfp_decomposition.png}
-    \label{fig:decomposition}
+    \caption{TFP Growth and Misallocation}
+    \includegraphics[width=0.7\textwidth]{misallocation.png}
+    \label{fig:misallocation}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth Decomposition \#1}
+    \includegraphics[width=0.7\textwidth]{tfp_decomposition_1.png}
+    \label{fig:tfp_decomposition_1}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth Decomposition \#2}
+    \includegraphics[width=0.7\textwidth]{tfp_decomposition_2.png}
+    \label{fig:tfp_decomposition_2}
 \end{figure}
 
 \begin{figure}[h]
     \centering
     \caption{Industrial Contributions to TFP Growth}
-    \includegraphics[width=0.9\textwidth]{tfp_contribution_total.png}
-    \label{fig:tfp_contribution_total}
+    \includegraphics[width=0.9\textwidth]{tfp_contribution_industry.png}
+    \label{fig:tfp_contribution_industry}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \caption{Industrial Contributions to TFP Growth (Productivity)}
-    \includegraphics[width=0.9\textwidth]{tfp_contribution_productivity.png}
-    \label{fig:tfp_contribution_productivity}
+    \caption{TFP Growth by Industry}
+    \includegraphics[width=0.9\textwidth]{tfp_growth_industry.png}
+    \label{fig:tfp_growth_industry}
 \end{figure}
 
 \begin{figure}[h]
     \centering
-    \caption{Industrial Contributions to TFP Growth (Baumol)}
-    \includegraphics[width=0.9\textwidth]{tfp_contribution_baumol.png}
-    \label{fig:tfp_contribution_baumol}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \caption{Industrial Contributions to TFP Growth (Capital)}
-    \includegraphics[width=0.9\textwidth]{tfp_contribution_capital.png}
-    \label{fig:tfp_contribution_capital}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \caption{Industrial Contributions to TFP Growth (Labor)}
-    \includegraphics[width=0.9\textwidth]{tfp_contribution_labor.png}
-    \label{fig:tfp_contribution_labor}
+    \caption{GDP Growth by Industry}
+    \includegraphics[width=0.9\textwidth]{va_growth_industry.png}
+    \label{fig:va_growth_industry}
 \end{figure}
 
 \clearpage
@@ -276,13 +291,22 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 
 \section{Empirical Appendix}
 
-\includetables{tfp_growth_no_oge}
+\includetables{tfp_decomposition_1_no_oge}
+
+\includetables{tfp_decomposition_2_no_oge}
 
 \begin{figure}[h]
     \centering
     \caption{TFP Growth and the Baumol Effect (without O\&G)}
     \includegraphics[width=0.7\textwidth]{baumol_no_oge.png}
     \label{fig:baumol_no_oge}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \caption{TFP Growth and Misallocation (without O\&G)}
+    \includegraphics[width=0.7\textwidth]{misallocation_no_oge.png}
+    \label{fig:misallocation_no_oge}
 \end{figure}
 
 \begin{figure}[h]

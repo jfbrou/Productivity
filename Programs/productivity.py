@@ -19,8 +19,8 @@ rc('text', usetex=True)
 # Define my color palette
 palette = ['#002855', '#26d07c', '#ff585d', '#f3d03e', '#0072ce', '#eb6fbd', '#00aec7', '#888b8d']
 
-# Define a NAICS code dictionary
-naics_map = {
+# Define a dictionary to map industry names to their corresponding NAICS codes
+industry_to_naics = {
     'Accommodation and food services [72]': '72',
     'Administrative and support, waste management and remediation services [56]': '56',
     'Arts, entertainment and recreation [71]': '71',
@@ -60,93 +60,6 @@ naics_map = {
     'Utilities [221]': '221',
     'Wholesale trade [41]': '41', 
     'Wood product manufacturing [321]': '321'
-}
-
-# Define a NAICS aggregation grouping
-group_list = {
-    '11A': '111-112',
-    '111': '111-112',
-    '112': '111-112',
-    '23A': '23',
-    '23B': '23',
-    '23C': '23',
-    '23D': '23',
-    '23E': '23',
-    '31A': '313-314',
-    '31B': '315-316',
-    '410': '41',
-    '411': '41',
-    '412': '41',
-    '413': '41',
-    '414': '41',
-    '415': '41',
-    '416': '41',
-    '417': '41',
-    '418': '41',
-    '419': '41',
-    '4A0': '44-45',
-    '441': '44-45',
-    '442': '44-45',
-    '443': '44-45',
-    '444': '44-45',
-    '445': '44-45',
-    '446': '44-45',
-    '447': '44-45',
-    '448': '44-45',
-    '451': '44-45',
-    '452': '44-45',
-    '453': '44-45',
-    '454': '44-45',
-    '48B': '48-49',
-    '481': '48-49',
-    '482': '48-49',
-    '483': '48-49',
-    '484': '48-49',
-    '485': '48-49',
-    '486': '48-49',
-    '488': '48-49',
-    '48A': '48-49',
-    '49A': '48-49',
-    '491': '48-49',
-    '492': '48-49',
-    '493': '48-49',
-    '51A': '51',
-    '51B': '51',
-    '511': '51',
-    '512': '51',
-    '515': '51',
-    '517': '51',
-    '518': '51',
-    '519': '51',
-    '5A0': '52-53',
-    '521': '52-53',
-    '522': '52-53',
-    '524': '52-53',
-    '52A': '52-53',
-    '52B': '52-53',
-    '53A': '52-53',
-    '53B': '52-53',
-    '531': '52-53',
-    '532': '52-53',
-    '533': '52-53',
-    '541': '54',
-    '561': '56',
-    '562': '56',
-    '620': '62',
-    '621': '62',
-    '623': '62',
-    '624': '62',
-    '710': '71',
-    '713': '71',
-    '71A': '71',
-    '720': '72',
-    '721': '72',
-    '722': '72',
-    '81A': '81',
-    '811': '81',
-    '812': '81',
-    '813': '81',
-    '814': '81'
 }
 
 ########################################################################
@@ -218,7 +131,7 @@ df = df.drop(columns=['date'])
 df = df[df['year'] < 2020]
 
 # Map the industry to the NAICS code
-df['code'] = df['industry'].map(naics_map)
+df['naics'] = df['industry'].map(industry_to_naics)
 
 # Rescale the variables to 1961=100
 df['tfp'] = df['tfp'] / df.loc[df['year'] == 1961, 'tfp'].values[0] * 100
@@ -234,684 +147,44 @@ df['capital_price'] = df['capital_cost'] / df['capital']
 # Calculate the share of value-added of each industry within year
 df['va_agg'] = df.groupby('year')['va'].transform('sum')
 df['b'] = df['va'] / df['va_agg']
-df['b'] = df.groupby('industry')['b'].transform(lambda x: x.rolling(2).mean())
+df['b'] = df.groupby('naics')['b'].transform(lambda x: x.rolling(2).mean())
 df = df.drop(columns=['va_agg'])
 
 # Calculate the share of value-added of each industry for years 1961, 1980, and 2000
-df = pd.merge(df, df.loc[df['year'] == 1962, ['industry', 'b']].rename(columns={'b': 'b_1961'}), on='industry', how='left')
-df = pd.merge(df, df.loc[df['year'] == 1980, ['industry', 'b']].rename(columns={'b': 'b_1980'}), on='industry', how='left')
-df = pd.merge(df, df.loc[df['year'] == 2000, ['industry', 'b']].rename(columns={'b': 'b_2000'}), on='industry', how='left')
+df = pd.merge(df, df.loc[df['year'] == 1962, ['naics', 'b']].rename(columns={'b': 'b_1961'}), on='naics', how='left')
+df = pd.merge(df, df.loc[df['year'] == 1980, ['naics', 'b']].rename(columns={'b': 'b_1980'}), on='naics', how='left')
+df = pd.merge(df, df.loc[df['year'] == 2000, ['naics', 'b']].rename(columns={'b': 'b_2000'}), on='naics', how='left')
 
 # Calculate the log difference of TFP, capital, and labor within each industry
-df['tfp_growth'] = df.groupby('industry')['tfp'].transform(lambda x: np.log(x).diff())
-df['capital_growth'] = df.groupby('industry')['capital'].transform(lambda x: np.log(x).diff())
-df['labor_growth'] = df.groupby('industry')['labor'].transform(lambda x: np.log(x).diff())
+df['tfp_growth'] = df.groupby('naics')['tfp'].transform(lambda x: np.log(x).diff())
+df['capital_growth'] = df.groupby('naics')['capital'].transform(lambda x: np.log(x).diff())
+df['labor_growth'] = df.groupby('naics')['labor'].transform(lambda x: np.log(x).diff())
 
 # Calculate the industry-level output elasticities of capital and labor
 df['alpha_k'] = df['capital_cost'] / (df['capital_cost'] + df['labor_cost'])
-df['alpha_k'] = df.groupby('industry')['alpha_k'].transform(lambda x: x.rolling(2).mean())
+df['alpha_k'] = df.groupby('naics')['alpha_k'].transform(lambda x: x.rolling(2).mean())
 df['alpha_l'] = df['labor_cost'] / (df['capital_cost'] + df['labor_cost'])
-df['alpha_l'] = df.groupby('industry')['alpha_l'].transform(lambda x: x.rolling(2).mean())
+df['alpha_l'] = df.groupby('naics')['alpha_l'].transform(lambda x: x.rolling(2).mean())
 
 # Calculate the share of total labor and capital costs of each industry within year
 df['capital_cost_agg'] = df.groupby('year')['capital_cost'].transform('sum')
 df['omega_k'] = df['capital_cost'] / df['capital_cost_agg']
-df['omega_k'] = df.groupby('industry')['omega_k'].transform(lambda x: x.rolling(2).mean())
+df['omega_k'] = df.groupby('naics')['omega_k'].transform(lambda x: x.rolling(2).mean())
 df['labor_cost_agg'] = df.groupby('year')['labor_cost'].transform('sum')
 df['omega_l'] = df['labor_cost'] / df['labor_cost_agg']
-df['omega_l'] = df.groupby('industry')['omega_l'].transform(lambda x: x.rolling(2).mean())
+df['omega_l'] = df.groupby('naics')['omega_l'].transform(lambda x: x.rolling(2).mean())
 df = df.drop(columns=['capital_cost_agg', 'labor_cost_agg'])
 
-########################################################################
-# Prepare the Table 36-10-0001-01 Statistics Canada data (2013-2019)   # 
-########################################################################
-
-# Retrieve the data from Table 36-10-0001-01
-df_io = sc.table_to_df('36-10-0001-01')
-
-# Restrict on basic prices
-df_io = df_io[df_io['Valuation'] == 'Basic price']
-
-# Keep the relevant columns
-df_io = df_io[['REF_DATE', 'Supply', 'Use', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Supply': 'supply', 'Use': 'use', 'VALUE': 'value'})
-
-# Recode the date column to year
-df_io['year'] = df_io['date'].dt.year
-df_io = df_io.drop(columns=['date'])
-df_io = df_io[df_io['year'] < 2020]
-
-# Identify the "supply" and "use" codes
-df_io['supply_code'] = df_io['supply'].str[-9:-1]
-df_io['use_code'] = df_io['use'].str[-9:-1]
-
-# Only keep the supply and use codes that start with "BS" (business sector)
-df_io = df_io[df_io['supply_code'].str.startswith('BS')]
-df_io = df_io[df_io['use_code'].str.startswith('BS')]
-
-# Drop the supply and use codes "BS551113" and "BS610000"
-df_io = df_io[~df_io['supply_code'].isin(['BS551113', 'BS610000'])]
-df_io = df_io[~df_io['use_code'].isin(['BS551113', 'BS610000'])]
-
-# Define aggregated codes at the 3-digit NAICS level
-df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
-df_io['use_code_agg'] = df_io['use_code'].str[2:5]
-
-# Aggregate the data frame at the 3-digit NAICS level
-df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
-
-# Map the aggregation grouping
-df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
-df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
-
-# Aggregate the data frame at the coarser 3-digit NAICS level
-df_io = df_io.groupby(['supply_code_agg', 'use_code_agg', 'year'], as_index=False).agg({'value': 'sum'})
-
-# Create a DataFrame with all possible combinations of codes
-all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
-df_io_all = pd.DataFrame([(supply, use, year) for supply in all_codes for use in all_codes for year in range(2013, 2019 + 1)], columns=['supply_code_agg', 'use_code_agg', 'year'])
-df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg', 'year'], how='left')
-
-# Include the capital and labor costs
-df_capital = df[['capital_cost', 'code', 'year']].rename(columns={'code': 'use_code_agg'})
-df_capital['supply_code_agg'] = 'capital'
-df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
-df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg', 'year'], how='left')
-df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-df_io = df_io.drop(columns=['capital_cost'])
-df_labor = df[['labor_cost', 'code', 'year']].rename(columns={'code': 'use_code_agg'})
-df_labor['supply_code_agg'] = 'labor'
-df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
-df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg', 'year'], how='left')
-df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-df_io = df_io.drop(columns=['labor_cost'])
-
-# Fill in the missing values with 0
-df_io.loc[df_io['value'].isna(), 'value'] = 0
-
-# Calculate the cost share of each industry
-df_io['cost_share'] = df_io.groupby(['year', 'use_code_agg'])['value'].transform(lambda x: x / x.sum())
-df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
-
-# Sort the data frame by year, use_code_agg, and supply_code_agg
-df_io_13_19 = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-
-########################################################################
-# Prepare the I-O tables from Statistics Canada data for 2010-2012     # 
-########################################################################
-
-# Create an empty DataFrame
-df_io_10_12 = pd.DataFrame()
-
-# Iterate over the years 2010 to 2012
-for year in range(2010, 2012 + 1):
-    # Load the data
-    df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L97 ' + str(year) + '.xlsx'), sheet_name="Domestic", header=None)
-
-    # Drop useless rows and columns
-    df_io = df_io.iloc[10:, :].drop(index=11).reset_index(drop=True)
-    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :-1]
-
-    # Reshape the data
-    df_io.columns = df_io.iloc[0]
-    df_io = df_io[1:].reset_index(drop=True)
-    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
-    df_io = pd.melt(
-        df_io,
-        id_vars='supply_code',
-        var_name='use_code',
-        value_name='value'
-    )
-
-    # Convert the values to float
-    df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
-
-    # Only keep the supply and use codes that start with "BS" (business sector)
-    df_io = df_io[df_io['supply_code'].str.startswith('BS')]
-    df_io = df_io[df_io['use_code'].str.startswith('BS')]
-
-    # Drop the supply and use codes "BS551113" and "BS610000"
-    df_io = df_io[~df_io['supply_code'].isin(['BS551113', 'BS610000'])]
-    df_io = df_io[~df_io['use_code'].isin(['BS551113', 'BS610000'])]
-
-    # Define aggregated codes at the 3-digit NAICS level
-    df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
-    df_io['use_code_agg'] = df_io['use_code'].str[2:5]
-
-    # Aggregate the data frame at the 3-digit NAICS level
-    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
-
-    # Map the aggregation grouping
-    df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
-    df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
-
-    # Aggregate the data frame at the coarser 3-digit NAICS level
-    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
-
-    # Create a DataFrame with all possible combinations of codes
-    all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
-    df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
-    df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
-
-    # Include the capital and labor costs
-    df_capital = df.loc[df['year'] == year, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_capital['supply_code_agg'] = 'capital'
-    df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
-    df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
-    df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-    df_io = df_io.drop(columns=['capital_cost'])
-    df_labor = df.loc[df['year'] == year, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_labor['supply_code_agg'] = 'labor'
-    df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
-    df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
-    df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-    df_io = df_io.drop(columns=['labor_cost'])
-
-    # Fill in the missing values with 0
-    df_io.loc[df_io['value'].isna(), 'value'] = 0
-
-    # Calculate the cost share of each industry
-    df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
-    df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
-
-    # Sort the data frame by year, use_code_agg, and supply_code_agg
-    df_io = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
-
-    # Create the year column
-    df_io['year'] = year
-
-    # Append the data to the DataFrame
-    df_io_10_12 = pd.concat([df_io_10_12, df_io], ignore_index=True)
-
-# Sort the data frame by year, use_code_agg, and supply_code_agg
-df_io_10_12 = df_io_10_12.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-
-########################################################################
-# Prepare the I-O table from Statistics Canada data for 2009           # 
-########################################################################
-
-# Load the data
-df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L61 2009.xls'), sheet_name="Domestic", header=None)
-
-# Drop useless rows and columns
-df_io = df_io.iloc[10:, :].drop(index=11).reset_index(drop=True)
-df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :-1]
-
-# Reshape the data
-df_io.columns = df_io.iloc[0]
-df_io = df_io[1:].reset_index(drop=True)
-df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
-df_io = pd.melt(
-    df_io,
-    id_vars='supply_code',
-    var_name='use_code',
-    value_name='value'
-)
-
-# Convert the values to float
-df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
-
-# Only keep the supply and use codes that start with "BS" (business sector)
-df_io = df_io[df_io['supply_code'].str.startswith('BS')]
-df_io = df_io[df_io['use_code'].str.startswith('BS')]
-
-# Drop the supply and use code "BS61000"
-df_io = df_io[~df_io['supply_code'].isin(['BS61000'])]
-df_io = df_io[~df_io['use_code'].isin(['BS61000'])]
-
-# Define aggregated codes at the 3-digit NAICS level
-df_io['supply_code_agg'] = df_io['supply_code'].str[2:5]
-df_io['use_code_agg'] = df_io['use_code'].str[2:5]
-
-# Aggregate the data frame at the 3-digit NAICS level
-df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
-
-# Map the aggregation grouping
-df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list.keys()), 'supply_code_agg'].map(group_list)
-df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list.keys()), 'use_code_agg'].map(group_list)
-
-# Aggregate the data frame at the coarser 3-digit NAICS level
-df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
-
-# Create a DataFrame with all possible combinations of codes
-all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
-df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
-df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
-
-# Include the capital and labor costs
-df_capital = df.loc[df['year'] == 2009, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-df_capital['supply_code_agg'] = 'capital'
-df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
-df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
-df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-df_io = df_io.drop(columns=['capital_cost'])
-df_labor = df.loc[df['year'] == 2009, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-df_labor['supply_code_agg'] = 'labor'
-df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
-df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
-df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-df_io = df_io.drop(columns=['labor_cost'])
-
-# Fill in the missing values with 0
-df_io.loc[df_io['value'].isna(), 'value'] = 0
-
-# Calculate the cost share of each industry
-df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
-df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
-
-# Sort the data frame by year, use_code_agg, and supply_code_agg
-df_io_09 = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
-
-# Create the year column
-df_io_09['year'] = 2009
-
-########################################################################
-# Prepare the I-O tables from Statistics Canada data for 1997-2008     # 
-########################################################################
-
-# Define a NAICS aggregation grouping for 1997-2008
-group_list_97_08 = {
-    '11A0': '111-112',
-    '1130': '113',
-    '1140': '114',
-    '1150': '115',
-    '2111': '211',
-    '2121': '212',
-    '2122': '212',
-    '2123': '212',
-    '2131': '213',
-    '2211': '221',
-    '221A': '221',
-    '230A': '23',
-    '230X': '23',
-    '230H': '23',
-    '230I': '23',
-    '3111': '311',
-    '3113': '311',
-    '3114': '311',
-    '3115': '311',
-    '3116': '311',
-    '3117': '311',
-    '311A': '311',
-    '312A': '312',
-    '312B': '312',
-    '312C': '312',
-    '312D': '312',
-    '3122': '312',
-    '31A0': '313-314',
-    '3150': '315-316',
-    '3160': '315-316',
-    '3210': '321',
-    '3221': '322',
-    '3222': '322',
-    '3231': '323',
-    '3241': '324',
-    '3251': '325',
-    '3252': '325',
-    '3253': '325',
-    '3254': '325',
-    '325A': '325',
-    '3261': '326',
-    '3262': '326',
-    '3273': '327',
-    '327A': '327',
-    '3310': '331',
-    '3320': '332',
-    '3330': '333',
-    '3341': '334',
-    '334A': '334',
-    '3352': '335',
-    '335A': '335',
-    '3361': '336',
-    '3362': '336',
-    '3363': '336',
-    '3364': '336',
-    '3365': '336',
-    '3366': '336',
-    '3369': '336',
-    '3370': '337',
-    '3390': '339',
-    '4100': '41',
-    '4A00': '44-45',
-    '4810': '48-49',
-    '4820': '48-49',
-    '4830': '48-49',
-    '4840': '48-49',
-    '4850': '48-49',
-    '4860': '48-49',
-    '48B0': '48-49',
-    '49A0': '48-49',
-    '4930': '48-49',
-    '5120': '51',
-    '5131': '51',
-    '513A': '51',
-    '51A0': '51',
-    '51B0': '51',
-    '5A01': '52-53',
-    '5A02': '52-53',
-    '5A03': '52-53',
-    '5A04': '52-53',
-    '5A05': '52-53',
-    '5A06': '52-53',
-    '5418': '54',
-    '541A': '54',
-    '541B': '54',
-    '5610': '56',
-    '5620': '56',
-    '62A0': '62',
-    '7100': '71',
-    '7200': '72',
-    '8110': '81',
-    '813A': '81',
-    '81A0': '81'
-}
-
-# Create an empty DataFrame
-df_io_97_08 = pd.DataFrame()
-
-# Iterate over the years 1997 to 2008
-for year in range(1997, 2008 + 1):
-    # Load the data
-    df_io = pd.read_excel(os.path.join(Path(os.getcwd()).parent, 'Data', 'IOTs national symmetric domestic and imports L-Public ' + str(year) + '.xls'), sheet_name="Domestic", header=None)
-
-    # Drop useless rows and columns
-    df_io = df_io.iloc[13:107, :].drop(index=14).reset_index(drop=True)
-    df_io = df_io.drop(df_io.columns[[0, 2]], axis=1).iloc[:, :93]
-
-    # Reshape the data
-    df_io.columns = df_io.iloc[0]
-    df_io = df_io[1:].reset_index(drop=True)
-    df_io = df_io.rename(columns={df_io.columns[0]: 'supply_code'})
-    df_io = pd.melt(
-        df_io,
-        id_vars='supply_code',
-        var_name='use_code',
-        value_name='value'
-    )
-
-    # Convert the values to float
-    df_io['value'] = pd.to_numeric(df_io['value'], errors='coerce')
-
-    # Drop the supply and use code "611A"
-    df_io = df_io[~df_io['supply_code'].isin(['611A'])]
-    df_io = df_io[~df_io['use_code'].isin(['611A'])]
-
-    # Rename the supply and use codes
-    df_io = df_io.rename(columns={'supply_code': 'supply_code_agg', 'use_code': 'use_code_agg'})
-
-    # Map the aggregation grouping
-    df_io.loc[df_io['supply_code_agg'].isin(group_list_97_08.keys()), 'supply_code_agg'] = df_io.loc[df_io['supply_code_agg'].isin(group_list_97_08.keys()), 'supply_code_agg'].map(group_list_97_08)
-    df_io.loc[df_io['use_code_agg'].isin(group_list_97_08.keys()), 'use_code_agg'] = df_io.loc[df_io['use_code_agg'].isin(group_list_97_08.keys()), 'use_code_agg'].map(group_list_97_08)
-
-    # Aggregate the data frame at the coarser 3-digit NAICS level
-    df_io = df_io.groupby(['supply_code_agg', 'use_code_agg'], as_index=False).agg({'value': 'sum'})
-
-    # Create a DataFrame with all possible combinations of codes
-    all_codes = list(set(df_io['supply_code_agg'].unique()) | set(df_io['use_code_agg'].unique())) + ['capital', 'labor']
-    df_io_all = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
-    df_io = pd.merge(df_io_all, df_io, on=['supply_code_agg', 'use_code_agg'], how='left')
-
-    # Include the capital and labor costs
-    df_capital = df.loc[df['year'] == year, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_capital['supply_code_agg'] = 'capital'
-    df_capital['capital_cost'] = df_capital['capital_cost'] * 1000
-    df_io = pd.merge(df_io, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
-    df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'capital') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-    df_io = df_io.drop(columns=['capital_cost'])
-    df_labor = df.loc[df['year'] == year, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_labor['supply_code_agg'] = 'labor'
-    df_labor['labor_cost'] = df_labor['labor_cost'] * 1000
-    df_io = pd.merge(df_io, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
-    df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'value'] = df_io.loc[(df_io['supply_code_agg'] == 'labor') & ~df_io['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-    df_io = df_io.drop(columns=['labor_cost'])
-
-    # Fill in the missing values with 0
-    df_io.loc[df_io['value'].isna(), 'value'] = 0
-
-    # Calculate the cost share of each industry
-    df_io['cost_share'] = df_io.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
-    df_io.loc[df_io['cost_share'].isna(), 'cost_share'] = 0
-
-    # Sort the data frame by year, use_code_agg, and supply_code_agg
-    df_io = df_io.sort_values(by=['use_code_agg', 'supply_code_agg'])
-
-    # Create the year column
-    df_io['year'] = year
-
-    # Append the data to the DataFrame
-    df_io_97_08 = pd.concat([df_io_97_08, df_io], ignore_index=True)
-
-# Sort the data frame by year, use_code_agg, and supply_code_agg
-df_io_97_08 = df_io_97_08.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-
-########################################################################
-# Prepare the I-O tables from Statistics Canada data for 1961-2008     #
-########################################################################
-
-# Retrieve the data from Table 36-10-0407-01
-df_io = sc.table_to_df('36-10-0407-01')
-
-# Keep the relevant columns
-df_io = df_io[['REF_DATE', 'Inputs-outputs', 'North American Industry Classification System (NAICS)', 'Commodity', 'VALUE']].rename(columns={'REF_DATE': 'date', 'Inputs-outputs': 'io', 'North American Industry Classification System (NAICS)': 'naics', 'Commodity': 'commodity', 'VALUE': 'value'})
-
-# Recode the date column to year
-df_io['year'] = df_io['date'].dt.year
-df_io = df_io.drop(columns=['date'])
-df_io = df_io[df_io['year'] < 2020]
-
-# Create an input and an output DataFrame
-df_i = df_io[df_io['io'] == 'Inputs'].drop(columns=['io'])
-df_o = df_io[df_io['io'] == 'Outputs'].drop(columns=['io'])
-
-# Define a NAICS mapping for the 1961-2008 I-O tables
-group_list_61_08 = {
-    'Accommodation and food services': '72',
-    'Administrative and support services': '56',
-    'Air, rail, water and scenic and sightseeing transportation and support activities for transportation': '48-49',
-    'Arts, entertainment and recreation': '71',
-    'Beverage and tobacco product manufacturing': '312',
-    'Broadcasting and telecommunications': '51', 
-    'Chemical manufacturing': '325',
-    'Clothing manufacturing': '315-316',
-    'Computer and electronic product manufacturing': '334', 
-    'Construction': '23',
-    'Crop and animal production': '111-112', 
-    'Electric power generation, transmission and distribution': '221',
-    'Electrical equipment, appliance and component manufacturing': '335',
-    'Fabricated metal product manufacturing': '332',
-    'Finance, insurance, real estate and rental and leasing': '52-53',
-    'Fishing, hunting and trapping': '114', 
-    'Food manufacturing': '311',
-    'Forestry and logging': '113',
-    'Furniture and related product manufacturing': '337',
-    'Health care and social assistance': '62',
-    'Leather and allied product manufacturing': '315-316',
-    'Machinery manufacturing': '333', 
-    'Mining (except oil and gas)': '212',
-    'Miscellaneous manufacturing': '339',
-    'Motion picture and sound recording industries': '51',
-    'Natural gas distribution, water and other systems': '221',
-    'Non-metallic mineral product manufacturing': '327',
-    'Oil and gas extraction': '211',
-    'Operating, office, cafeteria and laboratory supplies': 'FC1',
-    'Paper manufacturing': '322',
-    'Personal and laundry services and private households': '81',
-    'Petroleum and coal products manufacturing': '324',
-    'Pipeline transportation': '48-49',
-    'Plastics and rubber products manufacturing': '326',
-    'Postal service and couriers and messengers': '48-49',
-    'Primary metal manufacturing': '331',
-    'Printing and related support activities': '323',
-    'Professional, scientific and technical services': '54',
-    'Publishing industries, information services and data processing services': '51',
-    'Publishing, broadcasting, telecommunications, and other information services': '51',
-    'Repair and maintenance': '81', 
-    'Retail trade': '44-45',
-    'Support activities for agriculture and forestry': '115',
-    'Support activities for mining and oil and gas extraction': '213',
-    'Textile and textile product mills': '313-314', 
-    'Transit and ground passenger transportation': '48-49',
-    'Transportation equipment manufacturing': '336', 
-    'Transportation margins': 'FC2',
-    'Travel, entertainment, advertising and promotion': 'FC3',
-    'Truck transportation': '48-49', 
-    'Warehousing and storage': '48-49',
-    'Waste management and remediation services': '56', 
-    'Wholesale trade': '41',
-    'Wood product manufacturing': '321'
-}
-
-# Map the aggregation grouping
-df_i = df_i[df_i['naics'].isin(group_list_61_08.keys())]
-df_i['naics'] = df_i['naics'].map(group_list_61_08)
-df_o = df_o[df_o['naics'].isin(group_list_61_08.keys())]
-df_o['naics'] = df_o['naics'].map(group_list_61_08)
-
-# Drop the "Total commodities" rows
-df_i = df_i[df_i['commodity'] != 'Total commodities']
-df_o = df_o[df_o['commodity'] != 'Total commodities']
-
-# Recode "Transportation margins" as "Other transportation and storage"
-df_i = df_i[df_i['naics'] != 'FC2']
-df_i.loc[df_i['commodity'] == 'Transportation margins', 'commodity'] = 'Other transportation and storage'
-df_i = df_i.groupby(['year', 'naics', 'commodity'], as_index=False).aggregate({'value': 'sum'})
-df_o = df_o[df_o['naics'] != 'FC2']
-
-# Reallocate the intermediate inputs of the first fictive industry to actual industries
-fc1_output = df_o.loc[df_o['naics'] == 'FC1', 'commodity'].unique()[0]
-df_o = df_o[df_o['naics'] != 'FC1']
-df_i_fc1 = df_i[df_i['naics'] == 'FC1']
-df_i = df_i[df_i['naics'] != 'FC1']
-df_i_fc1['share'] = df_i_fc1.groupby('year', as_index=False)['value'].transform(lambda x: x / x.sum())
-df_i = pd.merge(df_i.loc[df_i['commodity'] != fc1_output, :], df_i.loc[df_i['commodity'] == fc1_output, ['year', 'naics', 'value']].rename(columns={'value': 'value_fc1'}), how='left', on=['year', 'naics'])
-df_i['value_fc1'] = df_i['value_fc1'].fillna(0)
-df_i = pd.merge(df_i, df_i_fc1[['year', 'commodity', 'share']], how='left', on=['year', 'commodity'])
-df_i['share'] = df_i['share'].fillna(0)
-df_i['value'] = df_i['value'] + df_i['value_fc1'] * df_i['share']
-df_i = df_i.drop(columns=['value_fc1', 'share'])
-
-# Reallocate the intermediate inputs of the third fictive industry to actual industries
-fc3_output = df_o.loc[df_o['naics'] == 'FC3', 'commodity'].unique()[0]
-df_o = df_o[df_o['naics'] != 'FC3']
-df_i_fc3 = df_i[df_i['naics'] == 'FC3']
-df_i = df_i[df_i['naics'] != 'FC3']
-df_i_fc3['share'] = df_i_fc3.groupby('year', as_index=False)['value'].transform(lambda x: x / x.sum())
-df_i = pd.merge(df_i.loc[df_i['commodity'] != fc3_output, :], df_i.loc[df_i['commodity'] == fc3_output, ['year', 'naics', 'value']].rename(columns={'value': 'value_fc3'}), how='left', on=['year', 'naics'])
-df_i['value_fc3'] = df_i['value_fc3'].fillna(0)
-df_i = pd.merge(df_i, df_i_fc3[['year', 'commodity', 'share']], how='left', on=['year', 'commodity'])
-df_i['share'] = df_i['share'].fillna(0)
-df_i['value'] = df_i['value'] + df_i['value_fc3'] * df_i['share']
-df_i = df_i.drop(columns=['value_fc3', 'share'])
-
-# Drop the non-common commodities
-df_o = df_o[~df_o['commodity'].isin(set(df_o['commodity'].unique()) - set(df_i['commodity'].unique()))]
-df_i = df_i[~df_i['commodity'].isin(set(df_i['commodity'].unique()) - set(df_o['commodity'].unique()))]
-
-# Create an empty DataFrame
-df_io_61_08_ita = pd.DataFrame()
-df_io_61_08_cta = pd.DataFrame()
-
-# Iterate over the years 1961 to 2008
-for y in range(1961, 2008 + 1):
-    # Create the input and output DataFrames for the current year
-    U = df_i.loc[df_i['year'] == y].pivot_table(index='commodity', columns='naics', values='value', aggfunc='sum', fill_value=0).astype(float)
-    V = df_o.loc[df_o['year'] == y].pivot_table(index='commodity', columns='naics', values='value', aggfunc='sum', fill_value=0).astype(float)
-    U, V = U.align(V, join='outer', axis=0, fill_value=0)
-    x_ita = V.sum(axis=0)
-    x_cta = V.sum(axis=1)
-    Xinv_ita = 1 / x_ita.replace(0, float('inf'))
-    Xinv_cta = 1 / x_cta.replace(0, float('inf'))
-    B_ita = V.mul(Xinv_ita, axis=1)
-    B_cta = V.mul(Xinv_cta, axis=0)
-    Z_ita = B_ita.T.dot(U)
-    Z_cta = B_cta.T.dot(U)
-    Z_ita.index.name = 'supply_code_agg'
-    Z_cta.index.name = 'supply_code_agg'
-    Z_ita = Z_ita.reset_index().melt(id_vars='supply_code_agg', var_name='use_code_agg', value_name='value')
-    Z_cta = Z_cta.reset_index().melt(id_vars='supply_code_agg', var_name='use_code_agg', value_name='value')
-
-    # Create a DataFrame with all possible combinations of codes
-    all_codes_ita = list(set(Z_ita['supply_code_agg'].unique()) | set(Z_ita['use_code_agg'].unique())) + ['capital', 'labor']
-    all_codes_cta = list(set(Z_cta['supply_code_agg'].unique()) | set(Z_cta['use_code_agg'].unique())) + ['capital', 'labor']
-    Z_all_ita = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
-    Z_all_cta = pd.DataFrame([(supply, use) for supply in all_codes for use in all_codes], columns=['supply_code_agg', 'use_code_agg'])
-    Z_ita = pd.merge(Z_all_ita, Z_ita, on=['supply_code_agg', 'use_code_agg'], how='left')
-    Z_cta = pd.merge(Z_all_cta, Z_cta, on=['supply_code_agg', 'use_code_agg'], how='left')
-
-    # Include the capital and labor costs
-    df_capital = df.loc[df['year'] == y, ['capital_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_capital['supply_code_agg'] = 'capital'
-    df_capital['capital_cost'] = df_capital['capital_cost']
-    Z_ita = pd.merge(Z_ita, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
-    Z_cta = pd.merge(Z_cta, df_capital, on=['use_code_agg', 'supply_code_agg'], how='left')
-    Z_ita.loc[(Z_ita['supply_code_agg'] == 'capital') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_ita.loc[(Z_ita['supply_code_agg'] == 'capital') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-    Z_cta.loc[(Z_cta['supply_code_agg'] == 'capital') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_cta.loc[(Z_cta['supply_code_agg'] == 'capital') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'capital_cost']
-    Z_ita = Z_ita.drop(columns=['capital_cost'])
-    Z_cta = Z_cta.drop(columns=['capital_cost'])
-    df_labor = df.loc[df['year'] == y, ['labor_cost', 'code']].rename(columns={'code': 'use_code_agg'})
-    df_labor['supply_code_agg'] = 'labor'
-    df_labor['labor_cost'] = df_labor['labor_cost']
-    Z_ita = pd.merge(Z_ita, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
-    Z_cta = pd.merge(Z_cta, df_labor, on=['supply_code_agg', 'use_code_agg'], how='left')
-    Z_ita.loc[(Z_ita['supply_code_agg'] == 'labor') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_ita.loc[(Z_ita['supply_code_agg'] == 'labor') & ~Z_ita['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-    Z_cta.loc[(Z_cta['supply_code_agg'] == 'labor') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'value'] = Z_cta.loc[(Z_cta['supply_code_agg'] == 'labor') & ~Z_cta['use_code_agg'].isin(['capital', 'labor']), 'labor_cost']
-    Z_ita = Z_ita.drop(columns=['labor_cost'])
-    Z_cta = Z_cta.drop(columns=['labor_cost'])
-
-    # Fill in the missing values with 0
-    Z_ita.loc[Z_ita['value'].isna(), 'value'] = 0
-    Z_cta.loc[Z_cta['value'].isna(), 'value'] = 0
-
-    # Calculate the cost share of each industry
-    Z_ita['cost_share'] = Z_ita.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
-    Z_cta['cost_share'] = Z_cta.groupby('use_code_agg')['value'].transform(lambda x: x / x.sum())
-    Z_ita.loc[Z_ita['cost_share'].isna(), 'cost_share'] = 0
-    Z_cta.loc[Z_cta['cost_share'].isna(), 'cost_share'] = 0
-
-    # Sort the data frame by year, use_code_agg, and supply_code_agg
-    Z_ita = Z_ita.sort_values(by=['use_code_agg', 'supply_code_agg'])
-    Z_cta = Z_cta.sort_values(by=['use_code_agg', 'supply_code_agg'])
-
-    # Append the data to the DataFrame
-    df_io_61_08_ita = pd.concat([df_io_61_08_ita, Z_ita.assign(year=y)], ignore_index=True)
-    df_io_61_08_cta = pd.concat([df_io_61_08_cta, Z_cta.assign(year=y)], ignore_index=True)
-
-
-# Sort the data frame by year, use_code_agg, and supply_code_agg
-df_io_61_08_ita = df_io_61_08_ita.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-df_io_61_08_cta = df_io_61_08_cta.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-
-# Only keep the years 1961 to 1996 from the CTA approach
-df_io_61_96 = df_io_61_08_cta[df_io_61_08_cta['year'] < 1997]
-
-########################################################################
-# Append the I-O tables across all years and calculate the lambda's    # 
-########################################################################
-
-# Concatenate the data frames
-df_io = pd.concat([df_io_13_19, df_io_10_12, df_io_09, df_io_97_08, df_io_61_96], ignore_index=True)
-df_io = df_io.sort_values(by=['year', 'use_code_agg', 'supply_code_agg'])
-
-# Create the cost-based IO matrices for each year
-df_lambda = pd.DataFrame({'year': df['year'].unique()})
-df_lambda['lambda_k'] = np.nan
-df_lambda['lambda_l'] = np.nan
-for year in df_io['year'].unique():
-    df_io_year = df_io[df_io['year'] == year]
-    io_matrix = df_io_year.pivot(index='use_code_agg', columns='supply_code_agg', values='cost_share').values
-    io_matrix = sparse.csr_matrix(io_matrix)
-    b = df.loc[df['year'] == year, ['code', 'va']].sort_values(by=['code'])['va'].values
-    b = b / b.sum()
-    b = np.append(b, [0, 0])
-    lambda_tilde = np.matmul(b.transpose(), np.linalg.inv(np.eye(io_matrix.shape[0]) - io_matrix))
-    df_lambda.loc[df_lambda['year'] == year, 'lambda_k'] = lambda_tilde[0, -2]
-    df_lambda.loc[df_lambda['year'] == year, 'lambda_l'] = lambda_tilde[0, -1]
-
-# Take the average of successive years
-df_lambda['lambda_k'] = df_lambda['lambda_k'].rolling(2).mean()
-df_lambda['lambda_l'] = df_lambda['lambda_l'].rolling(2).mean()
-
-# Merge the lambda's with the original data
-df = pd.merge(df, df_lambda[['year', 'lambda_k', 'lambda_l']], on='year', how='left')
+# Load the data for the lambda's
+df_lambda = pd.read_csv(os.path.join(Path(os.getcwd()).parent, 'Data', 'lambda.csv'))
+
+# Merge the lambda's with the main DataFrame
+df = pd.merge(df, df_lambda, on=['naics', 'year'], how='left')
+
+# Calculate the lambda's of each industry for years 1961, 1980, and 2000
+df = pd.merge(df, df.loc[df['year'] == 1962, ['naics', 'lambda']].rename(columns={'lambda': 'lambda_1961'}), on='naics', how='left')
+df = pd.merge(df, df.loc[df['year'] == 1980, ['naics', 'lambda']].rename(columns={'lambda': 'lambda_1980'}), on='naics', how='left')
+df = pd.merge(df, df.loc[df['year'] == 2000, ['naics', 'lambda']].rename(columns={'lambda': 'lambda_2000'}), on='naics', how='left')
 
 ########################################################################
 # Calculate the TFP growth decomposition for different periods         #
@@ -919,53 +192,143 @@ df = pd.merge(df, df_lambda[['year', 'lambda_k', 'lambda_l']], on='year', how='l
 
 # Calculate the different terms between 1961 and 2019
 df_1961_2019 = pd.DataFrame({'year': range(1961, 2019 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1961_2019 = pd.merge(df_1961_2019, df.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
+df_temp = df.copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_2019 = pd.merge(df_1961_2019, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_2019['total'] = df_1961_2019['productivity_1'] + df_1961_2019['baumol_1'] + df_1961_2019['capital'] + df_1961_2019['labor']
+
+# Calculate the different terms between 1961 and 2019 without the oil and gas extraction industry
+df_1961_2019_no_oge = pd.DataFrame({'year': range(1961, 2019 + 1)})
+df_temp = df[df['naics'] != '211'].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_2019_no_oge['total'] = df_1961_2019_no_oge['productivity_1'] + df_1961_2019_no_oge['baumol_1'] + df_1961_2019_no_oge['capital'] + df_1961_2019_no_oge['labor']
 
 # Calculate the different terms between 1961 and 1980
 df_1961_1980 = pd.DataFrame({'year': range(1961, 1980 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1961_1980 = pd.merge(df_1961_1980, df.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
+df_temp = df.copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_1980 = pd.merge(df_1961_1980, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_1980['total'] = df_1961_1980['productivity_1'] + df_1961_1980['baumol_1'] + df_1961_1980['capital'] + df_1961_1980['labor']
+
+# Calculate the different terms between 1961 and 1980 without the oil and gas extraction industry
+df_1961_1980_no_oge = pd.DataFrame({'year': range(1961, 1980 + 1)})
+df_temp = df[df['naics'] != '211'].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_1980_no_oge['total'] = df_1961_1980_no_oge['productivity_1'] + df_1961_1980_no_oge['baumol_1'] + df_1961_1980_no_oge['capital'] + df_1961_1980_no_oge['labor']
 
 # Calculate the different terms between 1980 and 2000
 df_1980_2000 = pd.DataFrame({'year': range(1980, 2000 + 1)})
-df['within'] = df['b_1980'] * df['tfp_growth']
-df_1980_2000 = pd.merge(df_1980_2000, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1980']) * df['tfp_growth']
-df_1980_2000 = pd.merge(df_1980_2000, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1980_2000 = pd.merge(df_1980_2000, df.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1980_2000 = pd.merge(df_1980_2000, df.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp = df.copy(deep=True)
+df_temp['within_1'] = df_temp['b_1980'] * df_temp['tfp_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1980']) * df_temp['tfp_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1980'] * df_temp['tfp_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1980']) * df_temp['tfp_growth']
+df_1980_2000 = pd.merge(df_1980_2000, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
 df_1980_2000.loc[0, :] = 0
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
+df_1980_2000['total'] = df_1980_2000['productivity_1'] + df_1980_2000['baumol_1'] + df_1980_2000['capital'] + df_1980_2000['labor']
+
+# Calculate the different terms between 1980 and 2000 without the oil and gas extraction industry
+df_1980_2000_no_oge = pd.DataFrame({'year': range(1980, 2000 + 1)})
+df_temp = df[df['naics'] != '211'].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1980'] * df_temp['tfp_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1980']) * df_temp['tfp_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1980'] * df_temp['tfp_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1980']) * df_temp['tfp_growth']
+df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1980_2000_no_oge.loc[0, :] = 0
+df_1980_2000_no_oge['total'] = df_1980_2000_no_oge['productivity_1'] + df_1980_2000_no_oge['baumol_1'] + df_1980_2000_no_oge['capital'] + df_1980_2000_no_oge['labor']
 
 # Calculate the different terms between 2000 and 2019
 df_2000_2019 = pd.DataFrame({'year': range(2000, 2019 + 1)})
-df['within'] = df['b_2000'] * df['tfp_growth']
-df_2000_2019 = pd.merge(df_2000_2019, df.groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_2000']) * df['tfp_growth']
-df_2000_2019 = pd.merge(df_2000_2019, df.groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_2000_2019 = pd.merge(df_2000_2019, df.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_2000_2019 = pd.merge(df_2000_2019, df.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp = df.copy(deep=True)
+df_temp['within_1'] = df_temp['b_2000'] * df_temp['tfp_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_2000']) * df_temp['tfp_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_2000'] * df_temp['tfp_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_2000']) * df_temp['tfp_growth']
+df_2000_2019 = pd.merge(df_2000_2019, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
 df_2000_2019.loc[0, :] = 0
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
+df_2000_2019['total'] = df_2000_2019['productivity_1'] + df_2000_2019['baumol_1'] + df_2000_2019['capital'] + df_2000_2019['labor']
+
+# Calculate the different terms between 2000 and 2019 without the oil and gas extraction industry
+df_2000_2019_no_oge = pd.DataFrame({'year': range(2000, 2019 + 1)})
+df_temp = df[df['naics'] != '211'].copy(deep=True)
+df_temp['within_1'] = df_temp['b_2000'] * df_temp['tfp_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_2000']) * df_temp['tfp_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_2000'] * df_temp['tfp_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_2000']) * df_temp['tfp_growth']
+df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_2000_2019_no_oge.loc[0, :] = 0
+df_2000_2019_no_oge['total'] = df_2000_2019_no_oge['productivity_1'] + df_2000_2019_no_oge['baumol_1'] + df_2000_2019_no_oge['capital'] + df_2000_2019_no_oge['labor']
 
 ########################################################################
 # Plot the TFP Baumol effect                                           # 
@@ -979,13 +342,13 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['baumol'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
-ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() - df_1961_2019['baumol_1'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
 
 # Set the horizontal axis
-ax.set_xlim(1961, 2020)
-ax.set_xticks(range(1965, 2020 + 1, 5))
-ax.set_xticklabels(range(1965, 2020 + 1, 5), fontsize=12)
+ax.set_xlim(1961, 2019)
+ax.set_xticks(range(1965, 2015 + 1, 5))
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
 
 # Set the vertical axis
 ax.set_ylim(100, 150)
@@ -1015,18 +378,6 @@ plt.close()
 # industry                                                             # 
 ########################################################################
 
-# Calculate the different terms between 1961 and 2019
-df_1961_2019_no_oge = pd.DataFrame({'year': range(1961, 2019 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
-
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 5))
 
@@ -1035,13 +386,15 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['productivity'].cumsum() + df_1961_2019_no_oge['baumol'].cumsum() + df_1961_2019_no_oge['capital'].cumsum() + df_1961_2019_no_oge['labor'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
-ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['productivity'].cumsum() + df_1961_2019_no_oge['capital'].cumsum() + df_1961_2019_no_oge['labor'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() - df_1961_2019['baumol_1'].cumsum() + 1), label='Without Baumol', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['total'].cumsum() + 1), label=r'Total (without O\&G)', color=palette[0], linewidth=2, linestyle='dotted')
+ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['total'].cumsum() - df_1961_2019_no_oge['baumol_1'].cumsum() + 1), label=r'Without Baumol (without O\&G)', color=palette[1], linewidth=2, linestyle='dotted')
 
 # Set the horizontal axis
-ax.set_xlim(1961, 2020)
-ax.set_xticks(range(1965, 2020 + 1, 5))
-ax.set_xticklabels(range(1965, 2020 + 1, 5), fontsize=12)
+ax.set_xlim(1961, 2019)
+ax.set_xticks(range(1965, 2015 + 1, 5))
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
 
 # Set the vertical axis
 ax.set_ylim(100, 150)
@@ -1067,7 +420,7 @@ fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'baumol_no_oge.png
 plt.close()
 
 ########################################################################
-# Plot the TFP decomposition                                           # 
+# Plot the TFP allocative efficiency effect effect                     # 
 ########################################################################
 
 # Initialize the figure
@@ -1078,9 +431,98 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.stackplot(df_1961_2019['year'], df_1961_2019[['productivity', 'labor']].cumsum().values.T, colors=palette[0:3], edgecolor='k', linewidth=0.5, zorder=1)
-ax.stackplot(df_1961_2019['year'], df_1961_2019[['baumol', 'capital']].cumsum().values.T, colors=palette[2:4], edgecolor='k', linewidth=0.5, zorder=1)
-ax.plot(df_1961_2019['year'], df_1961_2019['productivity'].cumsum() + df_1961_2019['baumol'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum(), color='white', linestyle='dotted', linewidth=1.5, zorder=3)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity_2'].cumsum() + df_1961_2019['baumol_2'].cumsum() + 1), label='Without misallocation', color=palette[1], linewidth=2)
+
+# Set the horizontal axis
+ax.set_xlim(1961, 2019)
+ax.set_xticks(range(1965, 2015 + 1, 5))
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(100, 170)
+ax.set_yticks(range(100, 170 + 1, 10))
+ax.set_yticklabels(range(100, 170 + 1, 10), fontsize=12)
+ax.set_ylabel('Aggregate TFP (1961=100)', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(frameon=False, fontsize=12)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'misallocation.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot the TFP allocative efficiency effect without the oil and gas    #
+# extraction industry                                                  # 
+########################################################################
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['total'].cumsum() + 1), label='Total', color=palette[0], linewidth=2)
+ax.plot(df_1961_2019['year'], 100 * (df_1961_2019['productivity_2'].cumsum() + df_1961_2019['baumol_2'].cumsum() + 1), label='Without misallocation', color=palette[1], linewidth=2)
+ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['total'].cumsum() + 1), label=r'Total (without O\&G)', color=palette[0], linewidth=2, linestyle='dotted')
+ax.plot(df_1961_2019_no_oge['year'], 100 * (df_1961_2019_no_oge['productivity_2'].cumsum() + df_1961_2019_no_oge['baumol_2'].cumsum() + 1), label=r'Without misallocation (without O\&G)', color=palette[1], linewidth=2, linestyle='dotted')
+
+# Set the horizontal axis
+ax.set_xlim(1961, 2019)
+ax.set_xticks(range(1965, 2015 + 1, 5))
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(100, 180)
+ax.set_yticks(range(100, 180 + 1, 10))
+ax.set_yticklabels(range(100, 180 + 1, 10), fontsize=12)
+ax.set_ylabel('Aggregate TFP (1961=100)', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(frameon=False, fontsize=12)
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'misallocation_no_oge.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Plot the first TFP decomposition                                     # 
+########################################################################
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.stackplot(df_1961_2019['year'], df_1961_2019[['productivity_1', 'labor']].cumsum().values.T, colors=palette[0:3], edgecolor='k', linewidth=0.5, zorder=1)
+ax.stackplot(df_1961_2019['year'], df_1961_2019[['baumol_1', 'capital']].cumsum().values.T, colors=palette[2:4], edgecolor='k', linewidth=0.5, zorder=1)
+ax.plot(df_1961_2019['year'], df_1961_2019['productivity_1'].cumsum() + df_1961_2019['baumol_1'].cumsum() + df_1961_2019['capital'].cumsum() + df_1961_2019['labor'].cumsum(), color='white', linestyle='dotted', linewidth=1.5, zorder=3)
 
 # Set the horizontal axis
 ax.set_xlim(1961, 2019)
@@ -1108,47 +550,92 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 
 # Save and close the figure
 fig.tight_layout()
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_decomposition.png'), transparent=True, dpi=300)
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_decomposition_1.png'), transparent=True, dpi=300)
 plt.close()
 
 ########################################################################
-# Tabulate the TFP growth decomposition for different periods          # 
+# Plot the second TFP decomposition                                    # 
+########################################################################
+
+# Initialize the figure
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Set the background color of the figure to transparent
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+# Plot the data
+ax.stackplot(df_1961_2019['year'], df_1961_2019['productivity_2'].cumsum().values.T, color=palette[0], edgecolor='k', linewidth=0.5, zorder=1)
+ax.stackplot(df_1961_2019['year'], [df_1961_2019['baumol_2'].cumsum().values.T, df_1961_2019['total'].cumsum().values.T - df_1961_2019['productivity_2'].cumsum().values.T - df_1961_2019['baumol_2'].cumsum().values.T], colors=palette[1:3], edgecolor='k', linewidth=0.5, zorder=1)
+ax.plot(df_1961_2019['year'], df_1961_2019['total'].cumsum(), color='white', linestyle='dotted', linewidth=1.5, zorder=3)
+
+# Set the horizontal axis
+ax.set_xlim(1961, 2019)
+ax.set_xticks(range(1965, 2015 + 1, 5))
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=12)
+
+# Set the vertical axis
+ax.set_ylim(-0.6, 0.9)
+ax.set_yticks(np.arange(-0.6, 0.9 + 0.01, 0.1))
+ax.set_yticklabels(range(40, 190 + 1, 10), fontsize=12)
+ax.set_ylabel('Aggregate TFP decomposition (1961=100)', fontsize=12, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.01)
+
+# Remove the top and right axes
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
+
+# Set the legend
+ax.legend(['Productivity', 'Baumol', 'Allocative efficiency'], frameon=False, fontsize=12)
+ax.text(2019, 0.3, 'Total', fontsize=12, color='white', ha='right', va='bottom')
+
+# Add a note about the data source
+ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
+
+# Save and close the figure
+fig.tight_layout()
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_decomposition_2.png'), transparent=True, dpi=300)
+plt.close()
+
+########################################################################
+# Tabulate the first TFP growth decomposition for different periods    # 
 ########################################################################
 
 # Calculate the different terms for the period 1961-2019
-productivity_1961_2019 = 100 * df_1961_2019['productivity'].cumsum().iloc[-1] / (2019 - 1961)
-baumol_1961_2019 = 100 * df_1961_2019['baumol'].cumsum().iloc[-1] / (2019 - 1961)
+productivity_1961_2019 = 100 * df_1961_2019['productivity_1'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019 = 100 * df_1961_2019['baumol_1'].cumsum().iloc[-1] / (2019 - 1961)
 capital_1961_2019 = 100 * df_1961_2019['capital'].cumsum().iloc[-1] / (2019 - 1961)
 labor_1961_2019 = 100 * df_1961_2019['labor'].cumsum().iloc[-1] / (2019 - 1961)
-total_1961_2019 = productivity_1961_2019 + baumol_1961_2019 + capital_1961_2019 + labor_1961_2019
+total_1961_2019 = 100 * df_1961_2019['total'].cumsum().iloc[-1] / (2019 - 1961)
 
 # Calculate the different terms for the period 1961-1980
-productivity_1961_1980 = 100 * df_1961_1980['productivity'].cumsum().iloc[-1] / (1980 - 1961)
-baumol_1961_1980 = 100 * df_1961_1980['baumol'].cumsum().iloc[-1] / (1980 - 1961)
+productivity_1961_1980 = 100 * df_1961_1980['productivity_1'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980 = 100 * df_1961_1980['baumol_1'].cumsum().iloc[-1] / (1980 - 1961)
 capital_1961_1980 = 100 * df_1961_1980['capital'].cumsum().iloc[-1] / (1980 - 1961)
 labor_1961_1980 = 100 * df_1961_1980['labor'].cumsum().iloc[-1] / (1980 - 1961)
-total_1961_1980 = productivity_1961_1980 + baumol_1961_1980 + capital_1961_1980 + labor_1961_1980
+total_1961_1980 = 100 * df_1961_1980['total'].cumsum().iloc[-1] / (1980 - 1961)
 
 # Calculate the different terms for the period 1980-2000
-productivity_1980_2000 = 100 * df_1980_2000['productivity'].cumsum().iloc[-1] / (2000 - 1980)
-baumol_1980_2000 = 100 * df_1980_2000['baumol'].cumsum().iloc[-1] / (2000 - 1980)
+productivity_1980_2000 = 100 * df_1980_2000['productivity_1'].cumsum().iloc[-1] / (2000 - 1980)
+baumol_1980_2000 = 100 * df_1980_2000['baumol_1'].cumsum().iloc[-1] / (2000 - 1980)
 capital_1980_2000 = 100 * df_1980_2000['capital'].cumsum().iloc[-1] / (2000 - 1980)
 labor_1980_2000 = 100 * df_1980_2000['labor'].cumsum().iloc[-1] / (2000 - 1980)
-total_1980_2000 = productivity_1980_2000 + baumol_1980_2000 + capital_1980_2000 + labor_1980_2000
+total_1980_2000 = 100 * df_1980_2000['total'].cumsum().iloc[-1] / (2000 - 1980)
 
 # Calculate the different terms for the period 2000-2019
-productivity_2000_2019 = 100 * df_2000_2019['productivity'].cumsum().iloc[-1] / (2019 - 2000)
-baumol_2000_2019 = 100 * df_2000_2019['baumol'].cumsum().iloc[-1] / (2019 - 2000)
+productivity_2000_2019 = 100 * df_2000_2019['productivity_1'].cumsum().iloc[-1] / (2019 - 2000)
+baumol_2000_2019 = 100 * df_2000_2019['baumol_1'].cumsum().iloc[-1] / (2019 - 2000)
 capital_2000_2019 = 100 * df_2000_2019['capital'].cumsum().iloc[-1] / (2019 - 2000)
 labor_2000_2019 = 100 * df_2000_2019['labor'].cumsum().iloc[-1] / (2019 - 2000)
-total_2000_2019 = productivity_2000_2019 + baumol_2000_2019 + capital_2000_2019 + labor_2000_2019
+total_2000_2019 = 100 * df_2000_2019['total'].cumsum().iloc[-1] / (2019 - 2000)
 
 # Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_growth.tex'), 'w')
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_1.tex'), 'w')
 lines = [r'\begin{table}[h]',
          r'\centering',
          r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition}',
+         r'\caption{TFP Growth Decomposition \#1}',
          r'\begin{tabular}{lccccc}',
          r'\hline',
          r'\hline',
@@ -1182,101 +669,51 @@ lines = [r'\begin{table}[h]',
          r'\footnotesize',
          r'\item Note:',
          r'\end{tablenotes}',
-         r'\label{tab:tfp_growth}',
+         r'\label{tab:tfp_decomposition_1}',
          r'\end{threeparttable}',
          r'\end{table}']
 table.write('\n'.join(lines))
 table.close()
 
 ########################################################################
-# Tabulate the TFP growth decomposition for different periods without  #
-# the oil and gas extraction industry                                  # 
+# Tabulate the first TFP growth decomposition for different periods    #
+# without the oil and gas extraction industry                          # 
 ########################################################################
 
-# Calculate the different terms between 1961 and 2019
-df_1961_2019_no_oge = pd.DataFrame({'year': range(1961, 2019 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
-
-# Calculate the different terms between 1961 and 1980
-df_1961_1980_no_oge = pd.DataFrame({'year': range(1961, 1980 + 1)})
-df['within'] = df['b_1961'] * df['tfp_growth']
-df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1961']) * df['tfp_growth']
-df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
-
-# Calculate the different terms between 1980 and 2000
-df_1980_2000_no_oge = pd.DataFrame({'year': range(1980, 2000 + 1)})
-df['within'] = df['b_1980'] * df['tfp_growth']
-df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_1980']) * df['tfp_growth']
-df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df_1980_2000_no_oge.loc[0, :] = 0
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
-
-# Calculate the different terms between 2000 and 2019
-df_2000_2019_no_oge = pd.DataFrame({'year': range(2000, 2019 + 1)})
-df['within'] = df['b_2000'] * df['tfp_growth']
-df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'within': 'sum'}).rename(columns={'within': 'productivity'}), on='year', how='left')
-df['between'] = (df['b'] - df['b_2000']) * df['tfp_growth']
-df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'between': 'sum'}).rename(columns={'between': 'baumol'}), on='year', how='left')
-df['capital_reallocation'] = (df['b'] * df['alpha_k'] - df['omega_k'] * df['lambda_k']) * df['capital_growth']
-df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
-df['labor_reallocation'] = (df['b'] * df['alpha_l'] - df['omega_l'] * df['lambda_l']) * df['labor_growth']
-df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df[df['code'] != '211'].groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
-df_2000_2019_no_oge.loc[0, :] = 0
-df = df.drop(columns=['within', 'between', 'capital_reallocation', 'labor_reallocation'])
-
 # Calculate the different terms for the period 1961-2019
-productivity_1961_2019 = 100 * df_1961_2019_no_oge['productivity'].cumsum().iloc[-1] / (2019 - 1961)
-baumol_1961_2019 = 100 * df_1961_2019_no_oge['baumol'].cumsum().iloc[-1] / (2019 - 1961)
+productivity_1961_2019 = 100 * df_1961_2019_no_oge['productivity_1'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019 = 100 * df_1961_2019_no_oge['baumol_1'].cumsum().iloc[-1] / (2019 - 1961)
 capital_1961_2019 = 100 * df_1961_2019_no_oge['capital'].cumsum().iloc[-1] / (2019 - 1961)
 labor_1961_2019 = 100 * df_1961_2019_no_oge['labor'].cumsum().iloc[-1] / (2019 - 1961)
-total_1961_2019 = productivity_1961_2019 + baumol_1961_2019 + capital_1961_2019 + labor_1961_2019
+total_1961_2019 = 100 * df_1961_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 1961)
 
 # Calculate the different terms for the period 1961-1980
-productivity_1961_1980 = 100 * df_1961_1980_no_oge['productivity'].cumsum().iloc[-1] / (1980 - 1961)
-baumol_1961_1980 = 100 * df_1961_1980_no_oge['baumol'].cumsum().iloc[-1] / (1980 - 1961)
+productivity_1961_1980 = 100 * df_1961_1980_no_oge['productivity_1'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980 = 100 * df_1961_1980_no_oge['baumol_1'].cumsum().iloc[-1] / (1980 - 1961)
 capital_1961_1980 = 100 * df_1961_1980_no_oge['capital'].cumsum().iloc[-1] / (1980 - 1961)
 labor_1961_1980 = 100 * df_1961_1980_no_oge['labor'].cumsum().iloc[-1] / (1980 - 1961)
-total_1961_1980 = productivity_1961_1980 + baumol_1961_1980 + capital_1961_1980 + labor_1961_1980
+total_1961_1980 = 100 * df_1961_1980_no_oge['total'].cumsum().iloc[-1] / (1980 - 1961)
 
 # Calculate the different terms for the period 1980-2000
-productivity_1980_2000 = 100 * df_1980_2000_no_oge['productivity'].cumsum().iloc[-1] / (2000 - 1980)
-baumol_1980_2000 = 100 * df_1980_2000_no_oge['baumol'].cumsum().iloc[-1] / (2000 - 1980)
+productivity_1980_2000 = 100 * df_1980_2000_no_oge['productivity_1'].cumsum().iloc[-1] / (2000 - 1980)
+baumol_1980_2000 = 100 * df_1980_2000_no_oge['baumol_1'].cumsum().iloc[-1] / (2000 - 1980)
 capital_1980_2000 = 100 * df_1980_2000_no_oge['capital'].cumsum().iloc[-1] / (2000 - 1980)
 labor_1980_2000 = 100 * df_1980_2000_no_oge['labor'].cumsum().iloc[-1] / (2000 - 1980)
-total_1980_2000 = productivity_1980_2000 + baumol_1980_2000 + capital_1980_2000 + labor_1980_2000
+total_1980_2000 = 100 * df_1980_2000_no_oge['total'].cumsum().iloc[-1] / (2000 - 1980)
 
 # Calculate the different terms for the period 2000-2019
-productivity_2000_2019 = 100 * df_2000_2019_no_oge['productivity'].cumsum().iloc[-1] / (2019 - 2000)
-baumol_2000_2019 = 100 * df_2000_2019_no_oge['baumol'].cumsum().iloc[-1] / (2019 - 2000)
+productivity_2000_2019 = 100 * df_2000_2019_no_oge['productivity_1'].cumsum().iloc[-1] / (2019 - 2000)
+baumol_2000_2019 = 100 * df_2000_2019_no_oge['baumol_1'].cumsum().iloc[-1] / (2019 - 2000)
 capital_2000_2019 = 100 * df_2000_2019_no_oge['capital'].cumsum().iloc[-1] / (2019 - 2000)
 labor_2000_2019 = 100 * df_2000_2019_no_oge['labor'].cumsum().iloc[-1] / (2019 - 2000)
-total_2000_2019 = productivity_2000_2019 + baumol_2000_2019 + capital_2000_2019 + labor_2000_2019
+total_2000_2019 = 100 * df_2000_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 2000)
 
 # Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_growth_no_oge.tex'), 'w')
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_1_no_oge.tex'), 'w')
 lines = [r'\begin{table}[h]',
          r'\centering',
          r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition (without O\&G)}',
+         r'\caption{TFP Growth Decomposition \#1 (without O\&G)}',
          r'\begin{tabular}{lccccc}',
          r'\hline',
          r'\hline',
@@ -1310,7 +747,146 @@ lines = [r'\begin{table}[h]',
          r'\footnotesize',
          r'\item Note:',
          r'\end{tablenotes}',
-         r'\label{tab:tfp_growth_no_oge}',
+         r'\label{tab:tfp_decomposition_1_no_oge}',
+         r'\end{threeparttable}',
+         r'\end{table}']
+table.write('\n'.join(lines))
+table.close()
+
+########################################################################
+# Tabulate the second TFP growth decomposition for different periods   # 
+########################################################################
+
+# Calculate the different terms for the period 1961-2019
+productivity_1961_2019 = 100 * df_1961_2019['productivity_2'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019 = 100 * df_1961_2019['baumol_2'].cumsum().iloc[-1] / (2019 - 1961)
+total_1961_2019 = 100 * df_1961_2019['total'].cumsum().iloc[-1] / (2019 - 1961)
+misallocation_1961_2019 = total_1961_2019 - productivity_1961_2019 - baumol_1961_2019
+
+# Calculate the different terms for the period 1961-1980
+productivity_1961_1980 = 100 * df_1961_1980['productivity_2'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980 = 100 * df_1961_1980['baumol_2'].cumsum().iloc[-1] / (1980 - 1961)
+total_1961_1980 = 100 * df_1961_1980['total'].cumsum().iloc[-1] / (1980 - 1961)
+misallocation_1961_1980 = total_1961_1980 - productivity_1961_1980 - baumol_1961_1980
+
+# Calculate the different terms for the period 1980-2000
+productivity_1980_2000 = 100 * df_1980_2000['productivity_2'].cumsum().iloc[-1] / (2000 - 1980)
+baumol_1980_2000 = 100 * df_1980_2000['baumol_2'].cumsum().iloc[-1] / (2000 - 1980)
+total_1980_2000 = 100 * df_1980_2000['total'].cumsum().iloc[-1] / (2000 - 1980)
+misallocation_1980_2000 = total_1980_2000 - productivity_1980_2000 - baumol_1980_2000
+
+# Calculate the different terms for the period 2000-2019
+productivity_2000_2019 = 100 * df_2000_2019['productivity_2'].cumsum().iloc[-1] / (2019 - 2000)
+baumol_2000_2019 = 100 * df_2000_2019['baumol_2'].cumsum().iloc[-1] / (2019 - 2000)
+total_2000_2019 = 100 * df_2000_2019['total'].cumsum().iloc[-1] / (2019 - 2000)
+misallocation_2000_2019 = total_2000_2019 - productivity_2000_2019 - baumol_2000_2019
+
+# Write a table with the TFP growth decomposition
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_2.tex'), 'w')
+lines = [r'\begin{table}[h]',
+         r'\centering',
+         r'\begin{threeparttable}',
+         r'\caption{TFP Growth Decomposition \#2}',
+         r'\begin{tabular}{lccccc}',
+         r'\hline',
+         r'\hline',
+         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
+         r'\hline',
+         r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_2000_2019) + r'\% \\',
+         r'Baumol & & ' + '{:.2f}'.format(baumol_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_2000_2019) + r'\% \\',
+         r'Allocative efficiency & & ' + '{:.2f}'.format(misallocation_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_2000_2019) + r'\% \\',
+         r'\hline',
+         r'Total & & ' + '{:.2f}'.format(total_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(total_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(total_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(total_2000_2019) + r'\% \\',
+         r'\hline',
+         r'\hline',
+         r'\end{tabular}',
+         r'\begin{tablenotes}[flushleft]',
+         r'\footnotesize',
+         r'\item Note:',
+         r'\end{tablenotes}',
+         r'\label{tab:tfp_decomposition_2}',
+         r'\end{threeparttable}',
+         r'\end{table}']
+table.write('\n'.join(lines))
+table.close()
+
+########################################################################
+# Tabulate the second TFP growth decomposition for different periods   #
+# without the oil and gas extraction industry                          # 
+########################################################################
+
+# Calculate the different terms for the period 1961-2019
+productivity_1961_2019_no_oge = 100 * df_1961_2019_no_oge['productivity_2'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019_no_oge = 100 * df_1961_2019_no_oge['baumol_2'].cumsum().iloc[-1] / (2019 - 1961)
+total_1961_2019_no_oge = 100 * df_1961_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 1961)
+misallocation_1961_2019_no_oge = total_1961_2019_no_oge - productivity_1961_2019_no_oge - baumol_1961_2019_no_oge
+
+# Calculate the different terms for the period 1961-1980
+productivity_1961_1980_no_oge = 100 * df_1961_1980_no_oge['productivity_2'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980_no_oge = 100 * df_1961_1980_no_oge['baumol_2'].cumsum().iloc[-1] / (1980 - 1961)
+total_1961_1980_no_oge = 100 * df_1961_1980_no_oge['total'].cumsum().iloc[-1] / (1980 - 1961)
+misallocation_1961_1980_no_oge = total_1961_1980_no_oge - productivity_1961_1980_no_oge - baumol_1961_1980_no_oge
+
+# Calculate the different terms for the period 1980-2000
+productivity_1980_2000_no_oge = 100 * df_1980_2000_no_oge['productivity_2'].cumsum().iloc[-1] / (2000 - 1980)
+baumol_1980_2000_no_oge = 100 * df_1980_2000_no_oge['baumol_2'].cumsum().iloc[-1] / (2000 - 1980)
+total_1980_2000_no_oge = 100 * df_1980_2000_no_oge['total'].cumsum().iloc[-1] / (2000 - 1980)
+misallocation_1980_2000_no_oge = total_1980_2000_no_oge - productivity_1980_2000_no_oge - baumol_1980_2000_no_oge
+
+# Calculate the different terms for the period 2000-2019
+productivity_2000_2019_no_oge = 100 * df_2000_2019_no_oge['productivity_2'].cumsum().iloc[-1] / (2019 - 2000)
+baumol_2000_2019_no_oge = 100 * df_2000_2019_no_oge['baumol_2'].cumsum().iloc[-1] / (2019 - 2000)
+total_2000_2019_no_oge = 100 * df_2000_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 2000)
+misallocation_2000_2019_no_oge = total_2000_2019_no_oge - productivity_2000_2019_no_oge - baumol_2000_2019_no_oge
+
+# Write a table with the TFP growth decomposition
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_2_no_oge.tex'), 'w')
+lines = [r'\begin{table}[h]',
+         r'\centering',
+         r'\begin{threeparttable}',
+         r'\caption{TFP Growth Decomposition \#2 (without O\&G)}',
+         r'\begin{tabular}{lccccc}',
+         r'\hline',
+         r'\hline',
+         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
+         r'\hline',
+         r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1961_1980_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_1980_2000_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(productivity_2000_2019_no_oge) + r'\% \\',
+         r'Baumol & & ' + '{:.2f}'.format(baumol_1961_2019_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1961_1980_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_1980_2000_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(baumol_2000_2019_no_oge) + r'\% \\',
+         r'Allocative efficiency & & ' + '{:.2f}'.format(misallocation_1961_2019_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_1961_1980_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_1980_2000_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(misallocation_2000_2019_no_oge) + r'\% \\',
+         r'\hline',
+         r'Total & & ' + '{:.2f}'.format(total_1961_2019_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(total_1961_1980_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(total_1980_2000_no_oge) + r'\% & ' \
+                     + '{:.2f}'.format(total_2000_2019_no_oge) + r'\% \\',
+         r'\hline',
+         r'\hline',
+         r'\end{tabular}',
+         r'\begin{tablenotes}[flushleft]',
+         r'\footnotesize',
+         r'\item Note:',
+         r'\end{tablenotes}',
+         r'\label{tab:tfp_decomposition_2_no_oge}',
          r'\end{threeparttable}',
          r'\end{table}']
 table.write('\n'.join(lines))
@@ -1363,17 +939,24 @@ label_map = {
     'Wood product manufacturing [321]': 'Wood product manuf.'
 }
 
-# Calculate the productivity and Baumol terms between 1961 and 2019
+# Calculate the different terms between 1961 and 2019
 df_i = df.copy(deep=True)
-df_i['within'] = df_i['b_1961'] * df_i['tfp_growth']
-df_i['between'] = (df_i['b'] - df_i['b_1961']) * df_i['tfp_growth']
+df_i['within_1'] = df_i['b_1961'] * df_i['tfp_growth']
+df_i['between_1'] = (df_i['b'] - df_i['b_1961']) * df_i['tfp_growth']
 df_i['capital_reallocation'] = (df_i['b'] * df_i['alpha_k'] - df_i['omega_k'] * df_i['lambda_k']) * df_i['capital_growth']
 df_i['labor_reallocation'] = (df_i['b'] * df_i['alpha_l'] - df_i['omega_l'] * df_i['lambda_l']) * df_i['labor_growth']
-df_i['total'] = df_i['within'] + df_i['between'] + df_i['capital_reallocation'] + df_i['labor_reallocation']
+df_i['total'] = df_i['within_1'] + df_i['between_1'] + df_i['capital_reallocation'] + df_i['labor_reallocation']
 df_i['industry'] = df_i['industry'].map(label_map)
-df_i = df_i.loc[df_i['year'] > 1961, ['year', 'code', 'industry', 'within', 'between', 'capital_reallocation', 'labor_reallocation', 'total']]
-df_i = df_i.groupby('code', as_index=False).agg({'within': 'sum', 'between': 'sum', 'capital_reallocation': 'sum', 'labor_reallocation': 'sum', 'total': 'sum', 'industry': lambda x: x.unique()[0]})
+df_i = df_i.loc[df_i['year'] > 1961, ['year', 'naics', 'industry', 'within_1', 'between_1', 'capital_reallocation', 'labor_reallocation', 'total']]
+df_i = df_i.groupby('naics', as_index=False).agg({'within_1': 'sum', 'between_1': 'sum', 'capital_reallocation': 'sum', 'labor_reallocation': 'sum', 'total': 'sum', 'industry': lambda x: x.unique()[0]})
 df_i = df_i.sort_values(by='total', ascending=False)
+
+# Calculate the growth rates of TFP and value added
+df_tfp = df.loc[(df['year'] == 1961) | (df['year'] == 2019), ['industry', 'tfp', 'va']]
+df_tfp.loc[:, ['tfp', 'va']] = df_tfp.groupby('industry', as_index=False)[['tfp', 'va']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_tfp = df_tfp.dropna(subset=['tfp', 'va'])
+df_tfp['industry'] = df_tfp['industry'].map(label_map)
+df_i = pd.merge(df_i, df_tfp[['industry', 'tfp', 'va']], on='industry', how='left')
 
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(10, 5))
@@ -1392,7 +975,7 @@ ax.tick_params(axis='x', labelrotation=90)
 ax.set_ylim(-0.1, 0.06)
 ax.set_yticks(np.arange(-0.1, 0.06 + 0.01, 0.02))
 ax.set_yticklabels([str(x) + r'\%' for x in range(-10, 6 + 1, 2)], fontsize=12)
-ax.set_ylabel('TFP growth contribution (total)', fontsize=12, rotation=0, ha='left')
+ax.set_ylabel('TFP growth contribution', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -1404,7 +987,7 @@ ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
 # Save and close the figure
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_total.png'), transparent=True, dpi=300, bbox_inches='tight')
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_industry.png'), transparent=True, dpi=300, bbox_inches='tight')
 plt.close()
 
 # Initialize the figure
@@ -1415,16 +998,16 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.bar(df_i['industry'], df_i['within'], color=palette[1], linewidth=0.5, edgecolor='k')
+ax.bar(df_i['industry'], df_i['tfp'], color=palette[1], linewidth=0.5, edgecolor='k')
 
 # Set the horizontal axis
 ax.tick_params(axis='x', labelrotation=90)
 
 # Set the vertical axis
-ax.set_ylim(-0.04, 0.08)
-ax.set_yticks(np.arange(-0.04, 0.08 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(-4, 8 + 1, 2)], fontsize=12)
-ax.set_ylabel('TFP growth contribution (productivity)', fontsize=12, rotation=0, ha='left')
+ax.set_ylim(-0.02, 0.04)
+ax.set_yticks(np.arange(-0.02, 0.04 + 0.001, 0.01))
+ax.set_yticklabels([str(x) + r'\%' for x in range(-2, 4 + 1, 1)], fontsize=12)
+ax.set_ylabel('TFP growth', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -1436,7 +1019,7 @@ ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
 # Save and close the figure
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_productivity.png'), transparent=True, dpi=300, bbox_inches='tight')
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_growth_industry.png'), transparent=True, dpi=300, bbox_inches='tight')
 plt.close()
 
 # Initialize the figure
@@ -1447,16 +1030,16 @@ fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
 # Plot the data
-ax.bar(df_i['industry'], df_i['between'], color=palette[1], linewidth=0.5, edgecolor='k')
+ax.bar(df_i['industry'], df_i['va'], color=palette[1], linewidth=0.5, edgecolor='k')
 
 # Set the horizontal axis
 ax.tick_params(axis='x', labelrotation=90)
 
 # Set the vertical axis
-ax.set_ylim(-0.08, 0.02)
-ax.set_yticks(np.arange(-0.08, 0.02 + 0.01, 0.02))
-ax.set_yticklabels([str(x) + r'\%' for x in range(-8, 2 + 1, 2)], fontsize=12)
-ax.set_ylabel('TFP growth contribution (Baumol)', fontsize=12, rotation=0, ha='left')
+ax.set_ylim(0, 0.12)
+ax.set_yticks(np.arange(0, 0.12 + 0.01, 0.02))
+ax.set_yticklabels([str(x) + r'\%' for x in range(0, 12 + 1, 2)], fontsize=12)
+ax.set_ylabel('Nominal GDP growth', fontsize=12, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.01)
 
 # Remove the top and right axes
@@ -1468,71 +1051,7 @@ ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
 # Save and close the figure
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_baumol.png'), transparent=True, dpi=300, bbox_inches='tight')
-plt.close()
-
-# Initialize the figure
-fig, ax = plt.subplots(figsize=(10, 5))
-
-# Set the background color of the figure to transparent
-fig.patch.set_alpha(0.0)
-ax.patch.set_alpha(0.0)
-
-# Plot the data
-ax.bar(df_i['industry'], df_i['capital_reallocation'], color=palette[1], linewidth=0.5, edgecolor='k')
-
-# Set the horizontal axis
-ax.tick_params(axis='x', labelrotation=90)
-
-# Set the vertical axis
-ax.set_ylim(-0.02, 0.02)
-ax.set_yticks(np.arange(-0.02, 0.02 + 0.001, 0.005))
-ax.set_yticklabels([str(x) + r'\%' for x in np.arange(-2, 2 + 0.1, 0.5)], fontsize=12)
-ax.set_ylabel('TFP growth contribution (capital)', fontsize=12, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
-
-# Remove the top and right axes
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-
-# Add a note about the data source
-ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
-
-# Save and close the figure
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_capital.png'), transparent=True, dpi=300, bbox_inches='tight')
-plt.close()
-
-# Initialize the figure
-fig, ax = plt.subplots(figsize=(10, 5))
-
-# Set the background color of the figure to transparent
-fig.patch.set_alpha(0.0)
-ax.patch.set_alpha(0.0)
-
-# Plot the data
-ax.bar(df_i['industry'], df_i['labor_reallocation'], color=palette[1], linewidth=0.5, edgecolor='k')
-
-# Set the horizontal axis
-ax.tick_params(axis='x', labelrotation=90)
-
-# Set the vertical axis
-ax.set_ylim(-0.02, 0.02)
-ax.set_yticks(np.arange(-0.02, 0.02 + 0.001, 0.005))
-ax.set_yticklabels([str(x) + r'\%' for x in np.arange(-2, 2 + 0.1, 0.5)], fontsize=12)
-ax.set_ylabel('TFP growth contribution (labor)', fontsize=12, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
-
-# Remove the top and right axes
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-
-# Add a note about the data source
-ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
-
-# Save and close the figure
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_contribution_labor.png'), transparent=True, dpi=300, bbox_inches='tight')
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'va_growth_industry.png'), transparent=True, dpi=300, bbox_inches='tight')
 plt.close()
 
 ########################################################################
@@ -1540,18 +1059,18 @@ plt.close()
 ########################################################################
 
 # Only keep the relevant years and columns
-df_tfp = df.loc[(df['year'] == 1961) | (df['year'] == 2019), ['year', 'code', 'tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']]
+df_tfp = df.loc[(df['year'] == 1961) | (df['year'] == 2019), ['year', 'naics', 'tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']]
 
 # Calculate the growth rates
-df_tfp.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']] = df_tfp.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
+df_tfp.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']] = df_tfp.groupby('naics', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage', 'capital_price']].transform(lambda x: np.log(x).diff() / (2019 - 1961))
 df_tfp = df_tfp.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage', 'capital_price'])
 
 # Calculate the average capital and labor costs
-df_cost = df.loc[:, ['year', 'code', 'capital_cost', 'labor_cost']]
+df_cost = df.loc[:, ['year', 'naics', 'capital_cost', 'labor_cost']]
 df_cost['alpha_k'] = df_cost['capital_cost'] / (df_cost['capital_cost'] + df_cost['labor_cost'])
 df_cost['alpha_l'] = df_cost['labor_cost'] / (df_cost['capital_cost'] + df_cost['labor_cost'])
-df_cost = df_cost.groupby('code', as_index=False).agg({'alpha_k': 'mean', 'alpha_l': 'mean'})
-df_tfp = pd.merge(df_tfp, df_cost, on='code', how='left')
+df_cost = df_cost.groupby('naics', as_index=False).agg({'alpha_k': 'mean', 'alpha_l': 'mean'})
+df_tfp = pd.merge(df_tfp, df_cost, on='naics', how='left')
 
 # Initialize the figure
 fig, ax = plt.subplots(figsize=(8, 6))
@@ -1588,22 +1107,22 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'va'].values[0])
+position_211 = (df_tfp.loc[df_tfp['naics'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '211', 'va'].values[0])
 ax.text(position_211[0] + 0.003, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.0175), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'va'].values[0])
+position_334 = (df_tfp.loc[df_tfp['naics'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '334', 'va'].values[0])
 ax.text(position_334[0] + 0.002, position_334[1] + 0.015, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_334[0] + 0.002, position_334[1] + 0.01), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'va'].values[0])
+position_71 = (df_tfp.loc[df_tfp['naics'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '71', 'va'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.02, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.015), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'va'].values[0])
+position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'va'].values[0])
 ax.text(position_321[0] + 0.0075, position_321[1] - 0.025, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.02), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
@@ -1650,22 +1169,22 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'real_va'].values[0])
+position_211 = (df_tfp.loc[df_tfp['naics'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '211', 'real_va'].values[0])
 ax.text(position_211[0] + 0.004, position_211[1] - 0.025, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0225), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'real_va'].values[0])
+position_334 = (df_tfp.loc[df_tfp['naics'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '334', 'real_va'].values[0])
 ax.text(position_334[0] + 0.002, position_334[1] + 0.02, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_334[0] + 0.002, position_334[1] + 0.015), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'real_va'].values[0])
+position_71 = (df_tfp.loc[df_tfp['naics'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '71', 'real_va'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.025, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.02), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'real_va'].values[0])
+position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'real_va'].values[0])
 ax.text(position_321[0] + 0.0075, position_321[1] - 0.02, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.015), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
@@ -1712,22 +1231,22 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'price'].values[0])
+position_211 = (df_tfp.loc[df_tfp['naics'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '211', 'price'].values[0])
 ax.text(position_211[0] + 0.0035, position_211[1] - 0.02, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] - 0.019), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'price'].values[0])
+position_334 = (df_tfp.loc[df_tfp['naics'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '334', 'price'].values[0])
 ax.text(position_334[0] - 0.0125, position_334[1], 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_334[0] - 0.006, position_334[1]), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'price'].values[0])
+position_71 = (df_tfp.loc[df_tfp['naics'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '71', 'price'].values[0])
 ax.text(position_71[0] + 0.01, position_71[1] + 0.0075, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_71[0] + 0.01, position_71[1] + 0.005), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'price'].values[0])
+position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'price'].values[0])
 ax.text(position_321[0] + 0.009, position_321[1], 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.005, position_321[1]), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
@@ -1774,22 +1293,22 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'wage'].values[0])
+position_211 = (df_tfp.loc[df_tfp['naics'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '211', 'wage'].values[0])
 ax.text(position_211[0] + 0.004, position_211[1] - 0.015, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_211[0] + 0.004, position_211[1] - 0.0135), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'wage'].values[0])
+position_334 = (df_tfp.loc[df_tfp['naics'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '334', 'wage'].values[0])
 ax.text(position_334[0] + 0.001, position_334[1] + 0.01, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_334[0] + 0.001, position_334[1] + 0.0075), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'wage'].values[0])
+position_71 = (df_tfp.loc[df_tfp['naics'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '71', 'wage'].values[0])
 ax.text(position_71[0] + 0.0065, position_71[1] + 0.015, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.0125), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'wage'].values[0])
+position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'wage'].values[0])
 ax.text(position_321[0] + 0.005, position_321[1] - 0.015, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.0125), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
@@ -1836,22 +1355,22 @@ ax.spines['right'].set_visible(False)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
 # Identify the oil and gas extraction industry
-position_211 = (df_tfp.loc[df_tfp['code'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '211', 'capital_price'].values[0])
+position_211 = (df_tfp.loc[df_tfp['naics'] == '211', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '211', 'capital_price'].values[0])
 ax.text(position_211[0] + 0.0035, position_211[1] + 0.015, 'Oil and gas extraction', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_211[0] + 0.003, position_211[1] + 0.014), xytext=position_211, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the computer and electronic product manufacturing industry
-position_334 = (df_tfp.loc[df_tfp['code'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '334', 'capital_price'].values[0])
+position_334 = (df_tfp.loc[df_tfp['naics'] == '334', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '334', 'capital_price'].values[0])
 ax.text(position_334[0], position_334[1] + 0.01, 'Computer and electronic\nproduct manufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_334[0], position_334[1] + 0.0075), xytext=position_334, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the arts, entertainment and recreation industry
-position_71 = (df_tfp.loc[df_tfp['code'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '71', 'capital_price'].values[0])
+position_71 = (df_tfp.loc[df_tfp['naics'] == '71', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '71', 'capital_price'].values[0])
 ax.text(position_71[0] + 0.0075, position_71[1] + 0.005, 'Arts, entertainment\nand recreation', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_71[0] + 0.0075, position_71[1] + 0.0025), xytext=position_71, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Identify the wood product manufacturing industry
-position_321 = (df_tfp.loc[df_tfp['code'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['code'] == '321', 'capital_price'].values[0])
+position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'capital_price'].values[0])
 ax.text(position_321[0] + 0.009, position_321[1] + 0.01, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.009, position_321[1] + 0.0075), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
@@ -1953,16 +1472,16 @@ plt.close()
 ########################################################################
 
 # Only keep the relevant years and columns
-df_tfp_1 = df.loc[(df['year'] == 1961) | (df['year'] == 1980), ['year', 'code', 'tfp', 'va', 'real_va', 'price', 'wage']]
-df_tfp_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2000), ['year', 'code', 'tfp', 'va', 'real_va', 'price', 'wage']]
-df_tfp_3 = df.loc[(df['year'] == 2000) | (df['year'] == 2019), ['year', 'code', 'tfp', 'va', 'real_va', 'price', 'wage']]
+df_tfp_1 = df.loc[(df['year'] == 1961) | (df['year'] == 1980), ['year', 'naics', 'tfp', 'va', 'real_va', 'price', 'wage']]
+df_tfp_2 = df.loc[(df['year'] == 1980) | (df['year'] == 2000), ['year', 'naics', 'tfp', 'va', 'real_va', 'price', 'wage']]
+df_tfp_3 = df.loc[(df['year'] == 2000) | (df['year'] == 2019), ['year', 'naics', 'tfp', 'va', 'real_va', 'price', 'wage']]
 
 # Calculate the growth rates
-df_tfp_1.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_1.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
+df_tfp_1.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_1.groupby('naics', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (1980 - 1961))
 df_tfp_1 = df_tfp_1.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
-df_tfp_2.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_2.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2000 - 1980))
+df_tfp_2.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_2.groupby('naics', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2000 - 1980))
 df_tfp_2 = df_tfp_2.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
-df_tfp_3.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_3.groupby('code', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 2000))
+df_tfp_3.loc[:, ['tfp', 'va', 'real_va', 'price', 'wage']] = df_tfp_3.groupby('naics', as_index=False)[['tfp', 'va', 'real_va', 'price', 'wage']].transform(lambda x: np.log(x).diff() / (2019 - 2000))
 df_tfp_3 = df_tfp_3.dropna(subset=['tfp', 'va', 'real_va', 'price', 'wage'])
 
 # Initialize the figure
