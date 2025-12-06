@@ -55,7 +55,7 @@
 \newcommand{\smallquad}{\hspace{0.5em}}
 
 % Title
-\title{\textbf{Productivity Growth in Canada}\thanks{We are grateful to Edward Xu for excellent research assistance.}}
+\title{\textbf{Where Did Canada's Productivity Growth Go?}\thanks{We are grateful to Edward Xu for excellent research assistance.}}
 \author{
 \href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1} \and
 \href{https://sites.google.com/view/nicolasvincent/home}{Nicolas Vincent}\textsuperscript{2}
@@ -70,12 +70,21 @@
 \footnotetext[2]{HEC Montr\'eal. E-mail: \href{mailto:nicolas.vincent@hec.ca}{nicolas.vincent@hec.ca}}
 
 \begin{abstract}
+    This paper quantifies the forces behind Canada’s long-run productivity growth slowdown using an industry-level accounting framework for the period 1961--2019. I decompose aggregate total-factor productivity (TFP) growth into contributions from: (1) within-industry productivity improvements, (2) structural change (Baumol effects), and (3) factor reallocation across industries. The results show that Canada’s post-2000 stagnation is driven almost entirely by a sharp decline in within-industry TFP growth. Structural change increasingly weighs on aggregate TFP as the economy shifts toward slower-growing service sectors, though its overall magnitude remains modest. Factor reallocation contributes little throughout the sample.
 \end{abstract}
 
 \clearpage
 
 \section{Introduction}
 \label{s:introduction}
+
+Canada’s productivity performance has weakened substantially over the past several decades, with the slowdown becoming especially pronounced after 2000. While Canada experienced robust gains in total-factor productivity (TFP) during the postwar period, recent years have seen persistently low—at times even negative—TFP growth, contributing to slower real wage growth and diminishing improvements in living standards. Despite the centrality of productivity to long-run economic performance, the sources of Canada’s stagnation remain debated. Explanations range from declining dynamism and innovation to adverse sectoral shifts, resource-sector volatility, and structural barriers to investment. Yet relatively little work has quantified the relative importance of these channels using a consistent, long-run, industry-level framework.
+
+This paper provides a simple and transparent accounting of Canada’s aggregate TFP growth from 1961 to 2019 using a decomposition grounded entirely in observable data. Following a standard industry-level growth-accounting approach, I separate aggregate TFP growth into three components: (i) within-industry productivity improvements, (ii) structural change captured through Baumol effects, and (iii) reallocation of capital and labor across industries. This decomposition allows us to measure how much of Canada’s productivity performance reflects technological and efficiency gains inside industries, how much stems from changes in the economy’s sectoral composition, and how much is due to shifts in factor inputs across sectors.
+
+The results show that Canada’s post-2000 productivity stagnation is driven overwhelmingly by a sharp decline in within-industry TFP growth. Although Baumol effects become increasingly negative over time—as output and employment shift toward slower-growing service industries—their overall magnitude remains modest relative to the collapse in within-industry productivity. Factor reallocation contributes little throughout the sample, suggesting that changes in the distribution of capital and labor across sectors do not play a central role in Canada’s long-run productivity dynamics.
+
+By documenting these patterns over nearly six decades of Canadian economic history, the paper offers a coherent empirical foundation for understanding the country’s productivity challenges. The findings point toward explanations rooted primarily in declining technological progress and efficiency improvements within industries, with mild but growing compositional drags. These results help clarify which mechanisms should— and should not—be at the center of policy discussions aimed at improving Canada’s productivity performance.
 
 \section{Theoretical Framework}
 \label{s:theoretical framework}
@@ -143,6 +152,7 @@ Term \eqref{eq:baumol_1} instead weighs industry-level TFP growth by the change 
 
 Terms \eqref{eq:capital} and \eqref{eq:labor} capture the contribution of reallocating factors across sectors. It weighs changes in industry-level capital and labor inputs by the difference between two terms. The first term is the product of the industry's share of total value-added and the elasticity of its output with respect to inputs. The second term is the product of the industry's share of total factor expenditures and the elasticity of aggregate output with respect to inputs. Intuitively, moving inputs into industries where they are more productive than the economy-wide average ($\alpha_{it}^K > \lambda_t^K$ or $\alpha_{it}^L > \lambda_t^L$) and where the receiving industries are more important in output than costs ($b_{it} > \omega_{it}^K$ or $b_{it} > \omega_{it}^L$) (i.e., high markup industries) raises aggregate productivity growth.
 
+\begin{comment}
 \citet{Baqaee_Farhi_2019} also show that aggregate TFP growth in inefficient economies can be approximated as:
 \begin{equation*}
     \mathrm{d}\ln(A_t) = \underbrace{\sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(A_{it})}_{\text{Technology}} - \underbrace{\sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(\mu_{it}) - \lambda_t^K \mathrm{d}\ln(\Gamma_t^K) - \lambda_t^L \mathrm{d}\ln(\Gamma_t^L)}_{\text{Allocative efficiency}}
@@ -155,6 +165,7 @@ Following the same logic as above, we can further decompose cumulative aggregate
     &+ \sum_{t=t_0}^{t_1} \sum_{i=1}^N (\lambda_{it} - \lambda_{it_0}) \mathrm{d}\ln(A_{it}) &&\quad \text{\textcolor{HEC}{Baumol}} \label{eq:baumol_2} \\
     &- \sum_{t=t_0}^{t_1} \sum_{i=1}^N \lambda_{it} \mathrm{d}\ln(\mu_{it}) - \lambda_t^K \mathrm{d}\ln(\Gamma_t^K) - \lambda_t^L \mathrm{d}\ln(\Gamma_t^L) &&\quad \text{\textcolor{HEC}{Allocative efficiency.}} \label{eq:misallocation}
 \end{alignat}
+\end{comment}
 
 \section{Data}
 \label{s:data}
@@ -222,7 +233,7 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 
 \includetables{tfp_decomposition_1}
 
-\includetables{tfp_decomposition_2}
+%\includetables{tfp_decomposition_2}
 
 \begin{figure}[h]
     \centering
@@ -233,16 +244,17 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 
 \begin{figure}[h]
     \centering
+    \caption{TFP Growth Decomposition}
+    \includegraphics[width=0.7\textwidth]{tfp_decomposition_1.png}
+    \label{fig:tfp_decomposition_1}
+\end{figure}
+
+\begin{comment}
+\begin{figure}[h]
+    \centering
     \caption{TFP Growth and Misallocation}
     \includegraphics[width=0.7\textwidth]{misallocation.png}
     \label{fig:misallocation}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \caption{TFP Growth Decomposition \#1}
-    \includegraphics[width=0.7\textwidth]{tfp_decomposition_1.png}
-    \label{fig:tfp_decomposition_1}
 \end{figure}
 
 \begin{figure}[h]
@@ -251,6 +263,7 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
     \includegraphics[width=0.7\textwidth]{tfp_decomposition_2.png}
     \label{fig:tfp_decomposition_2}
 \end{figure}
+\end{comment}
 
 \begin{figure}[h]
     \centering
@@ -293,7 +306,7 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
 
 \includetables{tfp_decomposition_1_no_oge}
 
-\includetables{tfp_decomposition_2_no_oge}
+%\includetables{tfp_decomposition_2_no_oge}
 
 \begin{figure}[h]
     \centering
@@ -302,12 +315,14 @@ To calculate and decompose aggregate TFP growth in Canada, we need data on the f
     \label{fig:baumol_no_oge}
 \end{figure}
 
+\begin{comment}
 \begin{figure}[h]
     \centering
     \caption{TFP Growth and Misallocation (without O\&G)}
     \includegraphics[width=0.7\textwidth]{misallocation_no_oge.png}
     \label{fig:misallocation_no_oge}
 \end{figure}
+\end{comment}
 
 \begin{figure}[h]
     \centering
