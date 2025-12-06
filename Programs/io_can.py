@@ -765,8 +765,8 @@ for y in range(1961, 2008 + 1):
     # Create a DataFrame with all possible combinations of codes
     all_naics_ita = list(set(Z_ita['supply_naics_agg'].unique()) | set(Z_ita['use_naics_agg'].unique())) + ['capital', 'labor']
     all_naics_cta = list(set(Z_cta['supply_naics_agg'].unique()) | set(Z_cta['use_naics_agg'].unique())) + ['capital', 'labor']
-    Z_all_ita = pd.DataFrame([(supply, use) for supply in all_naics for use in all_naics], columns=['supply_naics_agg', 'use_naics_agg'])
-    Z_all_cta = pd.DataFrame([(supply, use) for supply in all_naics for use in all_naics], columns=['supply_naics_agg', 'use_naics_agg'])
+    Z_all_ita = pd.DataFrame([(supply, use) for supply in all_naics_ita for use in all_naics_ita], columns=['supply_naics_agg', 'use_naics_agg'])
+    Z_all_cta = pd.DataFrame([(supply, use) for supply in all_naics_cta for use in all_naics_cta], columns=['supply_naics_agg', 'use_naics_agg'])
     Z_ita = pd.merge(Z_all_ita, Z_ita, on=['supply_naics_agg', 'use_naics_agg'], how='left')
     Z_cta = pd.merge(Z_all_cta, Z_cta, on=['supply_naics_agg', 'use_naics_agg'], how='left')
 
