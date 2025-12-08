@@ -224,6 +224,24 @@ df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['t
 df_1961_2019_no_oge = pd.merge(df_1961_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
 df_1961_2019_no_oge['total'] = df_1961_2019_no_oge['productivity_1'] + df_1961_2019_no_oge['baumol_1'] + df_1961_2019_no_oge['capital'] + df_1961_2019_no_oge['labor']
 
+# Calculate the different terms between 1961 and 2019 without the stagnant industries
+df_1961_2019_no_stagnant = pd.DataFrame({'year': range(1961, 2019 + 1)})
+df_temp = df[~df['naics'].isin(['211', '212', '52-53'])].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_2019_no_stagnant = pd.merge(df_1961_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_2019_no_stagnant.loc[0, :] = 0
+df_1961_2019_no_stagnant['total'] = df_1961_2019_no_stagnant['productivity_1'] + df_1961_2019_no_stagnant['baumol_1'] + df_1961_2019_no_stagnant['capital'] + df_1961_2019_no_stagnant['labor']
+
 # Calculate the different terms between 1961 and 1980
 df_1961_1980 = pd.DataFrame({'year': range(1961, 1980 + 1)})
 df_temp = df.copy(deep=True)
@@ -257,6 +275,24 @@ df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_i
 df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
 df_1961_1980_no_oge = pd.merge(df_1961_1980_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
 df_1961_1980_no_oge['total'] = df_1961_1980_no_oge['productivity_1'] + df_1961_1980_no_oge['baumol_1'] + df_1961_1980_no_oge['capital'] + df_1961_1980_no_oge['labor']
+
+# Calculate the different terms between 1961 and 1980 without the stagnant industries
+df_1961_1980_no_stagnant = pd.DataFrame({'year': range(1961, 1980 + 1)})
+df_temp = df[~df['naics'].isin(['211', '212', '52-53'])].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1961'] * df_temp['tfp_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1961']) * df_temp['tfp_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1961'] * df_temp['tfp_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1961']) * df_temp['tfp_growth']
+df_1961_1980_no_stagnant = pd.merge(df_1961_1980_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1961_1980_no_stagnant.loc[0, :] = 0
+df_1961_1980_no_stagnant['total'] = df_1961_1980_no_stagnant['productivity_1'] + df_1961_1980_no_stagnant['baumol_1'] + df_1961_1980_no_stagnant['capital'] + df_1961_1980_no_stagnant['labor']
 
 # Calculate the different terms between 1980 and 2000
 df_1980_2000 = pd.DataFrame({'year': range(1980, 2000 + 1)})
@@ -294,6 +330,24 @@ df_1980_2000_no_oge = pd.merge(df_1980_2000_no_oge, df_temp.groupby('year', as_i
 df_1980_2000_no_oge.loc[0, :] = 0
 df_1980_2000_no_oge['total'] = df_1980_2000_no_oge['productivity_1'] + df_1980_2000_no_oge['baumol_1'] + df_1980_2000_no_oge['capital'] + df_1980_2000_no_oge['labor']
 
+# Calculate the different terms between 1980 and 2000 without the stagnant industries
+df_1980_2000_no_stagnant = pd.DataFrame({'year': range(1980, 2000 + 1)})
+df_temp = df[~df['naics'].isin(['211', '212', '52-53'])].copy(deep=True)
+df_temp['within_1'] = df_temp['b_1980'] * df_temp['tfp_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_1980']) * df_temp['tfp_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_1980'] * df_temp['tfp_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_1980']) * df_temp['tfp_growth']
+df_1980_2000_no_stagnant = pd.merge(df_1980_2000_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_1980_2000_no_stagnant.loc[0, :] = 0
+df_1980_2000_no_stagnant['total'] = df_1980_2000_no_stagnant['productivity_1'] + df_1980_2000_no_stagnant['baumol_1'] + df_1980_2000_no_stagnant['capital'] + df_1980_2000_no_stagnant['labor']
+
 # Calculate the different terms between 2000 and 2019
 df_2000_2019 = pd.DataFrame({'year': range(2000, 2019 + 1)})
 df_temp = df.copy(deep=True)
@@ -329,6 +383,24 @@ df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_2000']) * df_temp['t
 df_2000_2019_no_oge = pd.merge(df_2000_2019_no_oge, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
 df_2000_2019_no_oge.loc[0, :] = 0
 df_2000_2019_no_oge['total'] = df_2000_2019_no_oge['productivity_1'] + df_2000_2019_no_oge['baumol_1'] + df_2000_2019_no_oge['capital'] + df_2000_2019_no_oge['labor']
+
+# Calculate the different terms between 2000 and 2019 without the stagnant industries
+df_2000_2019_no_stagnant = pd.DataFrame({'year': range(2000, 2019 + 1)})
+df_temp = df[~df['naics'].isin(['211', '212', '52-53'])].copy(deep=True)
+df_temp['within_1'] = df_temp['b_2000'] * df_temp['tfp_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_1': 'sum'}).rename(columns={'within_1': 'productivity_1'}), on='year', how='left')
+df_temp['between_1'] = (df_temp['b'] - df_temp['b_2000']) * df_temp['tfp_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_1': 'sum'}).rename(columns={'between_1': 'baumol_1'}), on='year', how='left')
+df_temp['capital_reallocation'] = (df_temp['b'] * df_temp['alpha_k'] - df_temp['omega_k'] * df_temp['lambda_k']) * df_temp['capital_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'capital_reallocation': 'sum'}).rename(columns={'capital_reallocation': 'capital'}), on='year', how='left')
+df_temp['labor_reallocation'] = (df_temp['b'] * df_temp['alpha_l'] - df_temp['omega_l'] * df_temp['lambda_l']) * df_temp['labor_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'labor_reallocation': 'sum'}).rename(columns={'labor_reallocation': 'labor'}), on='year', how='left')
+df_temp['within_2'] = df_temp['lambda_2000'] * df_temp['tfp_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'within_2': 'sum'}).rename(columns={'within_2': 'productivity_2'}), on='year', how='left')
+df_temp['between_2'] = (df_temp['lambda'] - df_temp['lambda_2000']) * df_temp['tfp_growth']
+df_2000_2019_no_stagnant = pd.merge(df_2000_2019_no_stagnant, df_temp.groupby('year', as_index=False).agg({'between_2': 'sum'}).rename(columns={'between_2': 'baumol_2'}), on='year', how='left')
+df_2000_2019_no_stagnant.loc[0, :] = 0
+df_2000_2019_no_stagnant['total'] = df_2000_2019_no_stagnant['productivity_1'] + df_2000_2019_no_stagnant['baumol_1'] + df_2000_2019_no_stagnant['capital'] + df_2000_2019_no_stagnant['labor']
 
 ########################################################################
 # Plot the TFP Baumol effect                                           # 
@@ -550,7 +622,7 @@ ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right',
 
 # Save and close the figure
 fig.tight_layout()
-fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_decomposition_1.png'), transparent=True, dpi=300)
+fig.savefig(os.path.join(Path(os.getcwd()).parent, 'Figures', 'tfp_decomposition.png'), transparent=True, dpi=300)
 plt.close()
 
 ########################################################################
@@ -631,15 +703,15 @@ labor_2000_2019 = 100 * df_2000_2019['labor'].cumsum().iloc[-1] / (2019 - 2000)
 total_2000_2019 = 100 * df_2000_2019['total'].cumsum().iloc[-1] / (2019 - 2000)
 
 # Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_1.tex'), 'w')
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition.tex'), 'w')
 lines = [r'\begin{table}[h]',
          r'\centering',
          r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition \#1}',
+         r'\caption{TFP growth decomposition}',
          r'\begin{tabular}{lccccc}',
          r'\hline',
          r'\hline',
-         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
+         r'& & 1961--2019 & 1961--1980 & 1980--2000 & 2000--2019 \\',
          r'\hline',
          r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019) + r'\% & ' \
                      + '{:.2f}'.format(productivity_1961_1980) + r'\% & ' \
@@ -667,9 +739,9 @@ lines = [r'\begin{table}[h]',
          r'\end{tabular}',
          r'\begin{tablenotes}[flushleft]',
          r'\footnotesize',
-         r'\item Note:',
+         r'\item \textit{Note}: This table presents the decomposition of average annual TFP growth into its different components for the periods 1961--2019, 1961--1980, 1980--2000, and 2000--2019.',
          r'\end{tablenotes}',
-         r'\label{tab:tfp_decomposition_1}',
+         r'\label{tab:tfp_decomposition}',
          r'\end{threeparttable}',
          r'\end{table}']
 table.write('\n'.join(lines))
@@ -709,15 +781,15 @@ labor_2000_2019 = 100 * df_2000_2019_no_oge['labor'].cumsum().iloc[-1] / (2019 -
 total_2000_2019 = 100 * df_2000_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 2000)
 
 # Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_1_no_oge.tex'), 'w')
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_no_oge.tex'), 'w')
 lines = [r'\begin{table}[h]',
          r'\centering',
          r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition \#1 (without O\&G)}',
+         r'\caption{TFP growth decomposition (without O\&G)}',
          r'\begin{tabular}{lccccc}',
          r'\hline',
          r'\hline',
-         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
+         r'& & 1961--2019 & 1961--1980 & 1980--2000 & 2000--2019 \\',
          r'\hline',
          r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019) + r'\% & ' \
                      + '{:.2f}'.format(productivity_1961_1980) + r'\% & ' \
@@ -745,52 +817,57 @@ lines = [r'\begin{table}[h]',
          r'\end{tabular}',
          r'\begin{tablenotes}[flushleft]',
          r'\footnotesize',
-         r'\item Note:',
+         r'\item \textit{Note}: This table presents the decomposition of average annual TFP growth into its different components for the periods 1961--2019, 1961--1980, 1980--2000, and 2000--2019, excluding the oil and gas extraction industry.',
          r'\end{tablenotes}',
-         r'\label{tab:tfp_decomposition_1_no_oge}',
+         r'\label{tab:tfp_decomposition_no_oge}',
          r'\end{threeparttable}',
          r'\end{table}']
 table.write('\n'.join(lines))
 table.close()
 
 ########################################################################
-# Tabulate the second TFP growth decomposition for different periods   # 
+# Tabulate the first TFP growth decomposition for different periods    #
+# without the stagnant industries                                      # 
 ########################################################################
 
 # Calculate the different terms for the period 1961-2019
-productivity_1961_2019 = 100 * df_1961_2019['productivity_2'].cumsum().iloc[-1] / (2019 - 1961)
-baumol_1961_2019 = 100 * df_1961_2019['baumol_2'].cumsum().iloc[-1] / (2019 - 1961)
-total_1961_2019 = 100 * df_1961_2019['total'].cumsum().iloc[-1] / (2019 - 1961)
-misallocation_1961_2019 = total_1961_2019 - productivity_1961_2019 - baumol_1961_2019
+productivity_1961_2019 = 100 * df_1961_2019_no_stagnant['productivity_1'].cumsum().iloc[-1] / (2019 - 1961)
+baumol_1961_2019 = 100 * df_1961_2019_no_stagnant['baumol_1'].cumsum().iloc[-1] / (2019 - 1961)
+capital_1961_2019 = 100 * df_1961_2019_no_stagnant['capital'].cumsum().iloc[-1] / (2019 - 1961)
+labor_1961_2019 = 100 * df_1961_2019_no_stagnant['labor'].cumsum().iloc[-1] / (2019 - 1961)
+total_1961_2019 = 100 * df_1961_2019_no_stagnant['total'].cumsum().iloc[-1] / (2019 - 1961)
 
 # Calculate the different terms for the period 1961-1980
-productivity_1961_1980 = 100 * df_1961_1980['productivity_2'].cumsum().iloc[-1] / (1980 - 1961)
-baumol_1961_1980 = 100 * df_1961_1980['baumol_2'].cumsum().iloc[-1] / (1980 - 1961)
-total_1961_1980 = 100 * df_1961_1980['total'].cumsum().iloc[-1] / (1980 - 1961)
-misallocation_1961_1980 = total_1961_1980 - productivity_1961_1980 - baumol_1961_1980
+productivity_1961_1980 = 100 * df_1961_1980_no_stagnant['productivity_1'].cumsum().iloc[-1] / (1980 - 1961)
+baumol_1961_1980 = 100 * df_1961_1980_no_stagnant['baumol_1'].cumsum().iloc[-1] / (1980 - 1961)
+capital_1961_1980 = 100 * df_1961_1980_no_stagnant['capital'].cumsum().iloc[-1] / (1980 - 1961)
+labor_1961_1980 = 100 * df_1961_1980_no_stagnant['labor'].cumsum().iloc[-1] / (1980 - 1961)
+total_1961_1980 = 100 * df_1961_1980_no_stagnant['total'].cumsum().iloc[-1] / (1980 - 1961)
 
 # Calculate the different terms for the period 1980-2000
-productivity_1980_2000 = 100 * df_1980_2000['productivity_2'].cumsum().iloc[-1] / (2000 - 1980)
-baumol_1980_2000 = 100 * df_1980_2000['baumol_2'].cumsum().iloc[-1] / (2000 - 1980)
-total_1980_2000 = 100 * df_1980_2000['total'].cumsum().iloc[-1] / (2000 - 1980)
-misallocation_1980_2000 = total_1980_2000 - productivity_1980_2000 - baumol_1980_2000
+productivity_1980_2000 = 100 * df_1980_2000_no_stagnant['productivity_1'].cumsum().iloc[-1] / (2000 - 1980)
+baumol_1980_2000 = 100 * df_1980_2000_no_stagnant['baumol_1'].cumsum().iloc[-1] / (2000 - 1980)
+capital_1980_2000 = 100 * df_1980_2000_no_stagnant['capital'].cumsum().iloc[-1] / (2000 - 1980)
+labor_1980_2000 = 100 * df_1980_2000_no_stagnant['labor'].cumsum().iloc[-1] / (2000 - 1980)
+total_1980_2000 = 100 * df_1980_2000_no_stagnant['total'].cumsum().iloc[-1] / (2000 - 1980)
 
 # Calculate the different terms for the period 2000-2019
-productivity_2000_2019 = 100 * df_2000_2019['productivity_2'].cumsum().iloc[-1] / (2019 - 2000)
-baumol_2000_2019 = 100 * df_2000_2019['baumol_2'].cumsum().iloc[-1] / (2019 - 2000)
-total_2000_2019 = 100 * df_2000_2019['total'].cumsum().iloc[-1] / (2019 - 2000)
-misallocation_2000_2019 = total_2000_2019 - productivity_2000_2019 - baumol_2000_2019
+productivity_2000_2019 = 100 * df_2000_2019_no_stagnant['productivity_1'].cumsum().iloc[-1] / (2019 - 2000)
+baumol_2000_2019 = 100 * df_2000_2019_no_stagnant['baumol_1'].cumsum().iloc[-1] / (2019 - 2000)
+capital_2000_2019 = 100 * df_2000_2019_no_stagnant['capital'].cumsum().iloc[-1] / (2019 - 2000)
+labor_2000_2019 = 100 * df_2000_2019_no_stagnant['labor'].cumsum().iloc[-1] / (2019 - 2000)
+total_2000_2019 = 100 * df_2000_2019_no_stagnant['total'].cumsum().iloc[-1] / (2019 - 2000)
 
 # Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_2.tex'), 'w')
+table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_no_stagnant.tex'), 'w')
 lines = [r'\begin{table}[h]',
          r'\centering',
          r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition \#2}',
+         r'\caption{TFP growth decomposition (without O\&G, FIRE, and mining)}',
          r'\begin{tabular}{lccccc}',
          r'\hline',
          r'\hline',
-         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
+         r'& & 1961--2019 & 1961--1980 & 1980--2000 & 2000--2019 \\',
          r'\hline',
          r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019) + r'\% & ' \
                      + '{:.2f}'.format(productivity_1961_1980) + r'\% & ' \
@@ -800,10 +877,14 @@ lines = [r'\begin{table}[h]',
                      + '{:.2f}'.format(baumol_1961_1980) + r'\% & ' \
                      + '{:.2f}'.format(baumol_1980_2000) + r'\% & ' \
                      + '{:.2f}'.format(baumol_2000_2019) + r'\% \\',
-         r'Allocative efficiency & & ' + '{:.2f}'.format(misallocation_1961_2019) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_1961_1980) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_1980_2000) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_2000_2019) + r'\% \\',
+         r'Capital & & ' + '{:.2f}'.format(capital_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(capital_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(capital_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(capital_2000_2019) + r'\% \\',
+         r'Labor & & ' + '{:.2f}'.format(labor_1961_2019) + r'\% & ' \
+                     + '{:.2f}'.format(labor_1961_1980) + r'\% & ' \
+                     + '{:.2f}'.format(labor_1980_2000) + r'\% & ' \
+                     + '{:.2f}'.format(labor_2000_2019) + r'\% \\',
          r'\hline',
          r'Total & & ' + '{:.2f}'.format(total_1961_2019) + r'\% & ' \
                      + '{:.2f}'.format(total_1961_1980) + r'\% & ' \
@@ -814,79 +895,9 @@ lines = [r'\begin{table}[h]',
          r'\end{tabular}',
          r'\begin{tablenotes}[flushleft]',
          r'\footnotesize',
-         r'\item Note:',
+         r'\item \textit{Note}: This table presents the decomposition of average annual TFP growth into its different components for the periods 1961--2019, 1961--1980, 1980--2000, and 2000--2019, excluding the oil and gas extraction, finance/insurance/real estate, and mining industries.',
          r'\end{tablenotes}',
-         r'\label{tab:tfp_decomposition_2}',
-         r'\end{threeparttable}',
-         r'\end{table}']
-table.write('\n'.join(lines))
-table.close()
-
-########################################################################
-# Tabulate the second TFP growth decomposition for different periods   #
-# without the oil and gas extraction industry                          # 
-########################################################################
-
-# Calculate the different terms for the period 1961-2019
-productivity_1961_2019_no_oge = 100 * df_1961_2019_no_oge['productivity_2'].cumsum().iloc[-1] / (2019 - 1961)
-baumol_1961_2019_no_oge = 100 * df_1961_2019_no_oge['baumol_2'].cumsum().iloc[-1] / (2019 - 1961)
-total_1961_2019_no_oge = 100 * df_1961_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 1961)
-misallocation_1961_2019_no_oge = total_1961_2019_no_oge - productivity_1961_2019_no_oge - baumol_1961_2019_no_oge
-
-# Calculate the different terms for the period 1961-1980
-productivity_1961_1980_no_oge = 100 * df_1961_1980_no_oge['productivity_2'].cumsum().iloc[-1] / (1980 - 1961)
-baumol_1961_1980_no_oge = 100 * df_1961_1980_no_oge['baumol_2'].cumsum().iloc[-1] / (1980 - 1961)
-total_1961_1980_no_oge = 100 * df_1961_1980_no_oge['total'].cumsum().iloc[-1] / (1980 - 1961)
-misallocation_1961_1980_no_oge = total_1961_1980_no_oge - productivity_1961_1980_no_oge - baumol_1961_1980_no_oge
-
-# Calculate the different terms for the period 1980-2000
-productivity_1980_2000_no_oge = 100 * df_1980_2000_no_oge['productivity_2'].cumsum().iloc[-1] / (2000 - 1980)
-baumol_1980_2000_no_oge = 100 * df_1980_2000_no_oge['baumol_2'].cumsum().iloc[-1] / (2000 - 1980)
-total_1980_2000_no_oge = 100 * df_1980_2000_no_oge['total'].cumsum().iloc[-1] / (2000 - 1980)
-misallocation_1980_2000_no_oge = total_1980_2000_no_oge - productivity_1980_2000_no_oge - baumol_1980_2000_no_oge
-
-# Calculate the different terms for the period 2000-2019
-productivity_2000_2019_no_oge = 100 * df_2000_2019_no_oge['productivity_2'].cumsum().iloc[-1] / (2019 - 2000)
-baumol_2000_2019_no_oge = 100 * df_2000_2019_no_oge['baumol_2'].cumsum().iloc[-1] / (2019 - 2000)
-total_2000_2019_no_oge = 100 * df_2000_2019_no_oge['total'].cumsum().iloc[-1] / (2019 - 2000)
-misallocation_2000_2019_no_oge = total_2000_2019_no_oge - productivity_2000_2019_no_oge - baumol_2000_2019_no_oge
-
-# Write a table with the TFP growth decomposition
-table = open(os.path.join(Path(os.getcwd()).parent, 'Tables', 'tfp_decomposition_2_no_oge.tex'), 'w')
-lines = [r'\begin{table}[h]',
-         r'\centering',
-         r'\begin{threeparttable}',
-         r'\caption{TFP Growth Decomposition \#2 (without O\&G)}',
-         r'\begin{tabular}{lccccc}',
-         r'\hline',
-         r'\hline',
-         r'& & 1961-2019 & 1961-1980 & 1980-2000 & 2000-2019 \\',
-         r'\hline',
-         r'Productivity & & ' + '{:.2f}'.format(productivity_1961_2019_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(productivity_1961_1980_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(productivity_1980_2000_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(productivity_2000_2019_no_oge) + r'\% \\',
-         r'Baumol & & ' + '{:.2f}'.format(baumol_1961_2019_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(baumol_1961_1980_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(baumol_1980_2000_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(baumol_2000_2019_no_oge) + r'\% \\',
-         r'Allocative efficiency & & ' + '{:.2f}'.format(misallocation_1961_2019_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_1961_1980_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_1980_2000_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(misallocation_2000_2019_no_oge) + r'\% \\',
-         r'\hline',
-         r'Total & & ' + '{:.2f}'.format(total_1961_2019_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(total_1961_1980_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(total_1980_2000_no_oge) + r'\% & ' \
-                     + '{:.2f}'.format(total_2000_2019_no_oge) + r'\% \\',
-         r'\hline',
-         r'\hline',
-         r'\end{tabular}',
-         r'\begin{tablenotes}[flushleft]',
-         r'\footnotesize',
-         r'\item Note:',
-         r'\end{tablenotes}',
-         r'\label{tab:tfp_decomposition_2_no_oge}',
+         r'\label{tab:tfp_decomposition_no_stagnant}',
          r'\end{threeparttable}',
          r'\end{table}']
 table.write('\n'.join(lines))
@@ -1126,6 +1137,11 @@ position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.lo
 ax.text(position_321[0] + 0.0075, position_321[1] - 0.025, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.02), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
+# Identify the FIRE industry
+position_52_53 = (df_tfp.loc[df_tfp['naics'] == '52-53', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '52-53', 'va'].values[0])
+ax.text(position_52_53[0] + 0.0075, position_52_53[1] + 0.01, 'FIRE', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_52_53[0] + 0.0075, position_52_53[1] + 0.0075), xytext=position_52_53, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
@@ -1187,6 +1203,11 @@ ax.annotate('', xy=(position_71[0] + 0.0065, position_71[1] + 0.02), xytext=posi
 position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'real_va'].values[0])
 ax.text(position_321[0] + 0.0075, position_321[1] - 0.02, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.0075, position_321[1] - 0.015), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Identify the FIRE industry
+position_52_53 = (df_tfp.loc[df_tfp['naics'] == '52-53', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '52-53', 'real_va'].values[0])
+ax.text(position_52_53[0] + 0.005, position_52_53[1] + 0.015, 'FIRE', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_52_53[0] + 0.0035, position_52_53[1] + 0.0135), xytext=position_52_53, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
@@ -1250,6 +1271,11 @@ position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.lo
 ax.text(position_321[0] + 0.009, position_321[1], 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.005, position_321[1]), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
+# Identify the FIRE industry
+position_52_53 = (df_tfp.loc[df_tfp['naics'] == '52-53', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '52-53', 'price'].values[0])
+ax.text(position_52_53[0] + 0.002, position_52_53[1] - 0.01, 'FIRE', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_52_53[0] + 0.002, position_52_53[1] - 0.0085), xytext=position_52_53, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
@@ -1312,6 +1338,11 @@ position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.lo
 ax.text(position_321[0] + 0.005, position_321[1] - 0.015, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.005, position_321[1] - 0.0125), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
+# Identify the FIRE industry
+position_52_53 = (df_tfp.loc[df_tfp['naics'] == '52-53', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '52-53', 'wage'].values[0])
+ax.text(position_52_53[0] + 0.005, position_52_53[1] + 0.01, 'FIRE', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_52_53[0] + 0.005, position_52_53[1] + 0.009), xytext=position_52_53, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
 
@@ -1373,6 +1404,11 @@ ax.annotate('', xy=(position_71[0] + 0.0075, position_71[1] + 0.0025), xytext=po
 position_321 = (df_tfp.loc[df_tfp['naics'] == '321', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '321', 'capital_price'].values[0])
 ax.text(position_321[0] + 0.009, position_321[1] + 0.01, 'Wood product\nmanufacturing', fontsize=10, color='k', ha='center', va='center')
 ax.annotate('', xy=(position_321[0] + 0.009, position_321[1] + 0.0075), xytext=position_321, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
+
+# Identify the FIRE industry
+position_52_53 = (df_tfp.loc[df_tfp['naics'] == '52-53', 'tfp'].values[0], df_tfp.loc[df_tfp['naics'] == '52-53', 'capital_price'].values[0])
+ax.text(position_52_53[0] + 0.01, position_52_53[1] - 0.005, 'FIRE', fontsize=10, color='k', ha='center', va='center')
+ax.annotate('', xy=(position_52_53[0] + 0.0085, position_52_53[1] - 0.0045), xytext=position_52_53, arrowprops=dict(arrowstyle='->', color='k', lw=1), zorder=1)
 
 # Add a note about the data source
 ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=8, color='k', ha='right', va='bottom', transform=ax.transAxes)
