@@ -1,0 +1,96 @@
+\documentclass[12pt]{article}
+\usepackage{mathpazo, amsmath, amssymb, amsfonts, amsthm, microtype, tikz, graphicx, booktabs, caption, subcaption, bm, xfrac, appendix, setspace, comment, float, nth, fnpct, makecell, multirow, tabularx, threeparttable, titling, array, lipsum, mathtools, tocloft, tocvsec2}
+\usepackage[margin=2.75cm]{geometry}
+\renewcommand{\baselinestretch}{1.15}
+\renewcommand{\arraystretch}{2}
+\setlength\droptitle{-2.5cm}
+%\setlength\parindent{0cm}
+\setlength{\parskip}{0.15cm}
+\definecolor{HEC}{rgb}{0, 0.1569, 0.3333}
+\usepackage[colorlinks, allcolors=HEC]{hyperref}
+\urlstyle{rm}
+\captionsetup[figure]{labelfont={color=HEC}}
+\captionsetup[table]{labelfont={color=HEC}}
+\usepackage[ruled, vlined]{algorithm2e}
+\setlength{\abovecaptionskip}{0.5cm}
+\usepackage[longnamesfirst]{natbib}
+\usepackage[french]{babel}
+
+% Command to reference subfigures
+\renewcommand{\thesubfigure}{(\alph{subfigure})}
+\captionsetup[sub]{labelformat=simple}
+
+% Define the path for the figures
+\graphicspath{{../Figures/}}
+
+% Define a command and the path for the tables
+\newcommand*\includetables[1]{\input{../Tables/#1.tex}}
+
+% Do not add sections of the main text to the appendix's table of content
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+
+% Command to comment within lines
+\newcommand{\ignore}[1]{}
+
+% Command to center table columns
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newlength\mcwidth
+
+% Mathematical commands
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\diag}[1]{\text{diag}\left(#1\right)}
+\newcommand{\partialof}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\totalof}[2]{\frac{\text{d} #1}{\text{d} #2}}
+\newcommand{\deltaof}[3]{\delta #1 [#2; #3]}
+\newcommand{\innerprod}[3]{\langle #1, #2 \rangle_{#3}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+
+% Command to resize equations
+\newcommand{\resizeeq}[2]{\resizebox{#2\hsize}{!}{$#1$}}
+
+% Command to make a small horizontal space
+\newcommand{\smallquad}{\hspace{0.5em}}
+
+% Title
+\title{\textbf{Stratégie de décomposition de la croissance de la productivité pour un rapport du CPP}}
+\author{\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\footnotetext[1]{HEC Montr\'eal. E-mail: \href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}}
+
+L'objectif de ce document est de décrire une stratégie permettant de traduire les résultats de \citet{Brouillette_2025} en un rapport de synthèse clair, pédagogique et orienté vers les enjeux de politiques publiques, conforme au positionnement du Centre sur la Productivité et la Prospérité (CPP). Le fil conducteur du rapport sera une décomposition progressive de la productivité du travail, allant de l'agrégat macroéconomique vers une décomposition industrielle, puis au niveau des entreprises. L'objectif est donc de (i) partir d'identités comptables simples et familières et (ii) d'introduire graduellement des décompositions plus riches, mais toujours interprétables.
+
+\paragraph{Étape 1: Décomposer la croissance de la productivité du travail agrégée.} Le point de départ du rapport est la croissance de la productivité du travail agrégée, définie comme le ratio du PIB réel à l'emploi (ou aux heures travaillées). Notre point de départ est la fonction de production agrégée Cobb-Douglas:
+\begin{equation}
+    \label{eq:cobb-douglas}
+    Y_t = A_t K_t^\alpha L_t^{1 - \alpha}
+\end{equation}
+où $Y_t$ désigne le PIB réel, $K_t$ le capital, $L_t$ le travail et $A_t$ la productivité totale des facteurs (PTF). En divisant les deux côtés de l'équation par $Y_t^{\alpha}$, on obtient:
+\begin{equation*}
+    Y_t^{1 - \alpha} = A_t \left(\frac{K_t}{Y_t}\right)^\alpha L_t^{1 - \alpha} \quad \implies \quad \frac{Y_t}{L_t} = A_t^{\frac{1}{1 - \alpha}} \left(\frac{K_t}{Y_t}\right)^{\frac{\alpha}{1 - \alpha}}.
+\end{equation*}
+Cette équation nous permet de décomposer la productivité du travail agrégée en deux composantes: la productivité totale des facteurs (PTF) et la ``profondeur du capital'' ($K_t / Y_t$).\footnote{Une autre stratégie plus commune est de diviser chaque côté de l'équation \eqref{eq:cobb-douglas} par $L_t$ afin d'exprimer la productivité du travail en fonction de la PTF et du stock de capital par travailleur, mais cela attribue erronément une partie de la croissance de la PTF à la croissance du capital.} En prenant le taux de croissance de chaque côté, on obtient:
+\begin{equation*}
+    \%\Delta Y_t = \frac{1}{1 - \alpha} \cdot \%\Delta A_t + \frac{\alpha}{1 - \alpha} \cdot \%\Delta \left(\frac{K_t}{Y_t}\right).
+\end{equation*}
+Étant donné que la part du travail dans le PIB est égale à $1 - \alpha$, on peut implémenter cette décomposition en utilisant les données du PIB réel, de l'emploi et du capital. Le message central qui sera mis en évidence à cette étape est que le ralentissement de la croissance de la productivité du travail observé depuis les années 2000 s'explique presque entièrement par un ralentissement de la croissance de la PTF, et non par un ralentissement de l'accumulation du capital. Cet exercice peut aussi être réalisé province par province.
+
+\paragraph{Étape 2: Décomposer la croissance de la PTF agrégée.} La deuxième étape consiste à ouvrir la ``boîte noire'' de la PTF agrégée. En s'inspirant directement du cadre développé dans \citet{Brouillette_2025}, la croissance de la PTF est décomposée en contributions sectorielles.
+
+Pour les besoins du rapport CPP, la décomposition retenue repose sur l'hypothèse que le théorème d'\citet{Hulten_1978} s'applique approximativement.
+
+
+\clearpage
+
+\bibliography{references}
+\bibliographystyle{aer}
+
+\end{document}
