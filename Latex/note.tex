@@ -83,10 +83,21 @@ Cette équation nous permet de décomposer la productivité du travail agrégée
 \end{equation*}
 Étant donné que la part du travail dans le PIB est égale à $1 - \alpha$, on peut implémenter cette décomposition en utilisant les données du PIB réel, de l'emploi et du capital. Le message central qui sera mis en évidence à cette étape est que le ralentissement de la croissance de la productivité du travail observé depuis les années 2000 s'explique presque entièrement par un ralentissement de la croissance de la PTF, et non par un ralentissement de l'accumulation du capital. Cet exercice peut aussi être réalisé province par province.
 
-\paragraph{Étape 2: Décomposer la croissance de la PTF agrégée.} La deuxième étape consiste à ouvrir la ``boîte noire'' de la PTF agrégée. En s'inspirant directement du cadre développé dans \citet{Brouillette_2025}, la croissance de la PTF est décomposée en contributions sectorielles.
+\paragraph{Étape 2: Décomposer la croissance de la PTF agrégée.} La deuxième étape consiste à ouvrir la ``boîte noire'' de la PTF agrégée. En s'inspirant directement du cadre développé dans \citet{Brouillette_2025}, la croissance de la PTF est décomposée en contributions sectorielles. Pour les besoins du rapport CPP, la décomposition retenue repose sur l'hypothèse que le théorème d'\citet{Hulten_1978} s'applique approximativement. Sous celle-ci, la croissance de la PTF agrégée peut être exprimée comme une moyenne pondérée des croissances de la PTF sectorielle:
+\begin{equation*}
+    \mathrm{d}\ln(A_t) = \sum_{i=1}^N b_{it} \mathrm{d}\ln(A_{it})
+\end{equation*}
+où les poids $b_{it} \equiv \frac{P_{it} Y_{it}}{P_t Y_t}$ représentent la part de chaque secteur $i \in \{1, \ldots, N\}$ dans le PIB nominal. En soustrayant $\sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})$ de part et d'autre de l'équation et en intégrant des pétiodes $t_0$ à $t_1$, on obtient la décomposition suivante:
+\begin{equation*}
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) = \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it})}_{\text{Inter-industries}}.
+\end{equation*}
+Le premier terme pondère la croissance de la PTF sectorielle par la part initiale de chaque secteur dans le PIB nominal, tandis que le second terme capture l'effet de la réallocation des parts sectorielles au fil du temps. En d'autres termes, le premier terme mesure la contribution des améliorations de productivité au sein des secteurs, tandis que le second terme mesure l'impact des changements dans la composition sectorielle de l'économie (l'effet Baumol).
 
-Pour les besoins du rapport CPP, la décomposition retenue repose sur l'hypothèse que le théorème d'\citet{Hulten_1978} s'applique approximativement.
+Le résultat central mis en avant sera que, bien que l'effet Baumol soit présent et exerce un effet négatif sur la croissance de la PTF agrégée, son ampleur quantitative demeure modeste par rapport à l'effondrement de la croissance de la PTF à l'intérieur des industries.
 
+Un appendice technique précise que ces résultats sont robustes à l'inclusion des termes d'allocation du capital et du travail, conformément au cadre général de \citet{Baqaee_Farhi_2019}, ce qui renforce la crédibilité du diagnostic tout en maintenant la simplicité du message principal.
+
+\paragraph{Étape 3 : Décomposer la croissance de la PTF sectorielle.} Une fois établi que le cœur du ralentissement provient de la PTF intra-sectorielle, l'étape suivante consiste à analyser plus finement cette composante. Pour ce faire, le rapport propose d'utiliser une décomposition de type \citet{Foster_Haltiwanger_Krizan_2001}, appliquée à la croissance de la PTF au niveau des industries.
 
 \clearpage
 
