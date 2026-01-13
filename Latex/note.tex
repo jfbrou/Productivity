@@ -56,7 +56,7 @@
 \newcommand{\smallquad}{\hspace{0.5em}}
 
 % Title
-\title{\textbf{Stratégie de décomposition de la croissance de la productivité pour un rapport du CPP}}
+\title{\textbf{Décomposition de la croissance de la productivité du travail agrégée }}
 \author{\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1}}
 \date{\today}
 
@@ -66,38 +66,88 @@
 
 \footnotetext[1]{HEC Montr\'eal. E-mail: \href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}}
 
-L'objectif de ce document est de décrire une stratégie permettant de traduire les résultats de \citet{Brouillette_2025} en un rapport de synthèse clair, pédagogique et orienté vers les enjeux de politiques publiques, conforme au positionnement du Centre sur la Productivité et la Prospérité (CPP). Le fil conducteur du rapport sera une décomposition progressive de la productivité du travail, allant de l'agrégat macroéconomique vers une décomposition industrielle, puis au niveau des entreprises. L'objectif est donc de (i) partir d'identités comptables simples et familières et (ii) d'introduire graduellement des décompositions plus riches, mais toujours interprétables.
+Ce document décrit une stratégie de décomposition progressive de la productivité du travail agrégée. L'approche repose sur des identités comptables simples et introduit graduellement des décompositions plus riches, mais toujours interprétables.
 
-\paragraph{Étape 1: Décomposer la croissance de la productivité du travail agrégée.} Le point de départ du rapport est la croissance de la productivité du travail agrégée, définie comme le ratio du PIB réel à l'emploi (ou aux heures travaillées). Notre point de départ est la fonction de production agrégée Cobb-Douglas:
-\begin{equation}
-    \label{eq:cobb-douglas}
-    Y_t = A_t K_t^\alpha L_t^{1 - \alpha}
-\end{equation}
-où $Y_t$ désigne le PIB réel, $K_t$ le capital, $L_t$ le travail et $A_t$ la productivité totale des facteurs (PTF). En divisant les deux côtés de l'équation par $Y_t^{\alpha}$, on obtient:
+\paragraph{Étape 1: productivité du travail agrégée.} On part d'une fonction de production à rendements d'échelle constants $Y_t = A_t F(K_t, L_t)$, où $Y_t$ est le PIB réel, $K_t$ le capital, $L_t$ le travail et $A_t$ la PTF. Avec les parts factorielles dans le revenu observées, on obtient:
 \begin{equation*}
-    Y_t^{1 - \alpha} = A_t \left(\frac{K_t}{Y_t}\right)^\alpha L_t^{1 - \alpha} \quad \implies \quad \frac{Y_t}{L_t} = A_t^{\frac{1}{1 - \alpha}} \left(\frac{K_t}{Y_t}\right)^{\frac{\alpha}{1 - \alpha}}.
+    \Delta \ln\left(\frac{Y_t}{L_t}\right) = \frac{1}{1 - \alpha_t} \Delta \ln(A_t) + \frac{\alpha_t}{1 - \alpha_t} \Delta \ln\left(\frac{K_t}{Y_t}\right),
 \end{equation*}
-Cette équation nous permet de décomposer la productivité du travail agrégée en deux composantes: la productivité totale des facteurs (PTF) et la ``profondeur du capital'' ($K_t / Y_t$).\footnote{Une autre stratégie plus commune est de diviser chaque côté de l'équation \eqref{eq:cobb-douglas} par $L_t$ afin d'exprimer la productivité du travail en fonction de la PTF et du stock de capital par travailleur, mais cela attribue erronément une partie de la croissance de la PTF à la croissance du capital.} En prenant le taux de croissance de chaque côté, on obtient:
+où $\alpha_t$ est la part du capital dans la valeur ajoutée. Cette décomposition ne requiert pas de forme fonctionnelle particulière. \textbf{Résultat attendu:} le ralentissement de la productivité du travail depuis les années 2000 s'explique presque entièrement par la PTF, non par l'accumulation du capital.
+
+\paragraph{Étape 2: PTF agrégée.} On décompose la PTF agrégée en contributions sectorielles. Sous le théorème d'\citet{Hulten_1978}, la croissance de la PTF agrégée est une moyenne pondérée de la croissance des PTF sectorielles:
 \begin{equation*}
-    \%\Delta Y_t = \frac{1}{1 - \alpha} \cdot \%\Delta A_t + \frac{\alpha}{1 - \alpha} \cdot \%\Delta \left(\frac{K_t}{Y_t}\right).
+    \mathrm{d}\ln(A_t) = \sum_{i=1}^N S_{it} \mathrm{d}\ln(A_{it}),
 \end{equation*}
-Étant donné que la part du travail dans le PIB est égale à $1 - \alpha$, on peut implémenter cette décomposition en utilisant les données du PIB réel, de l'emploi et du capital. Le message central qui sera mis en évidence à cette étape est que le ralentissement de la croissance de la productivité du travail observé depuis les années 2000 s'explique presque entièrement par un ralentissement de la croissance de la PTF, et non par un ralentissement de l'accumulation du capital. Cet exercice peut aussi être réalisé province par province.
-
-\paragraph{Étape 2: Décomposer la croissance de la PTF agrégée.} La deuxième étape consiste à ouvrir la ``boîte noire'' de la PTF agrégée. En s'inspirant directement du cadre développé dans \citet{Brouillette_2025}, la croissance de la PTF est décomposée en contributions sectorielles. Pour les besoins du rapport CPP, la décomposition retenue repose sur l'hypothèse que le théorème d'\citet{Hulten_1978} s'applique approximativement. Sous celle-ci, la croissance de la PTF agrégée peut être exprimée comme une moyenne pondérée des croissances de la PTF sectorielle:
+où $S_{it} \equiv P_{it} Y_{it} / P_t Y_t$ est la part du secteur $i$ dans le PIB nominal. En intégrant de $t_0$ à $t_1$:
 \begin{equation*}
-    \mathrm{d}\ln(A_t) = \sum_{i=1}^N b_{it} \mathrm{d}\ln(A_{it})
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) = \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N S_{it_0} \mathrm{d}\ln(A_{it})}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N (S_{it} - S_{it_0}) \mathrm{d}\ln(A_{it})}_{\text{Inter-industries}}.
 \end{equation*}
-où les poids $b_{it} \equiv \frac{P_{it} Y_{it}}{P_t Y_t}$ représentent la part de chaque secteur $i \in \{1, \ldots, N\}$ dans le PIB nominal. En soustrayant $\sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})$ de part et d'autre de l'équation et en intégrant des pétiodes $t_0$ à $t_1$, on obtient la décomposition suivante:
+Le terme \textit{intra} mesure les gains d'efficacité au sein des secteurs; le terme \textit{inter} capture l'effet de la réallocation sectorielle.
+
+\textbf{Implémentation.}
+\begin{enumerate}
+    \item Construire un panel sectoriel avec PTF et valeur ajoutée nominale.
+    \item Calculer $S_{it}$ et $\Delta \ln(A_{it})$ par secteur-année.
+    \item Appliquer les formules \textit{Intra} et \textit{Inter}.
+    \item Agréger par sous-périodes.
+\end{enumerate}
+
+\textbf{Résultat attendu:} l'effet de composition (\textit{Inter}) est présent mais modeste; l'essentiel du ralentissement provient de la PTF intra-sectorielle.
+
+\paragraph{Étape 3: PTF sectorielle.} On applique le théorème de Hulten au niveau des entreprises au sein d'une industrie $j$. Cette décomposition est une variante de \citet{Foster_Haltiwanger_Krizan_2001}, reformulée en taux de croissance pour assurer la cohérence avec l'Étape 2. Soit $s_{it}$ la part de l'entreprise $i$ dans le PIB nominal de l'industrie et $a_{it}$ sa PTF. La croissance de la PTF de l'industrie est:
 \begin{equation*}
-    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) = \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N b_{it_0} \mathrm{d}\ln(A_{it})}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N (b_{it} - b_{it_0}) \mathrm{d}\ln(A_{it})}_{\text{Inter-industries}}.
+    \mathrm{d}\ln(A_{jt}) = \sum_{i} s_{it} \, \mathrm{d}\ln(a_{it}).
 \end{equation*}
-Le premier terme pondère la croissance de la PTF sectorielle par la part initiale de chaque secteur dans le PIB nominal, tandis que le second terme capture l'effet de la réallocation des parts sectorielles au fil du temps. En d'autres termes, le premier terme mesure la contribution des améliorations de productivité au sein des secteurs, tandis que le second terme mesure l'impact des changements dans la composition sectorielle de l'économie (l'effet Baumol).
+En distinguant les entreprises présentes aux deux dates ($C$), les entrantes ($E$) et les sortantes ($X$):
+\begin{align*}
+    \Delta \ln(A_{jt}) = \; &\underbrace{\sum_{i \in C} s_{i,t-1} \Delta \ln(a_{it})}_{\text{Intra-firmes}} + \underbrace{\sum_{i \in C} (s_{it} - s_{i,t-1}) \Delta \ln(a_{it})}_{\text{Inter-firmes}} \\[0.5em]
+    &+ \underbrace{\sum_{i \in E} s_{it} (\ln a_{it} - \bar{a}_{j,t-1})}_{\text{Entrée}} - \underbrace{\sum_{i \in X} s_{i,t-1} (\ln a_{i,t-1} - \bar{a}_{j,t-1})}_{\text{Sortie}},
+\end{align*}
+où $\bar{a}_{jt} = \sum_i s_{it} \ln a_{it}$ est la PTF moyenne (en logarithmes) de l'industrie. L'entrée contribue positivement si les nouvelles entreprises sont plus productives que la moyenne initiale; la sortie contribue positivement si les sortantes étaient moins productives.
 
-Le résultat central mis en avant sera que, bien que l'effet Baumol soit présent et exerce un effet négatif sur la croissance de la PTF agrégée, son ampleur quantitative demeure modeste par rapport à l'effondrement de la croissance de la PTF à l'intérieur des industries.
+\textbf{PTFR.} La PTFR (productivité totale des facteurs revenu) est généralement la seule mesure disponible dans les microdonnées canadiennes. L'essentiel est d'assurer la cohérence entre la PTF et les parts $s_{it}$ (valeur ajoutée nominale).
 
-Un appendice technique précise que ces résultats sont robustes à l'inclusion des termes d'allocation du capital et du travail, conformément au cadre général de \citet{Baqaee_Farhi_2019}, ce qui renforce la crédibilité du diagnostic tout en maintenant la simplicité du message principal.
+\textbf{Intuition.}
+\begin{itemize}
+    \item \textit{Intra-firmes}: gains des entreprises en place.
+    \item \textit{Inter-firmes}: réallocation vers les entreprises à forte croissance de la PTF.
+    \item \textit{Entrée/Sortie}: productivité relative des firmes entrantes et sortantes.
+\end{itemize}
 
-\paragraph{Étape 3 : Décomposer la croissance de la PTF sectorielle.} Une fois établi que le cœur du ralentissement provient de la PTF intra-sectorielle, l'étape suivante consiste à analyser plus finement cette composante. Pour ce faire, le rapport propose d'utiliser une décomposition de type \citet{Foster_Haltiwanger_Krizan_2001}, appliquée à la croissance de la PTF au niveau des industries.
+\textbf{Implémentation.}
+\begin{enumerate}
+    \item Harmoniser les identifiants d'entreprises et la définition des industries.
+    \item Construire la PTFR et les parts $s_{it}$ (valeur ajoutée nominale).
+    \item Identifier entrants, sortants et firmes établies par paire d'années.
+    \item Calculer $\Delta \ln(a_{it})$ pour les firmes établies; appliquer la décomposition.
+    \item Agréger par industrie avec les parts de valeur ajoutée.
+\end{enumerate}
+
+Cette étape identifie si la faible croissance de la PTF provient des entreprises en place, d'une réallocation néfaste, ou des entrées et sorties d'entreprises.
+
+\paragraph{Étape 4: Tendances intra-sectorielles.} Corréler les composantes de l'Étape 3 avec des mesures de: dynamisme d'affaires (taux d'entrée/sortie, croissance des jeunes entreprises), concentration de marché, investissements en capital et R\&D, etc.. Cette étape relie le diagnostic comptable à des mécanismes économiques et des pistes de politiques publiques.
+
+\clearpage
+
+\appendix
+
+\paragraph{Dérivation de la décomposition agrégée.} On suppose $Y_t = A_t F(K_t, L_t)$ avec $F$ homogène de degré 1. Par le théorème d'Euler:
+\begin{equation*}
+    F(K_t, L_t) = F_K(K_t, L_t) K_t + F_L(K_t, L_t) L_t.
+\end{equation*}
+En taux de croissance, on obtient:
+\begin{equation*}
+    \mathrm{d}\ln(Y_t) = \mathrm{d}\ln(A_t) + \alpha_t \, \mathrm{d}\ln(K_t) + (1-\alpha_t)\mathrm{d}\ln(L_t),
+\end{equation*}
+où $\alpha_t \equiv \frac{F_K K_t}{F_K K_t + F_L L_t}$ correspond à la part du capital dans la valeur ajoutée (ou coût du capital dans les comptes). En soustrayant $\mathrm{d}\ln(L_t)$ des deux côtés:
+\begin{equation*}
+    \mathrm{d}\ln\left(\frac{Y_t}{L_t}\right) = \mathrm{d}\ln(A_t) + \alpha_t \, \mathrm{d}\ln\left(\frac{K_t}{L_t}\right).
+\end{equation*}
+En réécrivant $\mathrm{d}\ln(K_t/L_t)=\mathrm{d}\ln(K_t/Y_t) + \mathrm{d}\ln(Y_t/L_t)$ et en isolant $\mathrm{d}\ln(Y_t/L_t)$, on obtient la forme utilisée dans le texte:
+\begin{equation*}
+    \mathrm{d}\ln\left(\frac{Y_t}{L_t}\right) = \frac{1}{1-\alpha_t}\mathrm{d}\ln(A_t) + \frac{\alpha_t}{1-\alpha_t}\mathrm{d}\ln\left(\frac{K_t}{Y_t}\right).
+\end{equation*}
+Cette dérivation montre que la décomposition repose uniquement sur des rendements constants et sur l'utilisation des parts factorielles observées.
 
 \clearpage
 
