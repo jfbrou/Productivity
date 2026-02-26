@@ -56,7 +56,7 @@
 \newcommand{\smallquad}{\hspace{0.5em}}
 
 % Title
-\title{\textbf{Décomposition de la croissance de la productivité du travail agrégée }}
+\title{\textbf{D\'ecomposition de la croissance de la productivit\'e du travail agr\'eg\'ee}}
 \author{\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1}}
 \date{\today}
 
@@ -66,88 +66,121 @@
 
 \footnotetext[1]{HEC Montr\'eal. E-mail: \href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}}
 
-Ce document décrit une stratégie de décomposition progressive de la productivité du travail agrégée. L'approche repose sur des identités comptables simples et introduit graduellement des décompositions plus riches, mais toujours interprétables.
+\section{Introduction}
 
-\paragraph{Étape 1: productivité du travail agrégée.} On part d'une fonction de production à rendements d'échelle constants $Y_t = A_t F(K_t, L_t)$, où $Y_t$ est le PIB réel, $K_t$ le capital, $L_t$ le travail et $A_t$ la PTF. Avec les parts factorielles dans le revenu observées, on obtient:
+Ce document pr\'esente une m\'ethode de d\'ecomposition de la productivit\'e du travail agr\'eg\'ee en deux \'etapes. La premi\`ere \'etape s\'epare la contribution de la productivit\'e totale des facteurs (PTF) de celle de l'approfondissement du capital ($K/Y$). La deuxi\`eme \'etape d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition, souvent appel\'e effet \citet{Baumol_1967}. L'approche repose uniquement sur des identit\'es comptables et des donn\'ees sectorielles publiques de Statistique Canada (tableau 36-10-0217-01). Un script Python autonome (\texttt{Programs/note.py}) reproduit l'ensemble des r\'esultats pr\'esent\'es ici.
+
+L'application au Canada r\'ev\`ele que le ralentissement de la productivit\'e du travail depuis les ann\'ees 2000 s'explique presque enti\`erement par un effondrement de la PTF. L'approfondissement du capital contribue modestement, et l'effet Baumol, bien que pr\'esent, demeure limit\'e\,: c'est la croissance de la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers les secteurs \`a faible productivit\'e.
+
+\section{\'Etape 1\,: Productivit\'e du travail agr\'eg\'ee}
+
+\paragraph{Th\'eorie.} On part d'une fonction de production agr\'eg\'ee \`a rendements d'\'echelle constants,
 \begin{equation*}
-    \Delta \ln\left(\frac{Y_t}{L_t}\right) = \frac{1}{1 - \alpha_t} \Delta \ln(A_t) + \frac{\alpha_t}{1 - \alpha_t} \Delta \ln\left(\frac{K_t}{Y_t}\right),
+    Y_t = A_t F(K_t, L_t),
 \end{equation*}
-où $\alpha_t$ est la part du capital dans la valeur ajoutée. Cette décomposition ne requiert pas de forme fonctionnelle particulière. \textbf{Résultat attendu:} le ralentissement de la productivité du travail depuis les années 2000 s'explique presque entièrement par la PTF, non par l'accumulation du capital.
+o\`u $Y_t$ est le PIB r\'eel, $K_t$ le capital, $L_t$ le travail et $A_t$ la PTF. Sous l'hypoth\`ese de rendements constants et en utilisant les parts factorielles observ\'ees dans le revenu (voir l'annexe pour la d\'erivation), on obtient\,:
+\begin{equation}
+    \Delta \ln\!\left(\frac{Y_t}{L_t}\right) = \frac{1}{1 - \bar\alpha_t}\,\Delta \ln(A_t) + \frac{\bar\alpha_t}{1 - \bar\alpha_t}\,\Delta \ln\!\left(\frac{K_t}{Y_t}\right),
+    \label{eq:lp_decomp}
+\end{equation}
+o\`u $\bar\alpha_t$ est la part du capital dans la valeur ajout\'ee (moyenne de T\"ornqvist entre $t-1$ et $t$). Le premier terme mesure la contribution de la PTF, amplifi\'ee par le facteur $1/(1-\bar\alpha_t) > 1$. Le second terme mesure la contribution de l'approfondissement du capital ($K/Y$). Cette d\'ecomposition est une identit\'e exacte qui ne requiert aucune forme fonctionnelle particuli\`ere pour $F$.
 
-\paragraph{Étape 2: PTF agrégée.} On décompose la PTF agrégée en contributions sectorielles. Sous le théorème d'\citet{Hulten_1978}, la croissance de la PTF agrégée est une moyenne pondérée de la croissance des PTF sectorielles:
-\begin{equation*}
-    \mathrm{d}\ln(A_t) = \sum_{i=1}^N S_{it} \mathrm{d}\ln(A_{it}),
-\end{equation*}
-où $S_{it} \equiv P_{it} Y_{it} / P_t Y_t$ est la part du secteur $i$ dans le PIB nominal. En intégrant de $t_0$ à $t_1$:
-\begin{equation*}
-    \sum_{t=t_0}^{t_1} \mathrm{d}\ln(A_t) = \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N S_{it_0} \mathrm{d}\ln(A_{it})}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1} \sum_{i=1}^N (S_{it} - S_{it_0}) \mathrm{d}\ln(A_{it})}_{\text{Inter-industries}}.
-\end{equation*}
-Le terme \textit{intra} mesure les gains d'efficacité au sein des secteurs; le terme \textit{inter} capture l'effet de la réallocation sectorielle.
-
-\textbf{Implémentation.}
-\begin{enumerate}
-    \item Construire un panel sectoriel avec PTF et valeur ajoutée nominale.
-    \item Calculer $S_{it}$ et $\Delta \ln(A_{it})$ par secteur-année.
-    \item Appliquer les formules \textit{Intra} et \textit{Inter}.
-    \item Agréger par sous-périodes.
-\end{enumerate}
-
-\textbf{Résultat attendu:} l'effet de composition (\textit{Inter}) est présent mais modeste; l'essentiel du ralentissement provient de la PTF intra-sectorielle.
-
-\paragraph{Étape 3: PTF sectorielle.} On applique le théorème de Hulten au niveau des entreprises au sein d'une industrie $j$. Cette décomposition est une variante de \citet{Foster_Haltiwanger_Krizan_2001}, reformulée en taux de croissance pour assurer la cohérence avec l'Étape 2. Soit $s_{it}$ la part de l'entreprise $i$ dans le PIB nominal de l'industrie et $a_{it}$ sa PTF. La croissance de la PTF de l'industrie est:
-\begin{equation*}
-    \mathrm{d}\ln(A_{jt}) = \sum_{i} s_{it} \, \mathrm{d}\ln(a_{it}).
-\end{equation*}
-En distinguant les entreprises présentes aux deux dates ($C$), les entrantes ($E$) et les sortantes ($X$):
-\begin{align*}
-    \Delta \ln(A_{jt}) = \; &\underbrace{\sum_{i \in C} s_{i,t-1} \Delta \ln(a_{it})}_{\text{Intra-firmes}} + \underbrace{\sum_{i \in C} (s_{it} - s_{i,t-1}) \Delta \ln(a_{it})}_{\text{Inter-firmes}} \\[0.5em]
-    &+ \underbrace{\sum_{i \in E} s_{it} (\ln a_{it} - \bar{a}_{j,t-1})}_{\text{Entrée}} - \underbrace{\sum_{i \in X} s_{i,t-1} (\ln a_{i,t-1} - \bar{a}_{j,t-1})}_{\text{Sortie}},
-\end{align*}
-où $\bar{a}_{jt} = \sum_i s_{it} \ln a_{it}$ est la PTF moyenne (en logarithmes) de l'industrie. L'entrée contribue positivement si les nouvelles entreprises sont plus productives que la moyenne initiale; la sortie contribue positivement si les sortantes étaient moins productives.
-
-\textbf{PTFR.} La PTFR (productivité totale des facteurs revenu) est généralement la seule mesure disponible dans les microdonnées canadiennes. L'essentiel est d'assurer la cohérence entre la PTF et les parts $s_{it}$ (valeur ajoutée nominale).
-
-\textbf{Intuition.}
+\paragraph{Impl\'ementation.} Les donn\'ees proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 38 industries (classification SCIAN) couvrant la p\'eriode 1961--2019. Les agr\'egats sont construits par indices de T\"ornqvist \citep{Diewert_1976}\,:
 \begin{itemize}
-    \item \textit{Intra-firmes}: gains des entreprises en place.
-    \item \textit{Inter-firmes}: réallocation vers les entreprises à forte croissance de la PTF.
-    \item \textit{Entrée/Sortie}: productivité relative des firmes entrantes et sortantes.
+    \item PTF agr\'eg\'ee (th\'eor\`eme de \citealt{Hulten_1978})\,: $\mathrm{d}\ln A_t = \sum_i \bar{S}_{it}\,\mathrm{d}\ln A_{it}$, o\`u $\bar{S}_{it}$ est la moyenne des parts de valeur ajout\'ee nominale du secteur $i$ en $t-1$ et $t$.
+    \item Capital agr\'eg\'e\,: $\mathrm{d}\ln K_t = \sum_i \bar\omega^K_{it}\,\mathrm{d}\ln K_{it}$, o\`u $\bar\omega^K_{it}$ est la moyenne des parts du co\^ut du capital.
+    \item Travail agr\'eg\'e\,: $\mathrm{d}\ln L_t = \sum_i \bar\omega^L_{it}\,\mathrm{d}\ln L_{it}$, o\`u $\bar\omega^L_{it}$ est la moyenne des parts de la r\'emun\'eration du travail.
+    \item Part agr\'eg\'ee du capital\,: $\alpha_t = \sum_i \text{co\^ut du capital}_{it} \,/\, \sum_i \text{VA}_{it}$, puis $\bar\alpha_t = (\alpha_t + \alpha_{t-1})/2$.
 \end{itemize}
+La croissance du PIB agr\'eg\'e est ensuite reconstitu\'ee par l'identit\'e de production\,:
+\begin{equation*}
+    \mathrm{d}\ln Y_t = \mathrm{d}\ln A_t + \bar\alpha_t\,\mathrm{d}\ln K_t + (1-\bar\alpha_t)\,\mathrm{d}\ln L_t,
+\end{equation*}
+ce qui assure que la d\'ecomposition~\eqref{eq:lp_decomp} est exacte par construction.
 
-\textbf{Implémentation.}
+\paragraph{R\'esultats.} La figure~\ref{fig:labor_productivity} pr\'esente la productivit\'e du travail cumul\'ee (indice 1961=100) ainsi qu'un contrefactuel excluant l'approfondissement du capital. L'\'ecart entre les deux courbes mesure la contribution de $K/Y$. On constate que la contribution de la PTF domine largement\,: le ralentissement observ\'e depuis les ann\'ees 2000 provient essentiellement de la PTF, et non d'un arr\^et de l'accumulation du capital.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{note_labor_productivity.png}
+    \caption{D\'ecomposition de la productivit\'e du travail agr\'eg\'ee, 1961--2019. La courbe bleue repr\'esente la productivit\'e du travail observ\'ee. La courbe verte repr\'esente le contrefactuel sans approfondissement du capital ($K/Y$ constant). L'\'ecart entre les deux courbes mesure la contribution de $K/Y$.}
+    \label{fig:labor_productivity}
+\end{figure}
+
+\section{\'Etape 2\,: PTF agr\'eg\'ee}
+
+\paragraph{Th\'eorie.} Sous le th\'eor\`eme de \citet{Hulten_1978}, la croissance de la PTF agr\'eg\'ee est une moyenne pond\'er\'ee des croissances sectorielles\,:
+\begin{equation*}
+    \mathrm{d}\ln A_t = \sum_{i=1}^N \bar{S}_{it}\,\mathrm{d}\ln A_{it}.
+\end{equation*}
+En d\'ecomposant les poids courants $\bar{S}_{it}$ autour des poids d'une p\'eriode de r\'ef\'erence $S_{i,t_0}$, on obtient\,:
+\begin{equation}
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln A_t = \underbrace{\sum_{t=t_0}^{t_1}\sum_i S_{i,t_0}\,\mathrm{d}\ln A_{it}}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1}\sum_i (\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}_{\text{Composition (Baumol)}}.
+    \label{eq:tfp_decomp}
+\end{equation}
+Le terme \textit{intra-industries} mesure la contribution de la croissance de la PTF au sein de chaque secteur, \`a structure \'economique constante. Le terme \textit{composition} capture l'effet de Baumol\,: si l'\'economie se d\'eplace vers des secteurs \`a faible croissance de la PTF (c'est-\`a-dire si les industries \`a forte PTF perdent leur part dans le PIB nominal), ce terme est n\'egatif et p\`ese sur la PTF agr\'eg\'ee. L'\'equation~\eqref{eq:tfp_decomp} est une identit\'e exacte.
+
+\paragraph{Impl\'ementation.} Les parts de valeur ajout\'ee nominale $\bar{S}_{it}$ sont les m\^emes moyennes de T\"ornqvist utilis\'ees \`a l'\'etape 1. Les parts de la p\'eriode de r\'ef\'erence $S_{i,t_0}$ sont fix\'ees au d\'ebut de chaque sous-p\'eriode et r\'einitialis\'ees\,: $t_0 = 1961$ pour 1961--1980, $t_0 = 1980$ pour 1980--2000, et $t_0 = 2000$ pour 2000--2019.
+
+\paragraph{R\'esultats.} La figure~\ref{fig:tfp_decomposition} pr\'esente la PTF agr\'eg\'ee cumul\'ee (indice 1961=100) avec et sans l'effet Baumol. L'\'ecart entre les deux courbes repr\'esente la contribution de la r\'eallocation sectorielle. On constate que cet effet est modeste\,: l'essentiel de la variation de la PTF agr\'eg\'ee provient de la composante intra-sectorielle.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{note_tfp_decomposition.png}
+    \caption{PTF agr\'eg\'ee avec et sans l'effet Baumol, 1961--2019. La courbe bleue repr\'esente la PTF agr\'eg\'ee observ\'ee. La courbe verte exclut l'effet de composition (Baumol), ne retenant que la croissance intra-sectorielle.}
+    \label{fig:tfp_decomposition}
+\end{figure}
+
+La figure~\ref{fig:baumol_scatter} illustre le m\'ecanisme de l'effet Baumol\,: les industries \`a forte croissance de la PTF tendent \`a voir leur part dans la valeur ajout\'ee nominale diminuer (car leurs prix relatifs baissent), tandis que les secteurs stagnants gagnent en importance. La droite de r\'egression confirme cette corr\'elation n\'egative.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{note_baumol_scatter.png}
+    \caption{Variation de la part de valeur ajout\'ee nominale et croissance cumul\'ee de la PTF par industrie, 1961--2019. Chaque point repr\'esente une des 38 industries SCIAN.}
+    \label{fig:baumol_scatter}
+\end{figure}
+
+Le tableau~\ref{tab:note_decomposition} r\'esume les r\'esultats pour les deux \'etapes de la d\'ecomposition. Le ralentissement de la productivit\'e du travail depuis 2000 est attribuable presque enti\`erement \`a la PTF. Au sein de la PTF agr\'eg\'ee, la composante intra-sectorielle s'est effondr\'ee, passant d'environ 1\,\% par ann\'ee avant 1980 \`a une valeur n\'egligeable, voire n\'egative, apr\`es 2000. L'effet Baumol est pr\'esent mais modeste dans toutes les sous-p\'eriodes.
+
+\includetables{note_decomposition}
+
+\section{Extension \`a d'autres pays}
+
+La d\'ecomposition pr\'esent\'ee ci-dessus est enti\`erement g\'en\'erique\,: elle ne d\'epend d'aucune hypoth\`ese sp\'ecifique au Canada et s'applique \`a tout pays disposant de comptes de productivit\'e sectoriels. Les donn\'ees requises sont\,:
 \begin{enumerate}
-    \item Harmoniser les identifiants d'entreprises et la définition des industries.
-    \item Construire la PTFR et les parts $s_{it}$ (valeur ajoutée nominale).
-    \item Identifier entrants, sortants et firmes établies par paire d'années.
-    \item Calculer $\Delta \ln(a_{it})$ pour les firmes établies; appliquer la décomposition.
-    \item Agréger par industrie avec les parts de valeur ajoutée.
+    \item Un indice de PTF par industrie (ou les donn\'ees n\'ecessaires pour le calculer).
+    \item La valeur ajout\'ee nominale par industrie (pour les parts $S_{it}$).
+    \item Le co\^ut du capital et la r\'emun\'eration du travail par industrie (pour les poids d'agr\'egation $\omega^K_{it}$, $\omega^L_{it}$ et la part agr\'eg\'ee du capital $\alpha_t$).
 \end{enumerate}
 
-Cette étape identifie si la faible croissance de la PTF provient des entreprises en place, d'une réallocation néfaste, ou des entrées et sorties d'entreprises.
+\paragraph{\'Etats-Unis.} Le Bureau of Labor Statistics (BLS) publie le programme KLEMS qui fournit des indices de PTF par industrie d\'etaill\'ee. Les comptes d'industries du Bureau of Economic Analysis (BEA) constituent une source compl\'ementaire.
 
-\paragraph{Étape 4: Tendances intra-sectorielles.} Corréler les composantes de l'Étape 3 avec des mesures de: dynamisme d'affaires (taux d'entrée/sortie, croissance des jeunes entreprises), concentration de marché, investissements en capital et R\&D, etc.. Cette étape relie le diagnostic comptable à des mécanismes économiques et des pistes de politiques publiques.
+\paragraph{Pays de l'OCDE.} La base de donn\'ees OECD STAN (Structural Analysis) et le projet EU KLEMS fournissent des comptes de productivit\'e sectoriels harmonis\'es pour un grand nombre de pays d\'evelopp\'es. Le script \texttt{note.py} peut \^etre adapt\'e \`a ces sources en rempla\c{c}ant l'\'etape de r\'ecup\'eration des donn\'ees (le module \texttt{stats\_can}) par un chargement de fichier CSV dans le m\^eme format\,: une observation par industrie-ann\'ee avec les variables PTF, capital, travail, valeur ajout\'ee nominale, co\^ut du capital et r\'emun\'eration du travail.
 
 \clearpage
 
 \appendix
 
-\paragraph{Dérivation de la décomposition agrégée.} On suppose $Y_t = A_t F(K_t, L_t)$ avec $F$ homogène de degré 1. Par le théorème d'Euler:
+\section*{Annexe\,: D\'erivation de la d\'ecomposition agr\'eg\'ee}
+\addcontentsline{toc}{section}{Annexe}
+
+On suppose $Y_t = A_t F(K_t, L_t)$ avec $F$ homog\`ene de degr\'e 1. Par le th\'eor\`eme d'Euler\,:
 \begin{equation*}
-    F(K_t, L_t) = F_K(K_t, L_t) K_t + F_L(K_t, L_t) L_t.
+    F(K_t, L_t) = F_K(K_t, L_t)\,K_t + F_L(K_t, L_t)\,L_t.
 \end{equation*}
-En taux de croissance, on obtient:
+En taux de croissance, on obtient\,:
 \begin{equation*}
-    \mathrm{d}\ln(Y_t) = \mathrm{d}\ln(A_t) + \alpha_t \, \mathrm{d}\ln(K_t) + (1-\alpha_t)\mathrm{d}\ln(L_t),
+    \mathrm{d}\ln(Y_t) = \mathrm{d}\ln(A_t) + \alpha_t\,\mathrm{d}\ln(K_t) + (1-\alpha_t)\,\mathrm{d}\ln(L_t),
 \end{equation*}
-où $\alpha_t \equiv \frac{F_K K_t}{F_K K_t + F_L L_t}$ correspond à la part du capital dans la valeur ajoutée (ou coût du capital dans les comptes). En soustrayant $\mathrm{d}\ln(L_t)$ des deux côtés:
+o\`u $\alpha_t \equiv \frac{F_K K_t}{F_K K_t + F_L L_t}$ correspond \`a la part du capital dans la valeur ajout\'ee (ou co\^ut du capital dans les comptes). En soustrayant $\mathrm{d}\ln(L_t)$ des deux c\^ot\'es\,:
 \begin{equation*}
-    \mathrm{d}\ln\left(\frac{Y_t}{L_t}\right) = \mathrm{d}\ln(A_t) + \alpha_t \, \mathrm{d}\ln\left(\frac{K_t}{L_t}\right).
+    \mathrm{d}\ln\!\left(\frac{Y_t}{L_t}\right) = \mathrm{d}\ln(A_t) + \alpha_t\,\mathrm{d}\ln\!\left(\frac{K_t}{L_t}\right).
 \end{equation*}
-En réécrivant $\mathrm{d}\ln(K_t/L_t)=\mathrm{d}\ln(K_t/Y_t) + \mathrm{d}\ln(Y_t/L_t)$ et en isolant $\mathrm{d}\ln(Y_t/L_t)$, on obtient la forme utilisée dans le texte:
+En r\'e\'ecrivant $\mathrm{d}\ln(K_t/L_t) = \mathrm{d}\ln(K_t/Y_t) + \mathrm{d}\ln(Y_t/L_t)$ et en isolant $\mathrm{d}\ln(Y_t/L_t)$, on obtient la forme utilis\'ee dans le texte\,:
 \begin{equation*}
-    \mathrm{d}\ln\left(\frac{Y_t}{L_t}\right) = \frac{1}{1-\alpha_t}\mathrm{d}\ln(A_t) + \frac{\alpha_t}{1-\alpha_t}\mathrm{d}\ln\left(\frac{K_t}{Y_t}\right).
+    \mathrm{d}\ln\!\left(\frac{Y_t}{L_t}\right) = \frac{1}{1-\alpha_t}\,\mathrm{d}\ln(A_t) + \frac{\alpha_t}{1-\alpha_t}\,\mathrm{d}\ln\!\left(\frac{K_t}{Y_t}\right).
 \end{equation*}
-Cette dérivation montre que la décomposition repose uniquement sur des rendements constants et sur l'utilisation des parts factorielles observées.
+Cette d\'erivation montre que la d\'ecomposition repose uniquement sur des rendements constants et sur l'utilisation des parts factorielles observ\'ees.
 
 \clearpage
 
