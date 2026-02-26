@@ -1,190 +1,302 @@
-\documentclass[12pt]{article}
-\usepackage{mathpazo, amsmath, amssymb, amsfonts, amsthm, microtype, tikz, graphicx, booktabs, caption, subcaption, bm, xfrac, appendix, setspace, comment, float, nth, fnpct, makecell, multirow, tabularx, threeparttable, titling, array, lipsum, mathtools, tocloft, tocvsec2}
-\usepackage[margin=2.75cm]{geometry}
-\renewcommand{\baselinestretch}{1.15}
-\renewcommand{\arraystretch}{2}
-\setlength\droptitle{-2.5cm}
-%\setlength\parindent{0cm}
-\setlength{\parskip}{0.15cm}
-\definecolor{HEC}{rgb}{0, 0.1569, 0.3333}
-\usepackage[colorlinks, allcolors=HEC]{hyperref}
-\urlstyle{rm}
-\captionsetup[figure]{labelfont={color=HEC}}
-\captionsetup[table]{labelfont={color=HEC}}
-\usepackage[ruled, vlined]{algorithm2e}
-\setlength{\abovecaptionskip}{0.5cm}
-\usepackage[longnamesfirst]{natbib}
-\usepackage[french]{babel}
+\documentclass[11pt]{article}
 
-% Command to reference subfigures
-\renewcommand{\thesubfigure}{(\alph{subfigure})}
-\captionsetup[sub]{labelformat=simple}
+% ── Typography ────────────────────────────────────────────────────────
+\usepackage[T1]{fontenc}
+\usepackage{mathpazo}                          % Palatino serif body
+\usepackage[scaled=0.92]{helvet}               % Helvetica for headings
+\usepackage{microtype}
+\linespread{1.25}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
 
-% Define the path for the figures
+% ── Page geometry ─────────────────────────────────────────────────────
+\usepackage[margin=2.8cm, headheight=18pt]{geometry}
+
+% ── Colours ───────────────────────────────────────────────────────────
+\usepackage{xcolor}
+\definecolor{HECnavy}{HTML}{002855}
+\definecolor{HECcyan}{HTML}{00AEC7}
+\definecolor{HECgray}{HTML}{D9D9D6}
+\definecolor{HECcoolgray}{HTML}{888B8D}
+
+% ── Graphics & TikZ ──────────────────────────────────────────────────
+\usepackage{graphicx}
 \graphicspath{{../Figures/}}
+\usepackage{tikz}
 
-% Define a command and the path for the tables
+% ── Tables ────────────────────────────────────────────────────────────
+\usepackage{booktabs, array}
 \newcommand*\includetables[1]{\input{../Tables/#1.tex}}
 
-% Do not add sections of the main text to the appendix's table of content
-\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
+% ── Captions ──────────────────────────────────────────────────────────
+\usepackage{caption}
+\captionsetup{
+  font=small,
+  labelfont={bf,color=HECnavy,sf},
+  textfont={sf},
+  labelsep=endash,
+  justification=raggedright,
+  singlelinecheck=false
+}
 
-% Command to comment within lines
-\newcommand{\ignore}[1]{}
+% ── Floats ────────────────────────────────────────────────────────────
+\usepackage{float}
 
-% Command to center table columns
-\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\newlength\mcwidth
+% ── Boxes ─────────────────────────────────────────────────────────────
+\usepackage[most]{tcolorbox}
 
-% Mathematical commands
-\DeclareMathOperator*{\argmax}{arg\,max}
-\newcommand{\diag}[1]{\text{diag}\left(#1\right)}
-\newcommand{\partialof}[2]{\frac{\partial #1}{\partial #2}}
-\newcommand{\totalof}[2]{\frac{\text{d} #1}{\text{d} #2}}
-\newcommand{\deltaof}[3]{\delta #1 [#2; #3]}
-\newcommand{\innerprod}[3]{\langle #1, #2 \rangle_{#3}}
-\newtheorem{theorem}{Theorem}
-\newtheorem{corollary}{Corollary}
-\newtheorem{definition}{Definition}
-\newtheorem{proposition}{Proposition}
-\newtheorem{lemma}{Lemma}
+% Executive summary box: faint navy tint, left border
+\newtcolorbox{execbox}{
+  colback=HECnavy!5,
+  colframe=HECnavy,
+  boxrule=0pt,
+  leftrule=2pt,
+  arc=0pt,
+  outer arc=0pt,
+  left=10pt,
+  right=10pt,
+  top=8pt,
+  bottom=8pt,
+  fonttitle=\sffamily\scshape\color{HECnavy},
+  title=Faits saillants,
+  toptitle=4pt,
+  bottomtitle=4pt
+}
 
-% Command to resize equations
-\newcommand{\resizeeq}[2]{\resizebox{#2\hsize}{!}{$#1$}}
+% Key finding box: no background, thin cyan left border
+\newtcolorbox{keyfinding}{
+  colback=white,
+  colframe=HECcyan,
+  boxrule=0pt,
+  leftrule=1.5pt,
+  arc=0pt,
+  outer arc=0pt,
+  left=10pt,
+  right=0pt,
+  top=4pt,
+  bottom=4pt
+}
 
-% Command to make a small horizontal space
-\newcommand{\smallquad}{\hspace{0.5em}}
+% ── Section formatting ────────────────────────────────────────────────
+\usepackage{titlesec}
 
-% Title
-\title{\textbf{D\'ecomposition de la croissance de la productivit\'e du travail agr\'eg\'ee}}
-\author{\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\textsuperscript{1}}
-\date{\today}
+\titleformat{\section}
+  {\Large\bfseries\sffamily\color{HECnavy}}
+  {}
+  {0pt}
+  {}
 
+\titlespacing*{\section}{0pt}{28pt}{10pt}
+
+\titleformat{\subsection}
+  {\large\bfseries\sffamily\color{HECnavy}}
+  {\thesubsection}
+  {0.5em}
+  {}
+
+\titlespacing*{\subsection}{0pt}{18pt}{6pt}
+
+% ── Headers & footers ────────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{%
+  {\small\sffamily\scshape\color{HECnavy}CPP}%
+  \enspace{\color{HECgray}\textbar}\enspace%
+  {\small\sffamily\color{HECcoolgray}HEC Montr\'eal}%
+}
+\fancyhead[R]{\small\sffamily\color{HECcoolgray}\thepage}
+\fancyfoot{}
+
+% Thin rule below the header
+\renewcommand{\headrule}{%
+  \vspace{2pt}%
+  {\color{HECgray}\hrule height 0.4pt}%
+}
+
+% ── Hyperlinks ────────────────────────────────────────────────────────
+\usepackage[colorlinks, allcolors=HECnavy]{hyperref}
+\urlstyle{rm}
+
+% ── Bibliography ──────────────────────────────────────────────────────
+\usepackage[longnamesfirst]{natbib}
+
+% ── Language ──────────────────────────────────────────────────────────
+\usepackage[french]{babel}
+
+% ── Mathematics ───────────────────────────────────────────────────────
+\usepackage{amsmath}
+
+% ── Appendix ──────────────────────────────────────────────────────────
+\usepackage{appendix}
+
+% ══════════════════════════════════════════════════════════════════════
+%  DOCUMENT
+% ══════════════════════════════════════════════════════════════════════
 \begin{document}
 
-\maketitle
+% ── Title page ────────────────────────────────────────────────────────
+\thispagestyle{empty}
 
-\footnotetext[1]{HEC Montr\'eal. E-mail: \href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}}
+\begin{tikzpicture}[remember picture, overlay]
+  \fill[HECnavy]
+    (current page.north west) rectangle
+    ([yshift=-2.2cm]current page.north east);
+  \node[anchor=west, text=white, font=\sffamily\scshape\small]
+    at ([xshift=2.8cm, yshift=-1.1cm]current page.north west)
+    {\textls[80]{Centre sur la productivit\'e et la prosp\'erit\'e}};
+  \node[anchor=east, text=white, font=\sffamily\small]
+    at ([xshift=-2.8cm, yshift=-1.1cm]current page.north east)
+    {HEC Montr\'eal};
+\end{tikzpicture}
 
-\section{Introduction}
+\vspace*{3.5cm}
 
-Ce document pr\'esente une m\'ethode de d\'ecomposition de la productivit\'e du travail agr\'eg\'ee en deux \'etapes. La premi\`ere \'etape s\'epare la contribution de la productivit\'e totale des facteurs (PTF) de celle de l'approfondissement du capital ($K/Y$). La deuxi\`eme \'etape d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition, souvent appel\'e effet \citet{Baumol_1967}. L'approche repose uniquement sur des identit\'es comptables et des donn\'ees sectorielles publiques de Statistique Canada (tableau 36-10-0217-01). Un script Python autonome (\texttt{Programs/note.py}) reproduit l'ensemble des r\'esultats pr\'esent\'es ici.
+{\raggedright
+\fontsize{26}{31}\selectfont\sffamily\bfseries\color{HECnavy}
+D\'ecomposition de la croissance\\[4pt]
+de la productivit\'e du travail\\[4pt]
+au Canada, 1961--2019\par}
 
-L'application au Canada r\'ev\`ele que le ralentissement de la productivit\'e du travail depuis les ann\'ees 2000 s'explique presque enti\`erement par un effondrement de la PTF. L'approfondissement du capital contribue modestement, et l'effet Baumol, bien que pr\'esent, demeure limit\'e\,: c'est la croissance de la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers les secteurs \`a faible productivit\'e.
+\vspace{14pt}
 
-\section{\'Etape 1\,: Productivit\'e du travail agr\'eg\'ee}
+{\color{HECcyan}\rule{4cm}{1.5pt}}
 
-\paragraph{Th\'eorie.} On part d'une fonction de production agr\'eg\'ee \`a rendements d'\'echelle constants,
-\begin{equation*}
-    Y_t = A_t F(K_t, L_t),
-\end{equation*}
-o\`u $Y_t$ est le PIB r\'eel, $K_t$ le capital, $L_t$ le travail et $A_t$ la PTF. Sous l'hypoth\`ese de rendements constants et en utilisant les parts factorielles observ\'ees dans le revenu (voir l'annexe pour la d\'erivation), on obtient\,:
+\vspace{14pt}
+
+{\sffamily\scshape\color{HECnavy} Note de recherche}
+
+\vspace{20pt}
+
+{\color{HECcoolgray}\sffamily
+\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\\[2pt]
+\href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}\\[2pt]
+F\'evrier 2026}
+
+\clearpage
+
+% ── Executive summary ─────────────────────────────────────────────────
+
+\begin{execbox}
+\begin{itemize}\sffamily\small
+  \setlength{\itemsep}{3pt}
+  \item La croissance de la productivit\'e du travail au Canada a chut\'e de 2\,\% par ann\'ee (1961--1980) \`a 0.5\,\% (2000--2019).
+  \item Ce ralentissement s'explique presque enti\`erement par un effondrement de la productivit\'e totale des facteurs (PTF), et non par un manque d'investissement.
+  \item L'effet Baumol --- le d\'eplacement de l'activit\'e vers des secteurs \`a faible productivit\'e --- est pr\'esent mais modeste. C'est la PTF \textit{au sein} des industries qui stagne.
+  \item La m\'ethode repose sur des identit\'es comptables et des donn\'ees publiques de Statistique Canada. Elle s'applique \`a tout pays disposant de comptes de productivit\'e sectoriels.
+\end{itemize}
+\end{execbox}
+
+\vspace{6pt}
+
+% ══════════════════════════════════════════════════════════════════════
+%  MAIN TEXT
+% ══════════════════════════════════════════════════════════════════════
+
+\section*{Le ralentissement de la productivit\'e au Canada}
+
+Entre 1961 et 1980, la productivit\'e du travail au Canada progressait de 2\,\% par ann\'ee. Depuis 2000, ce rythme est tomb\'e \`a 0.5\,\%. Ce ralentissement est au c\oe{}ur du d\'ebat sur le niveau de vie des Canadiens\,: la productivit\'e du travail d\'etermine, \`a long terme, la croissance des salaires r\'eels et du revenu par habitant.
+
+Ce document d\'ecompose la productivit\'e du travail agr\'eg\'ee en deux \'etapes. La premi\`ere s\'epare la contribution de la productivit\'e totale des facteurs (PTF) de celle de l'approfondissement du capital. La seconde d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition (effet Baumol). L'approche repose sur des identit\'es comptables et des donn\'ees sectorielles publiques de Statistique Canada, couvrant 38 industries de 1961 \`a 2019.
+
+\begin{keyfinding}
+\itshape Le ralentissement de la productivit\'e du travail depuis 2000 s'explique presque enti\`erement par la PTF, et non par un d\'eficit d'investissement.
+\end{keyfinding}
+
+% ══════════════════════════════════════════════════════════════════════
+
+\section*{PTF et investissement}
+
+La productivit\'e du travail ($Y/L$) peut augmenter de deux fa\c{c}ons\,: par l'am\'elioration de l'efficacit\'e globale (PTF) ou par l'accumulation de capital par unit\'e de production ($K/Y$). La d\'ecomposition exacte est\,:
 \begin{equation}
-    \Delta \ln\!\left(\frac{Y_t}{L_t}\right) = \frac{1}{1 - \bar\alpha_t}\,\Delta \ln(A_t) + \frac{\bar\alpha_t}{1 - \bar\alpha_t}\,\Delta \ln\!\left(\frac{K_t}{Y_t}\right),
+    \Delta \ln\!\left(\frac{Y}{L}\right) = \frac{1}{1 - \bar\alpha}\,\Delta \ln A + \frac{\bar\alpha}{1 - \bar\alpha}\,\Delta \ln\!\left(\frac{K}{Y}\right),
     \label{eq:lp_decomp}
 \end{equation}
-o\`u $\bar\alpha_t$ est la part du capital dans la valeur ajout\'ee (moyenne de T\"ornqvist entre $t-1$ et $t$). Le premier terme mesure la contribution de la PTF, amplifi\'ee par le facteur $1/(1-\bar\alpha_t) > 1$. Le second terme mesure la contribution de l'approfondissement du capital ($K/Y$). Cette d\'ecomposition est une identit\'e exacte qui ne requiert aucune forme fonctionnelle particuli\`ere pour $F$.
+o\`u $\bar\alpha$ est la part du capital dans la valeur ajout\'ee. Le premier terme mesure la contribution de la PTF, amplifi\'ee par le facteur $1/(1-\bar\alpha) > 1$. Le second mesure l'approfondissement du capital. Cette identit\'e ne requiert aucune forme fonctionnelle sp\'ecifique.
 
-\paragraph{Impl\'ementation.} Les donn\'ees proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 38 industries (classification SCIAN) couvrant la p\'eriode 1961--2019. Les agr\'egats sont construits par indices de T\"ornqvist \citep{Diewert_1976}\,:
-\begin{itemize}
-    \item PTF agr\'eg\'ee (th\'eor\`eme de \citealt{Hulten_1978})\,: $\mathrm{d}\ln A_t = \sum_i \bar{S}_{it}\,\mathrm{d}\ln A_{it}$, o\`u $\bar{S}_{it}$ est la moyenne des parts de valeur ajout\'ee nominale du secteur $i$ en $t-1$ et $t$.
-    \item Capital agr\'eg\'e\,: $\mathrm{d}\ln K_t = \sum_i \bar\omega^K_{it}\,\mathrm{d}\ln K_{it}$, o\`u $\bar\omega^K_{it}$ est la moyenne des parts du co\^ut du capital.
-    \item Travail agr\'eg\'e\,: $\mathrm{d}\ln L_t = \sum_i \bar\omega^L_{it}\,\mathrm{d}\ln L_{it}$, o\`u $\bar\omega^L_{it}$ est la moyenne des parts de la r\'emun\'eration du travail.
-    \item Part agr\'eg\'ee du capital\,: $\alpha_t = \sum_i \text{co\^ut du capital}_{it} \,/\, \sum_i \text{VA}_{it}$, puis $\bar\alpha_t = (\alpha_t + \alpha_{t-1})/2$.
-\end{itemize}
-La croissance du PIB agr\'eg\'e est ensuite reconstitu\'ee par l'identit\'e de production\,:
-\begin{equation*}
-    \mathrm{d}\ln Y_t = \mathrm{d}\ln A_t + \bar\alpha_t\,\mathrm{d}\ln K_t + (1-\bar\alpha_t)\,\mathrm{d}\ln L_t,
-\end{equation*}
-ce qui assure que la d\'ecomposition~\eqref{eq:lp_decomp} est exacte par construction.
-
-\paragraph{R\'esultats.} La figure~\ref{fig:labor_productivity} pr\'esente la productivit\'e du travail cumul\'ee (indice 1961=100) ainsi qu'un contrefactuel excluant l'approfondissement du capital. L'\'ecart entre les deux courbes mesure la contribution de $K/Y$. On constate que la contribution de la PTF domine largement\,: le ralentissement observ\'e depuis les ann\'ees 2000 provient essentiellement de la PTF, et non d'un arr\^et de l'accumulation du capital.
+La figure~\ref{fig:labor_productivity} pr\'esente la productivit\'e du travail cumul\'ee depuis 1961. L'\'ecart entre la courbe observ\'ee et le contrefactuel sans approfondissement du capital mesure la contribution de $K/Y$. La PTF domine largement\,: c'est son effondrement apr\`es 2000 qui explique le ralentissement, et non un arr\^et de l'accumulation du capital.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{note_labor_productivity.png}
-    \caption{D\'ecomposition de la productivit\'e du travail agr\'eg\'ee, 1961--2019. La courbe bleue repr\'esente la productivit\'e du travail observ\'ee. La courbe verte repr\'esente le contrefactuel sans approfondissement du capital ($K/Y$ constant). L'\'ecart entre les deux courbes mesure la contribution de $K/Y$.}
+    \caption{La PTF explique l'essentiel de la croissance de la productivit\'e du travail --- le capital n'y contribue que modestement, 1961--2019.}
     \label{fig:labor_productivity}
 \end{figure}
 
-\section{\'Etape 2\,: PTF agr\'eg\'ee}
+\begin{keyfinding}
+\itshape Depuis 2000, la contribution de la PTF \`a la productivit\'e du travail est n\'egative ($-0.1$\,\% par ann\'ee), alors qu'elle atteignait $+1.7$\,\% avant 1980.
+\end{keyfinding}
 
-\paragraph{Th\'eorie.} Sous le th\'eor\`eme de \citet{Hulten_1978}, la croissance de la PTF agr\'eg\'ee est une moyenne pond\'er\'ee des croissances sectorielles\,:
-\begin{equation*}
-    \mathrm{d}\ln A_t = \sum_{i=1}^N \bar{S}_{it}\,\mathrm{d}\ln A_{it}.
-\end{equation*}
-En d\'ecomposant les poids courants $\bar{S}_{it}$ autour des poids d'une p\'eriode de r\'ef\'erence $S_{i,t_0}$, on obtient\,:
-\begin{equation}
-    \sum_{t=t_0}^{t_1} \mathrm{d}\ln A_t = \underbrace{\sum_{t=t_0}^{t_1}\sum_i S_{i,t_0}\,\mathrm{d}\ln A_{it}}_{\text{Intra-industries}} + \underbrace{\sum_{t=t_0}^{t_1}\sum_i (\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}_{\text{Composition (Baumol)}}.
-    \label{eq:tfp_decomp}
-\end{equation}
-Le terme \textit{intra-industries} mesure la contribution de la croissance de la PTF au sein de chaque secteur, \`a structure \'economique constante. Le terme \textit{composition} capture l'effet de Baumol\,: si l'\'economie se d\'eplace vers des secteurs \`a faible croissance de la PTF (c'est-\`a-dire si les industries \`a forte PTF perdent leur part dans le PIB nominal), ce terme est n\'egatif et p\`ese sur la PTF agr\'eg\'ee. L'\'equation~\eqref{eq:tfp_decomp} est une identit\'e exacte.
+% ══════════════════════════════════════════════════════════════════════
 
-\paragraph{Impl\'ementation.} Les parts de valeur ajout\'ee nominale $\bar{S}_{it}$ sont les m\^emes moyennes de T\"ornqvist utilis\'ees \`a l'\'etape 1. Les parts de la p\'eriode de r\'ef\'erence $S_{i,t_0}$ sont fix\'ees au d\'ebut de chaque sous-p\'eriode et r\'einitialis\'ees\,: $t_0 = 1961$ pour 1961--1980, $t_0 = 1980$ pour 1980--2000, et $t_0 = 2000$ pour 2000--2019.
+\section*{L'effet Baumol}
 
-\paragraph{R\'esultats.} La figure~\ref{fig:tfp_decomposition} pr\'esente la PTF agr\'eg\'ee cumul\'ee (indice 1961=100) avec et sans l'effet Baumol. L'\'ecart entre les deux courbes repr\'esente la contribution de la r\'eallocation sectorielle. On constate que cet effet est modeste\,: l'essentiel de la variation de la PTF agr\'eg\'ee provient de la composante intra-sectorielle.
+La PTF agr\'eg\'ee est une moyenne pond\'er\'ee des PTF sectorielles, o\`u les poids sont les parts de valeur ajout\'ee nominale \citep{Hulten_1978}. Si les industries les plus productives voient leur part diminuer --- parce que leurs prix relatifs baissent --- la PTF agr\'eg\'ee cro\^it moins vite que ne le sugg\`ere la performance intra-sectorielle. C'est l'\emph{effet Baumol} \citep{Baumol_1967}.
+
+La figure~\ref{fig:tfp_decomposition} d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle (structure \'economique constante) et un r\'esidu de composition. L'effet Baumol est visible mais modeste\,: l'essentiel de la variation de la PTF agr\'eg\'ee provient de ce qui se passe \textit{au sein} des industries.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{note_tfp_decomposition.png}
-    \caption{PTF agr\'eg\'ee avec et sans l'effet Baumol, 1961--2019. La courbe bleue repr\'esente la PTF agr\'eg\'ee observ\'ee. La courbe verte exclut l'effet de composition (Baumol), ne retenant que la croissance intra-sectorielle.}
+    \caption{L'effet Baumol p\`ese sur la PTF agr\'eg\'ee, mais la composante intra-sectorielle domine, 1961--2019.}
     \label{fig:tfp_decomposition}
 \end{figure}
 
-La figure~\ref{fig:baumol_scatter} illustre le m\'ecanisme de l'effet Baumol\,: les industries \`a forte croissance de la PTF tendent \`a voir leur part dans la valeur ajout\'ee nominale diminuer (car leurs prix relatifs baissent), tandis que les secteurs stagnants gagnent en importance. La droite de r\'egression confirme cette corr\'elation n\'egative.
+La figure~\ref{fig:baumol_scatter} illustre le m\'ecanisme\,: les industries \`a forte croissance de la PTF tendent \`a voir leur part dans la valeur ajout\'ee nominale diminuer. Cette corr\'elation n\'egative est la signature empirique de l'effet Baumol.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{note_baumol_scatter.png}
-    \caption{Variation de la part de valeur ajout\'ee nominale et croissance cumul\'ee de la PTF par industrie, 1961--2019. Chaque point repr\'esente une des 38 industries SCIAN.}
+    \caption{Les industries \`a forte PTF perdent du poids dans le PIB nominal --- signature de l'effet Baumol, 1961--2019.}
     \label{fig:baumol_scatter}
 \end{figure}
 
-Le tableau~\ref{tab:note_decomposition} r\'esume les r\'esultats pour les deux \'etapes de la d\'ecomposition. Le ralentissement de la productivit\'e du travail depuis 2000 est attribuable presque enti\`erement \`a la PTF. Au sein de la PTF agr\'eg\'ee, la composante intra-sectorielle s'est effondr\'ee, passant d'environ 1\,\% par ann\'ee avant 1980 \`a une valeur n\'egligeable, voire n\'egative, apr\`es 2000. L'effet Baumol est pr\'esent mais modeste dans toutes les sous-p\'eriodes.
+Le tableau~\ref{tab:note_decomposition} r\'esume les deux \'etapes. La croissance intra-sectorielle de la PTF est pass\'ee de 1.1\,\% par ann\'ee (1961--1980) \`a 0.1\,\% (2000--2019). L'effet Baumol est relativement stable autour de $-0.2$\,\% dans toutes les sous-p\'eriodes.
 
 \includetables{note_decomposition}
 
-\section{Extension \`a d'autres pays}
+\begin{keyfinding}
+\itshape C'est la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers des secteurs stagnants.
+\end{keyfinding}
 
-La d\'ecomposition pr\'esent\'ee ci-dessus est enti\`erement g\'en\'erique\,: elle ne d\'epend d'aucune hypoth\`ese sp\'ecifique au Canada et s'applique \`a tout pays disposant de comptes de productivit\'e sectoriels. Les donn\'ees requises sont\,:
-\begin{enumerate}
-    \item Un indice de PTF par industrie (ou les donn\'ees n\'ecessaires pour le calculer).
-    \item La valeur ajout\'ee nominale par industrie (pour les parts $S_{it}$).
-    \item Le co\^ut du capital et la r\'emun\'eration du travail par industrie (pour les poids d'agr\'egation $\omega^K_{it}$, $\omega^L_{it}$ et la part agr\'eg\'ee du capital $\alpha_t$).
-\end{enumerate}
+% ══════════════════════════════════════════════════════════════════════
 
-\paragraph{\'Etats-Unis.} Le Bureau of Labor Statistics (BLS) publie le programme KLEMS qui fournit des indices de PTF par industrie d\'etaill\'ee. Les comptes d'industries du Bureau of Economic Analysis (BEA) constituent une source compl\'ementaire.
+\section*{Perspective internationale}
 
-\paragraph{Pays de l'OCDE.} La base de donn\'ees OECD STAN (Structural Analysis) et le projet EU KLEMS fournissent des comptes de productivit\'e sectoriels harmonis\'es pour un grand nombre de pays d\'evelopp\'es. Le script \texttt{note.py} peut \^etre adapt\'e \`a ces sources en rempla\c{c}ant l'\'etape de r\'ecup\'eration des donn\'ees (le module \texttt{stats\_can}) par un chargement de fichier CSV dans le m\^eme format\,: une observation par industrie-ann\'ee avec les variables PTF, capital, travail, valeur ajout\'ee nominale, co\^ut du capital et r\'emun\'eration du travail.
+La m\'ethode pr\'esent\'ee est enti\`erement g\'en\'erique\,: elle ne d\'epend d'aucune hypoth\`ese sp\'ecifique au Canada. Aux \'Etats-Unis, le programme KLEMS du Bureau of Labor Statistics fournit des donn\'ees analogues. Pour les pays de l'OCDE, la base OECD STAN et le projet EU KLEMS offrent des comptes de productivit\'e sectoriels harmonis\'es.
 
-\clearpage
-
-\appendix
-
-\section*{Annexe\,: D\'erivation de la d\'ecomposition agr\'eg\'ee}
-\addcontentsline{toc}{section}{Annexe}
-
-On suppose $Y_t = A_t F(K_t, L_t)$ avec $F$ homog\`ene de degr\'e 1. Par le th\'eor\`eme d'Euler\,:
-\begin{equation*}
-    F(K_t, L_t) = F_K(K_t, L_t)\,K_t + F_L(K_t, L_t)\,L_t.
-\end{equation*}
-En taux de croissance, on obtient\,:
-\begin{equation*}
-    \mathrm{d}\ln(Y_t) = \mathrm{d}\ln(A_t) + \alpha_t\,\mathrm{d}\ln(K_t) + (1-\alpha_t)\,\mathrm{d}\ln(L_t),
-\end{equation*}
-o\`u $\alpha_t \equiv \frac{F_K K_t}{F_K K_t + F_L L_t}$ correspond \`a la part du capital dans la valeur ajout\'ee (ou co\^ut du capital dans les comptes). En soustrayant $\mathrm{d}\ln(L_t)$ des deux c\^ot\'es\,:
-\begin{equation*}
-    \mathrm{d}\ln\!\left(\frac{Y_t}{L_t}\right) = \mathrm{d}\ln(A_t) + \alpha_t\,\mathrm{d}\ln\!\left(\frac{K_t}{L_t}\right).
-\end{equation*}
-En r\'e\'ecrivant $\mathrm{d}\ln(K_t/L_t) = \mathrm{d}\ln(K_t/Y_t) + \mathrm{d}\ln(Y_t/L_t)$ et en isolant $\mathrm{d}\ln(Y_t/L_t)$, on obtient la forme utilis\'ee dans le texte\,:
-\begin{equation*}
-    \mathrm{d}\ln\!\left(\frac{Y_t}{L_t}\right) = \frac{1}{1-\alpha_t}\,\mathrm{d}\ln(A_t) + \frac{\alpha_t}{1-\alpha_t}\,\mathrm{d}\ln\!\left(\frac{K_t}{Y_t}\right).
-\end{equation*}
-Cette d\'erivation montre que la d\'ecomposition repose uniquement sur des rendements constants et sur l'utilisation des parts factorielles observ\'ees.
-
-\clearpage
+% ══════════════════════════════════════════════════════════════════════
 
 \bibliography{references}
 \bibliographystyle{aer}
+
+% ══════════════════════════════════════════════════════════════════════
+%  APPENDIX
+% ══════════════════════════════════════════════════════════════════════
+
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+
+\section{M\'ethode}
+
+\subsection{D\'erivation de la d\'ecomposition}
+
+On part d'une fonction de production agr\'eg\'ee \`a rendements constants, $Y_t = A_t F(K_t, L_t)$, o\`u $F$ est homog\`ene de degr\'e 1. Par le th\'eor\`eme d'Euler et en d\'efinissant la part du capital $\alpha_t = F_K K_t / (F_K K_t + F_L L_t)$, on obtient en taux de croissance\,:
+$\mathrm{d}\ln Y_t = \mathrm{d}\ln A_t + \alpha_t\,\mathrm{d}\ln K_t + (1-\alpha_t)\,\mathrm{d}\ln L_t$.
+En soustrayant $\mathrm{d}\ln L_t$ et en r\'e\'ecrivant $\mathrm{d}\ln(K_t/L_t) = \mathrm{d}\ln(K_t/Y_t) + \mathrm{d}\ln(Y_t/L_t)$, on obtient l'\'equation~\eqref{eq:lp_decomp}.
+
+\subsection{Agr\'egation par indices de T\"ornqvist}
+
+Les agr\'egats sont construits par indices de T\"ornqvist \citep{Diewert_1976}. La PTF agr\'eg\'ee suit le th\'eor\`eme de \citet{Hulten_1978}\,: $\mathrm{d}\ln A_t = \sum_i \bar{S}_{it}\,\mathrm{d}\ln A_{it}$, o\`u $\bar{S}_{it}$ est la moyenne des parts de valeur ajout\'ee nominale du secteur $i$ en $t-1$ et $t$. Les agr\'egats de capital et de travail sont construits de mani\`ere analogue\,: $\mathrm{d}\ln K_t = \sum_i \bar\omega^K_{it}\,\mathrm{d}\ln K_{it}$ et $\mathrm{d}\ln L_t = \sum_i \bar\omega^L_{it}\,\mathrm{d}\ln L_{it}$, o\`u $\bar\omega^K_{it}$ et $\bar\omega^L_{it}$ sont les moyennes des parts de co\^ut du capital et de r\'emun\'eration du travail. La part agr\'eg\'ee du capital est $\alpha_t = \sum_i \text{co\^ut du capital}_{it} / \sum_i \text{VA}_{it}$, et $\bar\alpha_t = (\alpha_t + \alpha_{t-1})/2$.
+
+\subsection{D\'ecomposition de la PTF agr\'eg\'ee}
+
+En d\'ecomposant les poids courants $\bar{S}_{it}$ autour des poids d'une p\'eriode de r\'ef\'erence $S_{i,t_0}$\,:
+\begin{equation*}
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln A_t = \underbrace{\sum_{t}\sum_i S_{i,t_0}\,\mathrm{d}\ln A_{it}}_{\text{Intra-industries}} + \underbrace{\sum_{t}\sum_i (\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}_{\text{Composition (Baumol)}}.
+\end{equation*}
+Les parts de r\'ef\'erence sont r\'einitialis\'ees au d\'ebut de chaque sous-p\'eriode\,: $t_0 = 1961$ pour 1961--1980, $t_0 = 1980$ pour 1980--2000, et $t_0 = 2000$ pour 2000--2019.
+
+Les donn\'ees proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 38 industries SCIAN couvrant la p\'eriode 1961--2019. Les variables utilis\'ees sont\,: la PTF sectorielle, les indices de capital et de travail, la valeur ajout\'ee nominale, le co\^ut du capital et la r\'emun\'eration du travail. Le script \texttt{note.py} reproduit l'ensemble des r\'esultats.
 
 \end{document}

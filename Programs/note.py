@@ -650,40 +650,44 @@ finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 ########################################################################
 
 def fmt(v):
-    """Format a growth rate for the LaTeX table (e.g., '1.28\\%')."""
-    return f'{v:.2f}\\%'
+    """Format a growth rate for the LaTeX table (e.g., '1.28')."""
+    return f'{v:.2f}'
+
+def fmt_bold(v):
+    """Format a growth rate with bold navy for the 2000-2019 column."""
+    return r'\textbf{' + f'{v:.2f}' + '}'
+
+def row(label, vals, bold_last=True):
+    """Build a table row with optional bold last column."""
+    cells = [fmt(v) for v in vals[:3]]
+    cells.append(fmt_bold(vals[3]) if bold_last else fmt(vals[3]))
+    return label + ' & ' + ' & '.join(cells) + r' \\'
 
 with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
     lines = [
         r'\begin{table}[H]',
         r'\centering',
-        r'\begin{threeparttable}',
-        r"\caption{D\'ecomposition de la croissance de la productivit\'e du travail}",
-        r'\begin{tabular}{lcccc}',
-        r'\hline',
-        r'\hline',
-        r'& 1961--2019 & 1961--1980 & 1980--2000 & 2000--2019 \\',
-        r'\hline',
-        r"\multicolumn{5}{l}{\textit{Panel A\,: Productivit\'e du travail}} \\[0.3em]",
-        r'$\Delta \ln(Y/L)$ & ' + ' & '.join(fmt(v) for v in lp) + r' \\',
-        r'\quad Contribution PTF & ' + ' & '.join(fmt(v) for v in tfp_c) + r' \\',
-        r'\quad Contribution $K/Y$ & ' + ' & '.join(fmt(v) for v in ky_c) + r' \\[0.3em]',
-        r'\hline',
-        r"\multicolumn{5}{l}{\textit{Panel B\,: PTF agr\'eg\'ee}} \\[0.3em]",
-        r'$\Delta \ln A$ & ' + ' & '.join(fmt(v) for v in tfp_agg) + r' \\',
-        r'\quad Intra-industries & ' + ' & '.join(fmt(v) for v in within) + r' \\',
-        r'\quad Composition (Baumol) & ' + ' & '.join(fmt(v) for v in baumol) + r' \\',
-        r'\hline',
-        r'\hline',
-        r'\end{tabular}',
-        r'\begin{tablenotes}[flushleft]',
-        r'\footnotesize',
-        r"\item \textit{Note}\,: Ce tableau pr\'esente la d\'ecomposition de la croissance "
-        r"annuelle moyenne de la productivit\'e du travail et de la PTF agr\'eg\'ee pour "
-        r"diff\'erentes sous-p\'eriodes. Source\,: Statistique Canada, tableau 36-10-0217-01.",
-        r'\end{tablenotes}',
+        r'\sffamily',
+        r'\renewcommand{\arraystretch}{1.3}',
+        r"\caption{D\'ecomposition de la croissance annuelle moyenne de la productivit\'e (\%)}",
         r'\label{tab:note_decomposition}',
-        r'\end{threeparttable}',
+        r'\begin{tabular}{l*{4}{c}}',
+        r'\toprule',
+        r'& 1961--2019 & 1961--1980 & 1980--2000 & \textbf{2000--2019} \\',
+        r'\midrule',
+        r"\multicolumn{5}{l}{\textit{Productivit\'e du travail}} \\[2pt]",
+        row(r'$\Delta \ln(Y/L)$', lp),
+        row(r'\quad Contribution PTF', tfp_c),
+        row(r'\quad Contribution $K/Y$', ky_c) + '[4pt]',
+        r"\multicolumn{5}{l}{\textit{PTF agr\'eg\'ee}} \\[2pt]",
+        row(r'$\Delta \ln A$', tfp_agg),
+        row(r'\quad Intra-industries', within),
+        row(r'\quad Composition (Baumol)', baumol),
+        r'\bottomrule',
+        r'\end{tabular}',
+        '',
+        r"\vspace{4pt}{\footnotesize\textit{Note}\,: Croissance annuelle moyenne en points de "
+        r"pourcentage. Source\,: Statistique Canada, tableau 36-10-0217-01.}",
         r'\end{table}'
     ]
     f.write('\n'.join(lines))
