@@ -1,185 +1,173 @@
-\documentclass[11pt]{article}
+\documentclass[11pt, letterpaper]{article}
 
-% ── Typography ────────────────────────────────────────────────────────
+% ── Fonts ────────────────────────────────────────────────────────────
+\usepackage[sfdefault,light]{FiraSans}
+\usepackage{FiraMono}
 \usepackage[T1]{fontenc}
-\usepackage{mathpazo}                          % Palatino serif body
-\usepackage[scaled=0.92]{helvet}               % Helvetica for headings
-\usepackage{microtype}
-\linespread{1.25}
+
+% ── Page geometry ────────────────────────────────────────────────────
+\usepackage[margin=2.5cm]{geometry}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
 
-% ── Page geometry ─────────────────────────────────────────────────────
-\usepackage[margin=2.8cm, headheight=18pt]{geometry}
-
-% ── Colours ───────────────────────────────────────────────────────────
+% ── Colours (ECON50803 palette) ─────────────────────────────────────
 \usepackage{xcolor}
 \definecolor{HECnavy}{HTML}{002855}
-\definecolor{HECcyan}{HTML}{00AEC7}
-\definecolor{HECgray}{HTML}{D9D9D6}
-\definecolor{HECcoolgray}{HTML}{888B8D}
+\definecolor{HECgreen}{HTML}{26d07c}
+\definecolor{HECcoral}{HTML}{ff585d}
+\definecolor{HECtext}{HTML}{2D3748}
+\definecolor{HECgray}{HTML}{94A3B8}
+\definecolor{HEClightgray}{HTML}{F1F5F9}
+\definecolor{HEClightblue}{HTML}{E8EDF3}
 
-% ── Graphics & TikZ ──────────────────────────────────────────────────
-\usepackage{graphicx}
+% ── Packages ────────────────────────────────────────────────────────
+\usepackage{amsmath, graphicx, tikz, booktabs, tabularx, hyperref}
+\usepackage[inline]{enumitem}
+\usepackage{etoolbox}
+\usepackage{needspace}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins, breakable}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{float}
+\usepackage{array}
+\usepackage{microtype}
+
+% ── Paths ───────────────────────────────────────────────────────────
 \graphicspath{{../Figures/}}
-\usepackage{tikz}
-
-% ── Tables ────────────────────────────────────────────────────────────
-\usepackage{booktabs, array}
 \newcommand*\includetables[1]{\input{../Tables/#1.tex}}
 
-% ── Captions ──────────────────────────────────────────────────────────
+% ── Hyperlinks ──────────────────────────────────────────────────────
+\hypersetup{
+   colorlinks,
+   linkcolor=HECnavy,
+   urlcolor=HECnavy,
+   citecolor=HECtext
+}
+
+% ── Captions ────────────────────────────────────────────────────────
 \usepackage{caption}
 \captionsetup{
   font=small,
-  labelfont={bf,color=HECnavy,sf},
-  textfont={sf},
+  labelfont={bf,color=HECnavy},
   labelsep=endash,
   justification=raggedright,
   singlelinecheck=false
 }
 
-% ── Floats ────────────────────────────────────────────────────────────
-\usepackage{float}
+% ── Boxes ───────────────────────────────────────────────────────────
 
-% ── Boxes ─────────────────────────────────────────────────────────────
-\usepackage[most]{tcolorbox}
-
-% Executive summary box: faint navy tint, left border
-\newtcolorbox{execbox}{
-  colback=HECnavy!5,
-  colframe=HECnavy,
-  boxrule=0pt,
-  leftrule=2pt,
-  arc=0pt,
-  outer arc=0pt,
-  left=10pt,
-  right=10pt,
-  top=8pt,
-  bottom=8pt,
-  fonttitle=\sffamily\scshape\color{HECnavy},
-  title=Faits saillants,
-  toptitle=4pt,
-  bottomtitle=4pt
+% Executive summary (navy accent)
+\newtcolorbox{execbox}[1][Faits saillants]{%
+   colback=HECnavy!5,
+   colframe=HECnavy,
+   boxrule=0pt,
+   leftrule=3pt,
+   arc=4pt,
+   title={\textcolor{HECnavy}{\bfseries #1}},
+   coltitle=HECnavy,
+   fonttitle=\bfseries,
+   attach title to upper={\\[4pt]},
+   left=8pt, right=8pt, top=4pt, bottom=4pt,
+   breakable
 }
 
-% Key finding box: no background, thin cyan left border
-\newtcolorbox{keyfinding}{
-  colback=white,
-  colframe=HECcyan,
-  boxrule=0pt,
-  leftrule=1.5pt,
-  arc=0pt,
-  outer arc=0pt,
-  left=10pt,
-  right=0pt,
-  top=4pt,
-  bottom=4pt
+% Key finding (green accent)
+\newtcolorbox{keyfinding}[1][Point cl\'e]{%
+   colback=HECgreen!5,
+   colframe=HECgreen,
+   boxrule=0pt,
+   leftrule=3pt,
+   arc=4pt,
+   title={\textcolor{HECgreen}{\bfseries #1}},
+   coltitle=HECgreen,
+   fonttitle=\bfseries,
+   attach title to upper={\\[4pt]},
+   left=8pt, right=8pt, top=4pt, bottom=4pt,
+   breakable
 }
 
-% ── Section formatting ────────────────────────────────────────────────
-\usepackage{titlesec}
-
+% ── Section formatting ──────────────────────────────────────────────
 \titleformat{\section}
-  {\Large\bfseries\sffamily\color{HECnavy}}
-  {}
-  {0pt}
-  {}
-
-\titlespacing*{\section}{0pt}{28pt}{10pt}
+   {\Large\bfseries\color{HECnavy}}
+   {\thesection.}{0.5em}{}
+   [\vspace{2pt}{\color{HECgreen}\rule{2.5cm}{1.5pt}}]
+\titlespacing*{\section}{0pt}{1.5em}{0.8em}
 
 \titleformat{\subsection}
-  {\large\bfseries\sffamily\color{HECnavy}}
-  {\thesubsection}
-  {0.5em}
-  {}
+   {\large\bfseries\color{HECnavy}}
+   {\thesubsection.}{0.5em}{}
+\titlespacing*{\subsection}{0pt}{1em}{0.5em}
 
-\titlespacing*{\subsection}{0pt}{18pt}{6pt}
-
-% ── Headers & footers ────────────────────────────────────────────────
-\usepackage{fancyhdr}
+% ── Header & footer ────────────────────────────────────────────────
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{%
-  {\small\sffamily\scshape\color{HECnavy}CPP}%
-  \enspace{\color{HECgray}\textbar}\enspace%
-  {\small\sffamily\color{HECcoolgray}HEC Montr\'eal}%
-}
-\fancyhead[R]{\small\sffamily\color{HECcoolgray}\thepage}
-\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\footrule}{\hfill{\color{HECgray}\rule{0.9\textwidth}{0.4pt}}\hfill\vspace{4pt}}
+\fancyfoot[L]{\small\textcolor{HECgray}{CPP\enspace\textbar\enspace HEC Montr\'eal}}
+\fancyfoot[R]{\small\textcolor{HECgray}{\thepage\enspace/\enspace\pageref{LastPage}}}
 
-% Thin rule below the header
-\renewcommand{\headrule}{%
-  \vspace{2pt}%
-  {\color{HECgray}\hrule height 0.4pt}%
-}
+% ── Enumitem defaults ──────────────────────────────────────────────
+\setlist[itemize]{leftmargin=1.5em, itemsep=3pt}
+\setlist[enumerate]{leftmargin=1.5em, itemsep=3pt}
 
-% ── Hyperlinks ────────────────────────────────────────────────────────
-\usepackage[colorlinks, allcolors=HECnavy]{hyperref}
-\urlstyle{rm}
-
-% ── Bibliography ──────────────────────────────────────────────────────
+% ── Bibliography ───────────────────────────────────────────────────
 \usepackage[longnamesfirst]{natbib}
 
-% ── Language ──────────────────────────────────────────────────────────
+% ── Language ───────────────────────────────────────────────────────
 \usepackage[french]{babel}
 
-% ── Mathematics ───────────────────────────────────────────────────────
-\usepackage{amsmath}
-
-% ── Appendix ──────────────────────────────────────────────────────────
+% ── Appendix ───────────────────────────────────────────────────────
 \usepackage{appendix}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 %  DOCUMENT
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 \begin{document}
 
-% ── Title page ────────────────────────────────────────────────────────
+% ── Title page ─────────────────────────────────────────────────────
 \thispagestyle{empty}
 
 \begin{tikzpicture}[remember picture, overlay]
-  \fill[HECnavy]
-    (current page.north west) rectangle
-    ([yshift=-2.2cm]current page.north east);
-  \node[anchor=west, text=white, font=\sffamily\scshape\small]
-    at ([xshift=2.8cm, yshift=-1.1cm]current page.north west)
-    {\textls[80]{Centre sur la productivit\'e et la prosp\'erit\'e}};
-  \node[anchor=east, text=white, font=\sffamily\small]
-    at ([xshift=-2.8cm, yshift=-1.1cm]current page.north east)
-    {HEC Montr\'eal};
+   % Navy sidebar
+   \fill[HECnavy] (current page.north west) rectangle
+      ([xshift=0.8cm]current page.south west);
+   % Green accent line
+   \fill[HECgreen] ([xshift=0.8cm]current page.north west) rectangle
+      ([xshift=0.85cm]current page.south west);
 \end{tikzpicture}
 
-\vspace*{3.5cm}
+\vspace*{2cm}
 
-{\raggedright
-\fontsize{26}{31}\selectfont\sffamily\bfseries\color{HECnavy}
-D\'ecomposition de la croissance\\[4pt]
-de la productivit\'e du travail\\[4pt]
-au Canada, 1961--2019\par}
+\hspace{0.8cm}%
+\begin{minipage}{0.85\textwidth}
+   {\fontsize{28}{34}\selectfont\bfseries\textcolor{HECnavy}{D\'ecomposition de la croissance de la productivit\'e du travail au Canada, 1961--2019}}
+   \\[14pt]
+   {\Large\textcolor{HECnavy}{Note de recherche}}
+   \\[14pt]
+   {\color{HECgreen}\rule{3cm}{2pt}}
+   \\[14pt]
+   {\large\textcolor{HECgray}{Centre sur la productivit\'e et la prosp\'erit\'e}}
+   \\[8pt]
+   {\large\textcolor{HECgray}{\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}}}
+   \\[8pt]
+   {\textcolor{HECgray}{F\'evrier 2026}}
+\end{minipage}
 
-\vspace{14pt}
+\vfill
 
-{\color{HECcyan}\rule{4cm}{1.5pt}}
+\hspace{0.8cm}%
+{\small\textcolor{HECgray}{HEC Montr\'eal}}
 
-\vspace{14pt}
+\vspace{1cm}
+\newpage
 
-{\sffamily\scshape\color{HECnavy} Note de recherche}
-
-\vspace{20pt}
-
-{\color{HECcoolgray}\sffamily
-\href{https://www.jeanfelixbrouillette.com}{Jean-F\'elix Brouillette}\\[2pt]
-\href{mailto:jean-felix.brouillette@hec.ca}{jean-felix.brouillette@hec.ca}\\[2pt]
-F\'evrier 2026}
-
-\clearpage
-
-% ── Executive summary ─────────────────────────────────────────────────
+% ── Executive summary ──────────────────────────────────────────────
 
 \begin{execbox}
-\begin{itemize}\sffamily\small
-  \setlength{\itemsep}{3pt}
+\begin{itemize}\small
   \item La croissance de la productivit\'e du travail au Canada a chut\'e de 2\,\% par ann\'ee (1961--1980) \`a 0.5\,\% (2000--2019).
   \item Ce ralentissement s'explique presque enti\`erement par un effondrement de la productivit\'e totale des facteurs (PTF), et non par un manque d'investissement.
   \item L'effet Baumol --- le d\'eplacement de l'activit\'e vers des secteurs \`a faible productivit\'e --- est pr\'esent mais modeste. C'est la PTF \textit{au sein} des industries qui stagne.
@@ -189,23 +177,23 @@ F\'evrier 2026}
 
 \vspace{6pt}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 %  MAIN TEXT
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
-\section*{Le ralentissement de la productivit\'e au Canada}
+\section{Le ralentissement de la productivit\'e au Canada}
 
 Entre 1961 et 1980, la productivit\'e du travail au Canada progressait de 2\,\% par ann\'ee. Depuis 2000, ce rythme est tomb\'e \`a 0.5\,\%. Ce ralentissement est au c\oe{}ur du d\'ebat sur le niveau de vie des Canadiens\,: la productivit\'e du travail d\'etermine, \`a long terme, la croissance des salaires r\'eels et du revenu par habitant.
 
 Ce document d\'ecompose la productivit\'e du travail agr\'eg\'ee en deux \'etapes. La premi\`ere s\'epare la contribution de la productivit\'e totale des facteurs (PTF) de celle de l'approfondissement du capital. La seconde d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition (effet Baumol). L'approche repose sur des identit\'es comptables et des donn\'ees sectorielles publiques de Statistique Canada, couvrant 38 industries de 1961 \`a 2019.
 
 \begin{keyfinding}
-\itshape Le ralentissement de la productivit\'e du travail depuis 2000 s'explique presque enti\`erement par la PTF, et non par un d\'eficit d'investissement.
+Le ralentissement de la productivit\'e du travail depuis 2000 s'explique presque enti\`erement par la PTF, et non par un d\'eficit d'investissement.
 \end{keyfinding}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
-\section*{PTF et investissement}
+\section{PTF et investissement}
 
 La productivit\'e du travail ($Y/L$) peut augmenter de deux fa\c{c}ons\,: par l'am\'elioration de l'efficacit\'e globale (PTF) ou par l'accumulation de capital par unit\'e de production ($K/Y$). La d\'ecomposition exacte est\,:
 \begin{equation}
@@ -224,12 +212,12 @@ La figure~\ref{fig:labor_productivity} pr\'esente la productivit\'e du travail c
 \end{figure}
 
 \begin{keyfinding}
-\itshape Depuis 2000, la contribution de la PTF \`a la productivit\'e du travail est n\'egative ($-0.1$\,\% par ann\'ee), alors qu'elle atteignait $+1.7$\,\% avant 1980.
+Depuis 2000, la contribution de la PTF \`a la productivit\'e du travail est n\'egative ($-0.1$\,\% par ann\'ee), alors qu'elle atteignait $+1.7$\,\% avant 1980.
 \end{keyfinding}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
-\section*{L'effet Baumol}
+\section{L'effet Baumol}
 
 La PTF agr\'eg\'ee est une moyenne pond\'er\'ee des PTF sectorielles, o\`u les poids sont les parts de valeur ajout\'ee nominale \citep{Hulten_1978}. Si les industries les plus productives voient leur part diminuer --- parce que leurs prix relatifs baissent --- la PTF agr\'eg\'ee cro\^it moins vite que ne le sugg\`ere la performance intra-sectorielle. C'est l'\emph{effet Baumol} \citep{Baumol_1967}.
 
@@ -256,23 +244,24 @@ Le tableau~\ref{tab:note_decomposition} r\'esume les deux \'etapes. La croissanc
 \includetables{note_decomposition}
 
 \begin{keyfinding}
-\itshape C'est la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers des secteurs stagnants.
+C'est la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers des secteurs stagnants.
 \end{keyfinding}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
-\section*{Perspective internationale}
+\section{Perspective internationale}
 
 La m\'ethode pr\'esent\'ee est enti\`erement g\'en\'erique\,: elle ne d\'epend d'aucune hypoth\`ese sp\'ecifique au Canada. Aux \'Etats-Unis, le programme KLEMS du Bureau of Labor Statistics fournit des donn\'ees analogues. Pour les pays de l'OCDE, la base OECD STAN et le projet EU KLEMS offrent des comptes de productivit\'e sectoriels harmonis\'es.
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
+\clearpage
 \bibliography{references}
 \bibliographystyle{aer}
 
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 %  APPENDIX
-% ══════════════════════════════════════════════════════════════════════
+% ════════════════════════════════════════════════════════════════════
 
 \appendix
 \renewcommand{\thesection}{\Alph{section}}
