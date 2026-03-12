@@ -48,6 +48,7 @@
 
 % ── Captions ────────────────────────────────────────────────────────
 \usepackage{caption}
+\usepackage{threeparttable}
 \captionsetup{
   font=small,
   labelfont={bf,color=HECnavy},
@@ -143,7 +144,7 @@
 
 \hspace{0.8cm}%
 \begin{minipage}{0.85\textwidth}
-   {\fontsize{28}{34}\selectfont\bfseries\textcolor{HECnavy}{D\'ecomposition de la croissance de la productivit\'e du travail au Canada, 1961--2019}}
+   {\fontsize{28}{34}\selectfont\bfseries\textcolor{HECnavy}{L'anatomie sectorielle de la croissance de la productivit\'e canadienne, 1961--2019}}
    \\[14pt]
    {\Large\textcolor{HECnavy}{Note de recherche}}
    \\[14pt]
@@ -169,9 +170,9 @@
 \begin{execbox}
 \begin{itemize}\small
   \item La croissance de la productivit\'e du travail au Canada a chut\'e de 2\,\% par ann\'ee (1961--1980) \`a 0.5\,\% (2000--2019).
-  \item Ce ralentissement s'explique presque enti\`erement par un effondrement de la productivit\'e totale des facteurs (PTF), et non par un manque d'investissement.
-  \item L'effet Baumol --- le d\'eplacement de l'activit\'e vers des secteurs \`a faible productivit\'e --- est pr\'esent mais modeste. C'est la PTF \textit{au sein} des industries qui stagne.
-  \item La m\'ethode repose sur des identit\'es comptables et des donn\'ees publiques de Statistique Canada. Elle s'applique \`a tout pays disposant de comptes de productivit\'e sectoriels.
+  \item Ce ralentissement s'explique presque enti\`erement par un effondrement de la productivit\'e totale des facteurs (PTF), et non par un manque d'investissement en capital.
+  \item Le d\'eplacement de l'activit\'e vers des secteurs \`a faible productivit\'e (effet Baumol) est r\'eel mais secondaire. C'est la PTF \textit{au sein} des industries qui stagne.
+  \item Les secteurs souvent point\'es du doigt --- p\'etrole, construction, finance --- ne sont pas les principaux responsables. Ce sont les industries manufacturi\`eres, en particulier l'\'electronique, qui ont le plus recul\'e.
 \end{itemize}
 \end{execbox}
 
@@ -185,24 +186,30 @@
 
 Entre 1961 et 1980, la productivit\'e du travail au Canada progressait de 2\,\% par ann\'ee. Depuis 2000, ce rythme est tomb\'e \`a 0.5\,\%. Ce ralentissement est au c\oe{}ur du d\'ebat sur le niveau de vie des Canadiens\,: la productivit\'e du travail d\'etermine, \`a long terme, la croissance des salaires r\'eels et du revenu par habitant.
 
-Ce document d\'ecompose la productivit\'e du travail agr\'eg\'ee en deux \'etapes. La premi\`ere s\'epare la contribution de la productivit\'e totale des facteurs (PTF) de celle de l'approfondissement du capital. La seconde d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition (effet Baumol). L'approche repose sur des identit\'es comptables et des donn\'ees sectorielles publiques de Statistique Canada, couvrant 38 industries de 1961 \`a 2019.
+Plusieurs hypoth\`eses circulent dans le d\'ebat public. Certains pointent du doigt des secteurs sp\'ecifiques\,: la mont\'ee des sables bitumineux, dont l'extraction est particuli\`erement gourmande en capital \citep{Loertscher_Pujolas_2024}; l'expansion de la construction et de l'immobilier; ou encore la croissance des services financiers. Selon cette lecture, le probl\`eme serait essentiellement un probl\`eme de \textit{composition}\,: l'\'economie se serait d\'eplac\'ee vers des secteurs intrins\`equement moins productifs.
+
+Cette note propose un diagnostic sectoriel rigoureux, fond\'e sur des donn\'ees publiques de Statistique Canada couvrant 38 industries de 1961 \`a 2019. Notre conclusion\,: la composition sectorielle joue un r\^ole r\'eel mais secondaire. Le facteur dominant est un effondrement de l'efficacit\'e \textit{au sein m\^eme} des industries --- et les responsables ne sont pas ceux qu'on croit.
+
+Le tableau~\ref{tab:note_decomposition} donne une vue d'ensemble. La d\'ecomposition proc\`ede en deux \'etapes. La premi\`ere s\'epare la contribution de la productivit\'e totale des facteurs (PTF) --- la capacit\'e des entreprises \`a faire plus avec moins --- de celle de l'approfondissement du capital --- le fait de donner plus de machines et d'\'equipements aux travailleurs. La seconde d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle et un effet de composition (effet Baumol). Le reste de la note d\'etaille chacune de ces \'etapes.
+
+\includetables{note_decomposition}
 
 \begin{keyfinding}
-Le ralentissement de la productivit\'e du travail depuis 2000 s'explique presque enti\`erement par la PTF, et non par un d\'eficit d'investissement.
+Le ralentissement de la productivit\'e du travail depuis 2000 s'explique presque enti\`erement par la PTF, et non par un d\'eficit d'investissement. Et c'est la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers des secteurs stagnants.
 \end{keyfinding}
 
 % ════════════════════════════════════════════════════════════════════
 
 \section{PTF et investissement}
 
-La productivit\'e du travail ($Y/L$) peut augmenter de deux fa\c{c}ons\,: par l'am\'elioration de l'efficacit\'e globale (PTF) ou par l'accumulation de capital par unit\'e de production ($K/Y$). La d\'ecomposition exacte est\,:
+La productivit\'e du travail ($Y/L$) peut augmenter de deux fa\c{c}ons. Premi\`erement, les entreprises peuvent devenir plus efficientes --- produire davantage avec les m\^emes intrants gr\^ace \`a de meilleures technologies, une meilleure organisation ou de l'innovation. C'est la PTF. Deuxi\`emement, les travailleurs peuvent disposer de plus de machines et d'\'equipements (approfondissement du capital). La d\'ecomposition exacte est\,:
 \begin{equation}
     \Delta \ln\!\left(\frac{Y}{L}\right) = \frac{1}{1 - \bar\alpha}\,\Delta \ln A + \frac{\bar\alpha}{1 - \bar\alpha}\,\Delta \ln\!\left(\frac{K}{Y}\right),
     \label{eq:lp_decomp}
 \end{equation}
 o\`u $\bar\alpha$ est la part du capital dans la valeur ajout\'ee. Le premier terme mesure la contribution de la PTF, amplifi\'ee par le facteur $1/(1-\bar\alpha) > 1$. Le second mesure l'approfondissement du capital. Cette identit\'e ne requiert aucune forme fonctionnelle sp\'ecifique.
 
-La figure~\ref{fig:labor_productivity} pr\'esente la productivit\'e du travail cumul\'ee depuis 1961. L'\'ecart entre la courbe observ\'ee et le contrefactuel sans approfondissement du capital mesure la contribution de $K/Y$. La PTF domine largement\,: c'est son effondrement apr\`es 2000 qui explique le ralentissement, et non un arr\^et de l'accumulation du capital.
+La figure~\ref{fig:labor_productivity} d\'ecompose la croissance annualis\'ee de la productivit\'e du travail pour trois sous-p\'eriodes. Le message est clair\,: l'investissement en capital n'est pas en cause. Au contraire, la contribution de l'approfondissement du capital a presque doubl\'e depuis 2000. C'est la PTF qui s'est effondr\'ee, passant de $+1.7$\,\% par ann\'ee avant 1980 \`a $-0.1$\,\% depuis 2000.
 
 \begin{figure}[H]
     \centering
@@ -217,11 +224,13 @@ Depuis 2000, la contribution de la PTF \`a la productivit\'e du travail est n\'e
 
 % ════════════════════════════════════════════════════════════════════
 
-\section{L'effet Baumol}
+\section{Composition sectorielle ou efficacit\'e intra-sectorielle\,?}
 
-La PTF agr\'eg\'ee est une moyenne pond\'er\'ee des PTF sectorielles, o\`u les poids sont les parts de valeur ajout\'ee nominale \citep{Hulten_1978}. Si les industries les plus productives voient leur part diminuer --- parce que leurs prix relatifs baissent --- la PTF agr\'eg\'ee cro\^it moins vite que ne le sugg\`ere la performance intra-sectorielle. C'est l'\emph{effet Baumol} \citep{Baumol_1967}.
+La PTF agr\'eg\'ee est une moyenne pond\'er\'ee des PTF sectorielles, o\`u les poids sont les parts de valeur ajout\'ee nominale \citep{Hulten_1978}. Intuitivement, la PTF du pays d\'epend non seulement de l'efficacit\'e de chaque industrie, mais aussi du \textit{poids} de chaque industrie dans l'\'economie. C'est ici que les hypoth\`eses sur le r\^ole du p\'etrole, de la construction ou de la finance entrent en jeu.
 
-La figure~\ref{fig:tfp_decomposition} d\'ecompose la PTF agr\'eg\'ee en une composante intra-sectorielle (structure \'economique constante) et un r\'esidu de composition. L'effet Baumol est visible mais modeste\,: l'essentiel de la variation de la PTF agr\'eg\'ee provient de ce qui se passe \textit{au sein} des industries.
+Or, ce poids change avec le temps. Les industries tr\`es productives --- comme la fabrication de haute technologie --- voient leurs prix baisser, ce qui r\'eduit leur part dans le PIB nominal m\^eme si leur production r\'eelle augmente. L'\'economie se retrouve ainsi de plus en plus concentr\'ee dans des secteurs \`a croissance lente (sant\'e, services, immobilier). C'est l'\emph{effet Baumol} \citep{Baumol_1967}. Un m\'ecanisme similaire est \`a l'\oe{}uvre lorsque l'essor des sables bitumineux accro\^it le poids d'un secteur \`a faible croissance de la PTF dans l'\'economie \citep{Loertscher_Pujolas_2024}.
+
+La figure~\ref{fig:tfp_decomposition} s\'epare ces deux forces. La courbe verte montre comment la PTF agr\'eg\'ee aurait \'evolu\'e si la structure de l'\'economie \'etait rest\'ee celle de 1961 --- autrement dit, si le p\'etrole, la construction et les services avaient gard\'e le m\^eme poids qu'au d\'epart. La courbe bleu fonc\'e montre la PTF observ\'ee, qui int\`egre les changements de composition. L'\'ecart entre les deux mesure l'effet de composition. Celui-ci est r\'eel --- il co\^ute environ 0.2 point de pourcentage par ann\'ee --- mais il est \textit{stable dans le temps}. Il ne s'est pas amplifi\'e depuis 2000. Le ralentissement provient donc de ce qui se passe \textit{au sein} des industries, et non d'un changement de composition.\footnote{La figure~\ref{fig:baumol_scatter} en annexe illustre la corr\'elation n\'egative entre croissance de la PTF et part nominale au niveau des industries --- la signature empirique de l'effet Baumol.}
 
 \begin{figure}[H]
     \centering
@@ -230,28 +239,46 @@ La figure~\ref{fig:tfp_decomposition} d\'ecompose la PTF agr\'eg\'ee en une comp
     \label{fig:tfp_decomposition}
 \end{figure}
 
-La figure~\ref{fig:baumol_scatter} illustre le m\'ecanisme\,: les industries \`a forte croissance de la PTF tendent \`a voir leur part dans la valeur ajout\'ee nominale diminuer. Cette corr\'elation n\'egative est la signature empirique de l'effet Baumol.
+% ════════════════════════════════════════════════════════════════════
+
+\section{Quelles industries sont responsables\,?}
+
+Si le ralentissement est essentiellement intra-sectoriel, quelles industries en sont responsables\,? La figure~\ref{fig:tfp_slowdown} compare, pour chacune des 38 industries, la croissance annualis\'ee de la PTF avant et apr\`es 2000.
+
+Le r\'esultat est frappant. Le ralentissement n'est pas diffus\,: il est concentr\'e dans le secteur manufacturier. La fabrication de produits informatiques et \'electroniques affiche de loin le recul le plus marqu\'e ($-7$ points de pourcentage), suivie du p\'etrole raffin\'e, des boissons et tabac, et de plusieurs autres branches manufacturi\`eres.
+
+Fait notable\,: les secteurs souvent point\'es du doigt dans le d\'ebat public ne figurent pas parmi les principaux coupables. L'extraction p\'etroli\`ere et la construction affichent des baisses mod\'er\'ees. La finance et l'immobilier ont en r\'ealit\'e \textit{acc\'el\'er\'e} apr\`es 2000. Le diagnostic populaire, bien qu'il contienne une part de v\'erit\'e en ce qui concerne l'effet de composition, passe \`a c\^ot\'e de l'essentiel\,: le Canada n'a pas su capter les gains de productivit\'e de la r\'evolution num\'erique dans son secteur manufacturier.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=\textwidth]{note_baumol_scatter.png}
-    \caption{Les industries \`a forte PTF perdent du poids dans le PIB nominal --- signature de l'effet Baumol, 1961--2019.}
-    \label{fig:baumol_scatter}
+    \includegraphics[width=\textwidth]{note_tfp_slowdown.png}
+    \caption{Variation de la croissance annualis\'ee de la PTF par industrie (apr\`es 2000 moins avant 2000, en points de pourcentage).}
+    \label{fig:tfp_slowdown}
 \end{figure}
 
-Le tableau~\ref{tab:note_decomposition} r\'esume les deux \'etapes. La croissance intra-sectorielle de la PTF est pass\'ee de 1.1\,\% par ann\'ee (1961--1980) \`a 0.1\,\% (2000--2019). L'effet Baumol est relativement stable autour de $-0.2$\,\% dans toutes les sous-p\'eriodes.
-
-\includetables{note_decomposition}
-
 \begin{keyfinding}
-C'est la PTF \textit{au sein} des industries qui s'est effondr\'ee, et non un simple d\'eplacement de l'activit\'e vers des secteurs stagnants.
+Les secteurs souvent point\'es du doigt --- p\'etrole, construction, finance --- ne sont pas les principaux responsables du ralentissement. Ce sont les industries manufacturi\`eres, en particulier l'\'electronique, qui ont le plus recul\'e.
 \end{keyfinding}
 
 % ════════════════════════════════════════════════════════════════════
 
-\section{Perspective internationale}
+\section{Implications pour les politiques publiques}
 
-La m\'ethode pr\'esent\'ee est enti\`erement g\'en\'erique\,: elle ne d\'epend d'aucune hypoth\`ese sp\'ecifique au Canada. Aux \'Etats-Unis, le programme KLEMS du Bureau of Labor Statistics fournit des donn\'ees analogues. Pour les pays de l'OCDE, la base OECD STAN et le projet EU KLEMS offrent des comptes de productivit\'e sectoriels harmonis\'es.
+Le diagnostic pos\'e dans cette note a des cons\'equences directes sur le type de politiques susceptibles de relancer la productivit\'e canadienne.
+
+\textbf{Le probl\`eme n'est pas l'investissement.} Le Canada n'a pas cess\'e d'investir. La contribution de l'approfondissement du capital a m\^eme doubl\'e depuis 2000. Des politiques ax\'ees uniquement sur l'incitation \`a l'investissement en capital physique ne s'attaquent donc pas \`a la bonne cible.
+
+\textbf{Le probl\`eme n'est pas principalement la composition sectorielle.} R\'eorienter l'\'economie vers des secteurs \`a forte productivit\'e --- par la politique industrielle, par exemple --- peut aider \`a la marge, mais l'effet de composition ne repr\'esente qu'une fraction du ralentissement. M\^eme si le Canada n'avait jamais d\'evelopp\'e ses sables bitumineux, l'essentiel du probl\`eme subsisterait.
+
+\textbf{Le probl\`eme est l'efficacit\'e au sein des industries.} La PTF intra-sectorielle --- qui refl\`ete l'innovation, l'adoption technologique, la qualit\'e de la gestion et l'intensit\'e de la concurrence --- est pass\'ee de 1.1\,\% par ann\'ee (1961--1980) \`a 0.1\,\% (2000--2019). Les leviers les plus prometteurs sont donc ceux qui agissent \textit{\`a l'int\'erieur} des industries\,:
+\begin{itemize}
+    \item la R\&D et l'adoption des technologies, en particulier dans le secteur manufacturier;
+    \item la concurrence et l'ouverture des march\'es, qui forcent les entreprises \`a innover;
+    \item la r\'eglementation et les barri\`eres \`a l'entr\'ee, dont l'all\`egement peut faciliter la r\'eallocation des ressources vers les entreprises les plus performantes;
+    \item la formation et le d\'eveloppement des comp\'etences, qui permettent aux travailleurs d'exploiter les nouvelles technologies.
+\end{itemize}
+
+Enfin, la concentration du ralentissement dans le secteur manufacturier --- en particulier l'\'electronique --- sugg\`ere que le Canada n'a pas su capter les gains de la r\'evolution num\'erique aussi efficacement que d'autres \'economies avanc\'ees. Comprendre pourquoi devrait \^etre une priorit\'e de recherche.
 
 % ════════════════════════════════════════════════════════════════════
 
@@ -287,5 +314,16 @@ En d\'ecomposant les poids courants $\bar{S}_{it}$ autour des poids d'une p\'eri
 Les parts de r\'ef\'erence sont r\'einitialis\'ees au d\'ebut de chaque sous-p\'eriode\,: $t_0 = 1961$ pour 1961--1980, $t_0 = 1980$ pour 1980--2000, et $t_0 = 2000$ pour 2000--2019.
 
 Les donn\'ees proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 38 industries SCIAN couvrant la p\'eriode 1961--2019. Les variables utilis\'ees sont\,: la PTF sectorielle, les indices de capital et de travail, la valeur ajout\'ee nominale, le co\^ut du capital et la r\'emun\'eration du travail. Le script \texttt{note.py} reproduit l'ensemble des r\'esultats.
+
+\subsection{L'effet Baumol au niveau des industries}
+
+La figure~\ref{fig:baumol_scatter} illustre l'effet Baumol au niveau des industries. Chaque point repr\'esente une industrie canadienne. Sur l'axe horizontal, on lit sa croissance cumul\'ee de la PTF entre 1961 et 2019; sur l'axe vertical, la variation de son poids dans le PIB nominal. La pente n\'egative est nette\,: plus une industrie innove, plus son poids dans l'\'economie diminue en termes nominaux.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{note_baumol_scatter.png}
+    \caption{Les industries \`a forte PTF perdent du poids dans le PIB nominal --- signature de l'effet Baumol, 1961--2019.}
+    \label{fig:baumol_scatter}
+\end{figure}
 
 \end{document}

@@ -60,6 +60,7 @@ OUTPUTS
 - Figures/note_labor_productivity.png   (Figure 1: LP decomposition)
 - Figures/note_tfp_decomposition.png    (Figure 2: TFP with/without Baumol)
 - Figures/note_baumol_scatter.png       (Figure 3: VA share vs TFP growth)
+- Figures/note_tfp_slowdown.png        (Figure 4: Industry TFP slowdown)
 - Tables/note_decomposition.tex         (Summary table, LaTeX)
 
 REFERENCES
@@ -72,6 +73,7 @@ Author: Jean-Felix Brouillette (HEC Montreal)
 """
 
 import os
+import re
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -85,7 +87,7 @@ from stats_can import StatsCan
 
 def setup_figure():
     """Create a figure with the project's standard formatting."""
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(8, 4))
     fig.patch.set_alpha(0.0)
     ax.patch.set_alpha(0.0)
     ax.spines['top'].set_visible(False)
@@ -95,7 +97,7 @@ def setup_figure():
 
 def finalize_figure(fig, ax, filepath):
     """Add source attribution, save to disk, and close."""
-    ax.text(1, 1.01, 'Source: Statistics Canada', fontsize=10,
+    ax.text(1, 1.01, 'Source : Statistique Canada', fontsize=8,
             color='k', ha='right', va='bottom', transform=ax.transAxes)
     fig.tight_layout()
     fig.savefig(filepath, transparent=True, dpi=300)
@@ -170,8 +172,11 @@ def compute_tfp_decomposition(df_ind, start, end, base_col):
 
 sc = StatsCan()
 
-rc('font', **{'family': 'serif', 'serif': ['Palatino']})
+rc('font', **{'family': 'sans-serif', 'sans-serif': ['Fira Sans']})
 rc('text', usetex=True)
+rc('text.latex', preamble=r'\usepackage[sfdefault,light]{FiraSans}'
+                          r'\usepackage[T1]{fontenc}'
+                          r'\usepackage[utf8]{inputenc}')
 
 PALETTE = ['#002855', '#26d07c', '#ff585d', '#f3d03e',
            '#0072ce', '#eb6fbd', '#00aec7', '#888b8d']
@@ -558,26 +563,58 @@ for i, (s, e) in enumerate(PERIODS):
 print('Panel A-B consistency check (d ln A same in both): passed for all periods')
 
 ########################################################################
-# 7. Figure 1: Labor productivity decomposition                        #
+# 7. Figure 1: Labor productivity decomposition (stacked bars)         #
 ########################################################################
 
 fig, ax = setup_figure()
 
-# Labor productivity index: 100 * (1 + cumulative log growth).
-# This is an approximation to 100 * exp(cumsum), valid for moderate growth.
-ax.plot(yearly['year'], 100 * (yearly['dlnYL'].cumsum() + 1),
-        label='Labor productivity', color=PALETTE[0], linewidth=2)
-# Counterfactual: what if only TFP contributed (K/Y constant)?
-ax.plot(yearly['year'], 100 * (yearly['tfp_contrib'].cumsum() + 1),
-        label='Without capital deepening', color=PALETTE[1], linewidth=2)
+# Sub-period annualized growth rates (indices 1,2,3 = the three sub-periods).
+period_labels = ['1961--1980', '1980--2000', '2000--2019']
+tfp_vals = np.array([tfp_c[1], tfp_c[2], tfp_c[3]])
+ky_vals  = np.array([ky_c[1], ky_c[2], ky_c[3]])
 
-ax.set_xlim(1961, 2019)
-ax.set_xticks(range(1965, 2015 + 1, 5))
-ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=14)
-ax.set_ylabel('Labor productivity (1961=100)', fontsize=14, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
+x = np.arange(len(period_labels))
+width = 0.5
+
+# Stack positive components above zero, negative below.
+# K/Y is always positive; TFP can be negative.
+tfp_bottom = np.where(tfp_vals >= 0, 0, 0)
+ky_bottom  = np.where(tfp_vals >= 0, tfp_vals, 0)
+
+bars_tfp = ax.bar(x, tfp_vals, width, bottom=tfp_bottom,
+                  label='Contribution de la PTF', color=PALETTE[0])
+bars_ky  = ax.bar(x, ky_vals, width, bottom=ky_bottom,
+                  label='Approfondissement du capital', color=PALETTE[1])
+
+# Value labels on each segment
+for i in range(len(x)):
+    # TFP label
+    tfp_mid = tfp_bottom[i] + tfp_vals[i] / 2
+    ax.text(x[i], tfp_mid, f'{tfp_vals[i]:.2f}',
+            ha='center', va='center', fontsize=11, fontweight='bold',
+            color='white')
+    # K/Y label
+    ky_mid = ky_bottom[i] + ky_vals[i] / 2
+    ax.text(x[i], ky_mid, f'{ky_vals[i]:.2f}',
+            ha='center', va='center', fontsize=11, fontweight='bold',
+            color='white')
+
+# Total LP growth above each bar
+for i in range(len(x)):
+    total = tfp_vals[i] + ky_vals[i]
+    top = max(tfp_vals[i], 0) + ky_vals[i]
+    ax.text(x[i], top + 0.04, f'{total:.2f}',
+            ha='center', va='bottom', fontsize=11, fontweight='bold',
+            color='k')
+
+ax.axhline(0, color='k', linewidth=0.8)
+ax.set_xticks(x)
+ax.set_xticklabels(period_labels, fontsize=11)
+ax.tick_params(axis='y', labelsize=11)
+ax.set_ylabel(r'Croissance annualisée (\%)', fontsize=11, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-ax.legend(frameon=False, fontsize=14)
+ax.legend(frameon=False, fontsize=10, loc='upper right')
 
 finalize_figure(fig, ax, FIG_DIR / 'note_labor_productivity.png')
 
@@ -591,18 +628,18 @@ ax.plot(decomp_full['year'], 100 * (decomp_full['total'].cumsum() + 1),
         label='Total', color=PALETTE[0], linewidth=2)
 # Counterfactual: TFP if economic structure stayed at 1961 shares.
 ax.plot(decomp_full['year'], 100 * (decomp_full['within'].cumsum() + 1),
-        label='Without Baumol', color=PALETTE[1], linewidth=2)
+        label='Sans effet Baumol', color=PALETTE[1], linewidth=2)
 
 ax.set_xlim(1961, 2019)
 ax.set_xticks(range(1965, 2015 + 1, 5))
-ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=14)
+ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=11)
 ax.set_ylim(100, 150)
 ax.set_yticks(range(100, 150 + 1, 5))
-ax.set_yticklabels(range(100, 150 + 1, 5), fontsize=14)
-ax.set_ylabel('Aggregate TFP (1961=100)', fontsize=14, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
+ax.set_yticklabels(range(100, 150 + 1, 5), fontsize=11)
+ax.set_ylabel('PTF agrégée (1961=100)', fontsize=11, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-ax.legend(frameon=False, fontsize=14)
+ax.legend(frameon=False, fontsize=10)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_decomposition.png')
 
@@ -627,26 +664,133 @@ scatter_data = pd.DataFrame({
 fig, ax = setup_figure()
 
 ax.scatter(scatter_data['cum_tfp'], scatter_data['delta_s'],
-           color=PALETTE[0], s=40, zorder=3, edgecolors='white', linewidth=0.5)
+           color=PALETTE[0], s=50, alpha=0.7, zorder=3,
+           edgecolors='white', linewidth=0.5)
 
-# OLS regression line to visualize the Baumol correlation
+# OLS regression line spanning the full x-axis domain
 z = np.polyfit(scatter_data['cum_tfp'], scatter_data['delta_s'], 1)
-x_fit = np.linspace(scatter_data['cum_tfp'].min() - 5,
-                    scatter_data['cum_tfp'].max() + 5, 100)
-ax.plot(x_fit, z[0] * x_fit + z[1], '--', color=PALETTE[2], linewidth=1.5, alpha=0.8)
 
-ax.axhline(0, color='gray', linewidth=0.5, linestyle='-')
-ax.axvline(0, color='gray', linewidth=0.5, linestyle='-')
+# Draw regression line after autoscaling so it spans the full domain
+xlim = ax.get_xlim()
+x_fit = np.array(xlim)
+ax.plot(x_fit, z[0] * x_fit + z[1], '-', color=PALETTE[1], linewidth=1.5, zorder=2)
+ax.set_xlim(xlim)
 
-ax.set_xlabel(r'Cumulative TFP growth, 1961--2019 (\%)', fontsize=14)
-ax.set_ylabel(r'$\Delta$ VA share (p.p.)', fontsize=14, rotation=0, ha='left')
-ax.yaxis.set_label_coords(0, 1.01)
-ax.tick_params(axis='both', labelsize=14)
+ax.set_xlabel(r'Croissance cumulée de la PTF, 1961--2019 (\%)', fontsize=11)
+ax.xaxis.set_label_coords(0.5, -0.1)
+ax.set_ylabel(r'$\Delta$ part de la VA (p.p.)', fontsize=11, rotation=0, ha='left')
+ax.yaxis.set_label_coords(0, 1.02)
+ax.grid(True, which='major', axis='both', color='gray', linestyle=':', linewidth=0.5)
+ax.tick_params(axis='both', labelsize=11)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 
 ########################################################################
-# 10. LaTeX table: Summary decomposition                                #
+# 10. Figure 4: Industry-level TFP slowdown (horizontal bars)          #
+########################################################################
+
+# For each industry, compute annualized TFP growth before and after 2000,
+# then show the change (post minus pre) as a horizontal bar chart.
+
+# Annualized TFP growth by industry for each sub-period
+ind_pre = (df[(df['year'] > 1961) & (df['year'] <= 2000)]
+           .groupby('industry')['tfp_growth']
+           .sum() / (2000 - 1961))
+ind_post = (df[(df['year'] > 2000) & (df['year'] <= 2019)]
+            .groupby('industry')['tfp_growth']
+            .sum() / (2019 - 2000))
+
+# Change in annualized TFP growth (in percentage points)
+slowdown = 100 * (ind_post - ind_pre)
+slowdown = slowdown.sort_values(ascending=True)  # most negative at top after invert
+
+# Strip NAICS codes and abbreviate long industry names for cleaner labels
+ABBREV = {
+    'Computer and electronic product manufacturing': 'Computer & electronics mfg.',
+    'Petroleum and coal products manufacturing': 'Petroleum & coal products mfg.',
+    'Beverage and tobacco product manufacturing': 'Beverage & tobacco mfg.',
+    'Mining (except oil and gas)': 'Mining (excl. oil & gas)',
+    'Miscellaneous manufacturing': 'Misc. manufacturing',
+    'Transportation equipment manufacturing': 'Transportation equip. mfg.',
+    'Chemical manufacturing': 'Chemical mfg.',
+    'Electrical equipment, appliance and component manufacturing': 'Electrical equip. & appliance mfg.',
+    'Transportation and warehousing': 'Transportation & warehousing',
+    'Plastics and rubber products manufacturing': 'Plastics & rubber mfg.',
+    'Furniture and related product manufacturing': 'Furniture & related mfg.',
+    'Non-metallic mineral product manufacturing': 'Non-metallic mineral mfg.',
+    'Fabricated metal product manufacturing': 'Fabricated metal mfg.',
+    'Primary metal manufacturing': 'Primary metal mfg.',
+    'Clothing, Leather and allied product manufacturing': 'Clothing & leather mfg.',
+    'Information and cultural industries': 'Information & cultural ind.',
+    'Textile and textile product mills': 'Textile mills',
+    'Food manufacturing': 'Food mfg.',
+    'Support activities for agriculture and forestry': 'Agric. & forestry support',
+    'Machinery manufacturing': 'Machinery mfg.',
+    'Health care and social assistance (except hospitals)': 'Health care & social assist.',
+    'Professional, scientific and technical services': 'Prof., scientific & tech. services',
+    'Wood product manufacturing': 'Wood product mfg.',
+    'Support activities for mining and oil and gas extraction': 'Mining & oil support',
+    'Paper manufacturing': 'Paper mfg.',
+    'Other services (except public administration)': 'Other services (excl. public admin.)',
+    'Printing and related support activities': 'Printing & related',
+    'Arts, entertainment and recreation': 'Arts, entertainment & recreation',
+    'Crop and animal production': 'Crop & animal production',
+    'Administrative and support, waste management and remediation services': 'Admin., waste mgmt. & remediation',
+    'Accommodation and food services': 'Accommodation & food services',
+    'Fishing, hunting and trapping': 'Fishing, hunting & trapping',
+    'Finance, insurance, real estate and renting and leasing': 'Finance, insurance & real estate',
+    'Forestry and logging': 'Forestry & logging',
+    'Oil and gas extraction': 'Oil & gas extraction',
+    'Wholesale trade': 'Wholesale trade',
+    'Retail trade': 'Retail trade',
+    'Construction': 'Construction',
+    'Utilities': 'Utilities',
+}
+# Escape '&' for LaTeX rendering (usetex=True)
+clean_labels = [ABBREV.get(re.sub(r'\s*\[.*?\]', '', name),
+                           re.sub(r'\s*\[.*?\]', '', name)).replace('&', r'\&')
+                for name in slowdown.index]
+
+# Color: coral for slowdowns, green for accelerations
+colors = [PALETTE[2] if v < 0 else PALETTE[1] for v in slowdown.values]
+
+fig, ax = plt.subplots(figsize=(8, 9))
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+bars = ax.barh(range(len(slowdown)), slowdown.values, color=colors, height=0.7)
+
+ax.set_yticks(range(len(slowdown)))
+ax.set_yticklabels(clean_labels, fontsize=9)
+ax.invert_yaxis()
+ax.axvline(0, color='k', linewidth=0.8)
+
+# Axis formatting
+ax.set_xlabel(r'Variation de la croissance annualisée de la PTF (p.p.)',
+              fontsize=11, ha='center')
+ax.xaxis.set_label_coords(0.5, -0.04)
+ax.tick_params(axis='x', labelsize=11)
+
+# Spines
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+
+# Gridlines: vertical only
+ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
+
+# Explicit x-ticks
+xmin = int(np.floor(slowdown.min()))
+xmax = int(np.ceil(slowdown.max()))
+xticks = range(xmin, xmax + 1, 2)
+ax.set_xticks(list(xticks))
+ax.set_xticklabels([str(t) for t in xticks], fontsize=11)
+
+finalize_figure(fig, ax, FIG_DIR / 'note_tfp_slowdown.png')
+print('Figure 4: Industry TFP slowdown saved.')
+
+########################################################################
+# 11. LaTeX table: Summary decomposition                                #
 ########################################################################
 
 def fmt(v):
@@ -669,6 +813,7 @@ with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
         r'\centering',
         r'\sffamily',
         r'\renewcommand{\arraystretch}{1.3}',
+        r'\begin{threeparttable}',
         r"\caption{D\'ecomposition de la croissance annuelle moyenne de la productivit\'e (\%)}",
         r'\label{tab:note_decomposition}',
         r'\begin{tabular}{l*{4}{c}}',
@@ -685,9 +830,15 @@ with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
         row(r'\quad Composition (Baumol)', baumol),
         r'\bottomrule',
         r'\end{tabular}',
-        '',
-        r"\vspace{4pt}{\footnotesize\textit{Note}\,: Croissance annuelle moyenne en points de "
-        r"pourcentage. Source\,: Statistique Canada, tableau 36-10-0217-01.}",
+        r'\begin{tablenotes}\footnotesize',
+        r"\item \textit{Note}\,: Croissance annuelle moyenne en points de "
+        r"pourcentage. La contribution de la PTF \`a la productivit\'e du travail "
+        r"($= \Delta \ln A / (1 - \bar\alpha)$) exc\`ede $\Delta \ln A$ parce que "
+        r"le facteur d'amplification $1/(1-\bar\alpha) > 1$ refl\`ete l'effet indirect "
+        r"de la PTF sur l'accumulation du capital. "
+        r"Source\,: Statistique Canada, tableau 36-10-0217-01.",
+        r'\end{tablenotes}',
+        r'\end{threeparttable}',
         r'\end{table}'
     ]
     f.write('\n'.join(lines))
