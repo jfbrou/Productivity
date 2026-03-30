@@ -5,8 +5,8 @@ This script implements a three-term decomposition of aggregate labor
 productivity growth using industry-level data from Statistics Canada
 (Table 36-10-0217-01), covering 39 NAICS industries over 1961-2019.
 
-For the international comparison (Table 2), Canadian industries are
-aggregated to 15 NACE-equivalent sectors to match EU-KLEMS classification.
+For the international comparison, the script uses Penn World Table 11.0
+for OECD countries.
 
 METHODOLOGY
 -----------
@@ -22,14 +22,13 @@ This is obtained by substituting the Hulten TFP decomposition
 (d ln A = Within + Baumol) into the labor productivity identity
 (d ln(Y/L) = [1/(1-a)] d ln A + [a/(1-a)] d ln(K/Y)).
 
-The script also computes an international comparison using EU-KLEMS
-data for all available countries.
+The script also computes a simple international comparison using
+Penn World Table 11.0 for OECD countries.
 
 DATA SOURCES
 ------------
 1. Statistics Canada Table 36-10-0217-01 (Canadian industry-level data)
-2. EU-KLEMS Growth Accounts (international comparison)
-3. OECD Productivity Statistics (LP level comparison)
+2. Penn World Table 11.0 (international comparison)
 
 OUTPUTS
 -------
@@ -37,11 +36,11 @@ OUTPUTS
 - Figures/note_tfp_decomposition.png    (Figure 2: TFP with/without Baumol)
 - Figures/note_baumol_scatter.png       (Figure 3: VA share vs TFP growth)
 - Figures/note_tfp_slowdown.png         (Figure 4: Industry TFP slowdown)
-- Figures/note_capital_industry.png     (Figure 5: Industry capital contribution changes)
 - Tables/note_decomposition.tex         (Table 1: Canadian decomposition)
 - Tables/note_decomposition_kl.tex      (Diagnostic: K/L version of the decomposition)
-- Tables/note_lp_levels.tex             (Table 2: International LP levels)
-- Tables/note_international.tex         (Table 3: International growth decomposition)
+- Figures/note_oecd_rankings.png        (Figure 5: Original OECD LP rank change)
+- Tables/note_lp_levels.tex             (Table 2: Original OECD LP levels in 2019)
+- Tables/note_international.tex         (Table 3: Original OECD LP growth decomposition, 2000-2019)
 
 Author: Jean-Felix Brouillette (HEC Montreal)
 """
@@ -156,11 +155,25 @@ def amplify_decomp(decomp, yearly_df, start):
     return merged
 
 
+def industry_within_lp_contrib(df_ind, yearly_df, start, end, base_col):
+    """Annualized industry contributions to within-industry LP growth.
+
+    Uses the same base-period shares and aggregate amplification factor as the
+    main three-term decomposition, then annualizes each industry's direct
+    within-industry contribution over the requested subperiod.
+    """
+    active = df_ind.loc[(df_ind['year'] > start) & (df_ind['year'] <= end),
+                        ['year', 'industry', base_col, 'tfp_growth']].copy()
+    active = pd.merge(active, yearly_df[['year', 'alpha_bar']], on='year', how='left')
+    active['within_lp_term'] = active[base_col] * active['tfp_growth'] / (1 - active['alpha_bar'])
+    return 100 * active.groupby('industry')['within_lp_term'].sum() / (end - start)
+
+
 def aggregate_to_nace(df):
     """Aggregate 39-industry panel to 15 NACE sectors via Törnqvist indices.
 
     Used only for the international comparison (Table 2), where Canadian
-    data must match the EU-KLEMS NACE classification.
+    data must match the international NACE-style aggregation used in the project.
 
     Dollar variables (va, capital_cost, labor_cost) are summed.
     Growth rates are Törnqvist-aggregated using within-sector weights:
@@ -426,6 +439,13 @@ df['s_bar'] = df.groupby('naics')['s'].transform(lambda x: x.rolling(2).mean())
 df['capital_cost_agg'] = df.groupby('year')['capital_cost'].transform('sum')
 df['omega_k'] = df['capital_cost'] / df['capital_cost_agg']
 df['omega_k_bar'] = df.groupby('naics')['omega_k'].transform(lambda x: x.rolling(2).mean())
+
+# --- Industry capital shares (for industry-level K/Y diagnostics) ---
+# alpha_{it} = capital_cost_{it} / VA_{it}
+# alpha_bar_{it} = (alpha_{it} + alpha_{i,t-1}) / 2
+df['alpha_industry'] = df['capital_cost'] / df['va']
+df['alpha_industry_bar'] = df.groupby('naics')['alpha_industry'].transform(
+    lambda x: x.rolling(2).mean())
 
 # --- Labor cost shares (for Divisia labor aggregation) ---
 # omega^L_{it} = labor_cost_{it} / sum_j labor_cost_{jt}
@@ -759,7 +779,9 @@ for i in range(len(x)):
 ax.axhline(0, color='k', linewidth=0.8)
 ax.set_xticks(x)
 ax.set_xticklabels(period_labels, fontsize=11)
-ax.tick_params(axis='y', labelsize=11)
+yticks = ax.get_yticks()
+ax.set_yticks(yticks)
+ax.set_yticklabels([f'{tick:g}' for tick in yticks], fontsize=11)
 ax.set_ylabel(r'Croissance annualisée (\%)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
@@ -773,18 +795,25 @@ finalize_figure(fig, ax, FIG_DIR / 'note_labor_productivity.png')
 
 fig, ax = setup_figure()
 
-ax.plot(decomp_full['year'], 100 * np.exp(decomp_full['total'].cumsum()),
+tfp_total_index = 100 * np.exp(decomp_full['total'].cumsum())
+tfp_within_index = 100 * np.exp(decomp_full['within'].cumsum())
+
+ax.plot(decomp_full['year'], tfp_total_index,
         label='Total', color=PALETTE[0], linewidth=2)
 # Counterfactual: TFP if economic structure stayed at 1961 shares.
-ax.plot(decomp_full['year'], 100 * np.exp(decomp_full['within'].cumsum()),
+ax.plot(decomp_full['year'], tfp_within_index,
         label='Sans effet Baumol', color=PALETTE[1], linewidth=2)
 
 ax.set_xlim(1961, 2019)
 ax.set_xticks(range(1965, 2015 + 1, 5))
 ax.set_xticklabels(range(1965, 2015 + 1, 5), fontsize=11)
-ax.set_ylim(100, 150)
-ax.set_yticks(range(100, 150 + 1, 5))
-ax.set_yticklabels(range(100, 150 + 1, 5), fontsize=11)
+ymin = 5 * np.floor((min(tfp_total_index.min(), tfp_within_index.min()) - 1) / 5)
+ymax = 5 * np.ceil((max(tfp_total_index.max(), tfp_within_index.max()) + 1) / 5)
+ystep = 10 if (ymax - ymin) > 60 else 5
+yticks = np.arange(ymin, ymax + ystep, ystep)
+ax.set_ylim(ymin, ymax)
+ax.set_yticks(yticks)
+ax.set_yticklabels([f'{int(t)}' for t in yticks], fontsize=11)
 ax.set_ylabel('PTF agrégée (1961=100)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
@@ -840,18 +869,14 @@ finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 
 # For each industry, compute annualized TFP growth before and after 2000,
 # then show the change (post minus pre) as a horizontal bar chart.
-
-# Annualized TFP growth by industry for each sub-period
 ind_pre = (df[(df['year'] > 1961) & (df['year'] <= 2000)]
            .groupby('industry')['tfp_growth']
            .sum() / (2000 - 1961))
 ind_post = (df[(df['year'] > 2000) & (df['year'] <= 2019)]
             .groupby('industry')['tfp_growth']
             .sum() / (2019 - 2000))
-
-# Change in annualized TFP growth (in percentage points)
 slowdown = 100 * (ind_post - ind_pre)
-slowdown = slowdown.sort_values(ascending=True)  # most negative at top after invert
+slowdown = slowdown.sort_values(ascending=True)
 
 # Strip NAICS codes and abbreviate long industry names for cleaner labels
 ABBREV = {
@@ -907,7 +932,7 @@ fig, ax = plt.subplots(figsize=(8, 9))
 fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
-bars = ax.barh(range(len(slowdown)), slowdown.values, color=colors, height=0.7)
+ax.barh(range(len(slowdown)), slowdown.values, color=colors, height=0.7)
 
 ax.set_yticks(range(len(slowdown)))
 ax.set_yticklabels(clean_labels, fontsize=9)
@@ -928,60 +953,27 @@ ax.spines['bottom'].set_visible(False)
 # Gridlines: vertical only
 ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
 
-# Explicit x-ticks
-xmin = int(np.floor(slowdown.min()))
-xmax = int(np.ceil(slowdown.max()))
-xticks = range(xmin, xmax + 1, 2)
-ax.set_xticks(list(xticks))
-ax.set_xticklabels([str(t) for t in xticks], fontsize=11)
+# Explicit x-limits and ticks with a small margin around the data
+data_min = slowdown.min()
+data_max = slowdown.max()
+tick_step = 1 if (data_max - data_min) <= 10 else 2
+xmin = tick_step * np.floor((data_min - 0.4) / tick_step)
+xmax = tick_step * np.ceil((data_max + 0.4) / tick_step)
+xticks = np.arange(xmin, xmax + 0.001, tick_step)
+ax.set_xlim(xmin, xmax)
+ax.set_xticks(xticks)
+ax.set_xticklabels([f'{tick:g}' for tick in xticks], fontsize=11)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_slowdown.png')
 print('Figure 4: Industry TFP slowdown saved.')
-
-########################################################################
-# 11. Figure 5: Change in capital contributions (post vs pre 2000)     #
-########################################################################
-
-# Annualized industry contributions c^K_i = omega_k_bar_i * d ln K_i
-# Change = post-2000 minus pre-2000 (analogous to Figure 4 for TFP).
-ind_k_post = (df[(df['year'] > 2000) & (df['year'] <= 2019)]
-              .groupby('industry')['dlnK_term']
-              .sum() / (2019 - 2000))
-ind_k_pre = (df[(df['year'] > 1961) & (df['year'] <= 2000)]
-             .groupby('industry')['dlnK_term']
-             .sum() / (2000 - 1961))
-
-k_change = 100 * (ind_k_post - ind_k_pre)
-k_change = k_change.sort_values(ascending=True)
-
-# Clean labels (reuse ABBREV from Figure 4)
-k_labels = [ABBREV.get(re.sub(r'\s*\[.*?\]', '', name),
-                       re.sub(r'\s*\[.*?\]', '', name)).replace('&', r'\&')
-            for name in k_change.index]
-
-# Color: coral for declines, green for increases
-k_colors = [PALETTE[2] if v < 0 else PALETTE[1] for v in k_change.values]
-
-fig, ax = plt.subplots(figsize=(8, 9))
-fig.patch.set_alpha(0.0)
-ax.patch.set_alpha(0.0)
-
-ax.barh(range(len(k_change)), k_change.values, color=k_colors, height=0.7)
-ax.set_yticks(range(len(k_change)))
-ax.set_yticklabels(k_labels, fontsize=9)
-ax.invert_yaxis()
-ax.axvline(0, color='k', linewidth=0.8)
-ax.set_xlabel(r"Variation de la contribution \`a la croissance du capital agr\'eg\'e (p.p.)",
-              fontsize=11, ha='center')
-ax.xaxis.set_label_coords(0.5, -0.04)
-ax.tick_params(axis='x', labelsize=11)
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.spines['bottom'].set_visible(False)
-ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
-
-finalize_figure(fig, ax, FIG_DIR / 'note_capital_industry.png')
-print('Figure 5: Capital contribution changes saved.')
+print('  Industries with the sharpest TFP slowdowns:')
+for name, value in slowdown.head(8).items():
+    clean_name = re.sub(r'\s*\[.*?\]', '', name)
+    print(f'    {clean_name}: {value:+.2f} pp')
+print('  Industries with TFP acceleration:')
+for name, value in slowdown.tail(5).sort_values(ascending=False).items():
+    clean_name = re.sub(r'\s*\[.*?\]', '', name)
+    print(f'    {clean_name}: {value:+.2f} pp')
 
 ########################################################################
 # 12. LaTeX table: Summary decomposition                                #
@@ -1015,16 +1007,16 @@ with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
         r'& 1961--2019 & 1961--1980 & 1980--2000 & \textbf{2000--2019} \\',
         r'\midrule',
         row(r'$\Delta \ln(Y/L)$', lp),
-        row(r'\quad PTF intra-industries', within_lp),
-        row(r"\quad R\'eallocation (Baumol)", baumol_lp),
-        row(r'\quad Approfondissement du capital', ky_c),
+        row(r'\quad Terme PTF intra-ind.', within_lp),
+        row(r"\quad Terme r\'ealloc. (Baumol)", baumol_lp),
+        row(r'\quad Terme capital', ky_c),
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
         r"\item \textit{Note}\,: Croissance annuelle moyenne en points de "
         r"pourcentage. Les trois composantes s'additionnent exactement "
-        r"\`a $\Delta \ln(Y/L)$. La PTF intra-industries et la r\'eallocation "
-        r"sont amplifi\'ees par le facteur $1/(1-\bar\alpha) > 1$, qui refl\`ete "
+        r"\`a $\Delta \ln(Y/L)$. Les contributions de la PTF intra-industries "
+        r"et de la r\'eallocation sont amplifi\'ees par le facteur $1/(1-\bar\alpha) > 1$, qui refl\`ete "
         r"l'effet indirect de la PTF sur l'accumulation du capital (voir annexe~A). "
         r"Source\,: Statistique Canada, tableau 36-10-0217-01.",
         r'\end{tablenotes}',
@@ -1047,9 +1039,9 @@ with open(TAB_DIR / 'note_decomposition_kl.tex', 'w') as f:
         r'& 1961--2019 & 1961--1980 & 1980--2000 & \textbf{2000--2019} \\',
         r'\midrule',
         row(r'$\Delta \ln(Y/L)$', lp),
-        row(r'\quad PTF intra-industries', within),
-        row(r"\quad R\'eallocation (Baumol)", baumol),
-        row(r'\quad Approfondissement du capital ($K/L$)', kl_c),
+        row(r'\quad Terme PTF intra-ind.', within),
+        row(r"\quad Terme r\'ealloc. (Baumol)", baumol),
+        row(r'\quad Terme capital ($K/L$)', kl_c),
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
@@ -1066,384 +1058,300 @@ with open(TAB_DIR / 'note_decomposition_kl.tex', 'w') as f:
     f.write('\n'.join(lines))
 
 ########################################################################
-# 13. EU-KLEMS international comparison                                 #
+# 13. PWT 11.0 international comparison                                 #
 ########################################################################
 
-print('\n--- EU-KLEMS International Comparison ---')
+print('\n--- PWT 11.0 OECD Comparison ---')
 
-EUKLEMS_GA_URL = ('https://www.dropbox.com/scl/fi/vw1drt9u8i5vcqtrhqbxx/'
-                  'growth-accounts.csv?rlkey=1tfoq18uo9vtkadhx24p3tx59&dl=1')
-ga_path = ROOT_DIR / 'Data' / 'euklems_growth_accounts.csv'
+PWT_VERSION = '11.0'
+PWT_URL = 'https://dataverse.nl/api/access/datafile/554030'
+PWT_START, PWT_END = 2000, 2019
+PWT_LEVEL_YEAR = 2019
+pwt_path = ROOT_DIR / 'Data' / 'pwt110.dta'
 
-if not ga_path.exists():
-    print('Downloading EU-KLEMS Growth Accounts...')
-    urllib.request.urlretrieve(EUKLEMS_GA_URL, ga_path)
-    print(f'  Saved ({ga_path.stat().st_size / 1e6:.1f} MB)')
-else:
-    print(f'Using cached EU-KLEMS data: {ga_path}')
+# Original OECD members (1961), used to keep the comparison historically consistent.
+OECD_CODES = [
+    'AUT', 'BEL', 'CAN', 'DNK', 'FRA', 'DEU', 'GRC', 'ISL', 'IRL', 'ITA',
+    'LUX', 'NLD', 'NOR', 'PRT', 'ESP', 'SWE', 'CHE', 'TUR', 'GBR', 'USA',
+]
 
-ga = pd.read_csv(ga_path)
-
-# Keep only needed variables, pivot to wide
-GA_VARS = ['VAConTFP', 'VA_CP', 'CAP', 'LAB', 'VA_G', 'LP1_G']
-ga = ga[ga['var'].isin(GA_VARS)]
-ga = ga.pivot_table(index=['geo_code', 'geo_name', 'nace_r2_code', 'year'],
-                    columns='var', values='value').reset_index()
-ga.columns.name = None
-ga_raw = ga.copy()
-
-# --- Create K-L aggregate from K and L sectors ---
-_k = ga[ga['nace_r2_code'] == 'K'][['geo_code', 'geo_name', 'year',
-                                     'VA_CP', 'CAP', 'LAB', 'VA_G', 'VAConTFP', 'LP1_G']].copy()
-_l = ga[ga['nace_r2_code'] == 'L'][['geo_code', 'geo_name', 'year',
-                                     'VA_CP', 'CAP', 'LAB', 'VA_G', 'VAConTFP', 'LP1_G']].copy()
-_kl = pd.merge(_k, _l, on=['geo_code', 'geo_name', 'year'], suffixes=('_k', '_l'))
-_kl['VA_CP'] = _kl['VA_CP_k'].fillna(0) + _kl['VA_CP_l'].fillna(0)
-_kl['CAP'] = _kl['CAP_k'].fillna(0) + _kl['CAP_l'].fillna(0)
-_kl['LAB'] = _kl['LAB_k'].fillna(0) + _kl['LAB_l'].fillna(0)
-# VA-weighted averages preserve aggregate growth under nesting.
-_va_tot = _kl['VA_CP_k'].fillna(0) + _kl['VA_CP_l'].fillna(0)
-_kl['VA_G'] = np.where(
-    _va_tot > 0,
-    (_kl['VA_CP_k'].fillna(0) * _kl['VA_G_k'].fillna(0)
-     + _kl['VA_CP_l'].fillna(0) * _kl['VA_G_l'].fillna(0)) / _va_tot,
-    np.nan)
-_kl['VAConTFP'] = np.where(
-    _va_tot > 0,
-    (_kl['VA_CP_k'].fillna(0) * _kl['VAConTFP_k'].fillna(0)
-     + _kl['VA_CP_l'].fillna(0) * _kl['VAConTFP_l'].fillna(0)) / _va_tot,
-    np.nan)
-_kl['LP1_G'] = np.where(
-    _va_tot > 0,
-    (_kl['VA_CP_k'].fillna(0) * _kl['LP1_G_k'].fillna(0)
-     + _kl['VA_CP_l'].fillna(0) * _kl['LP1_G_l'].fillna(0)) / _va_tot,
-    np.nan)
-_kl['nace_r2_code'] = 'K-L'
-_kl = _kl[['geo_code', 'geo_name', 'nace_r2_code', 'year',
-           'VA_CP', 'CAP', 'LAB', 'VA_G', 'VAConTFP', 'LP1_G']]
-ga = pd.concat([ga, _kl], ignore_index=True)
-
-# 15 NACE sectors consistent with the international comparison.
-# O (Public admin) and P (Education) excluded: absent from Canadian data.
-SECTIONS = ['A', 'B', 'C', 'D-E', 'F', 'G', 'H', 'I', 'J', 'K-L',
-            'M', 'N', 'Q', 'R', 'S']
-RAW_SECTIONS = ['A', 'B', 'C', 'D-E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
-                'M', 'N', 'Q', 'R', 'S']
-
-# Individual countries only (no EU aggregates)
-INDIV_COUNTRIES = sorted([c for c in ga['geo_code'].unique()
-                          if not c.startswith('EU') and c not in ('MARKT', 'MARKTxAG')])
-
-EU_START, EU_END = 2000, 2019
-
-# Country names
-country_names = ga[['geo_code', 'geo_name']].drop_duplicates().set_index('geo_code')['geo_name']
-
-intl_results = []
-for country in INDIV_COUNTRIES:
-    # Industry-level data
-    ind = ga[(ga['geo_code'] == country) &
-             (ga['nace_r2_code'].isin(SECTIONS)) &
-             (ga['year'] >= EU_START) & (ga['year'] <= EU_END)].copy()
-
-    # Need VAConTFP and VA_CP at industry level
-    ind = ind.dropna(subset=['VAConTFP', 'VA_CP'])
-    inds_avail = sorted(ind['nace_r2_code'].unique())
-    years_avail = sorted(ind['year'].unique())
-
-    # Require at least 12 sectors and coverage to 2019
-    if len(inds_avail) < 12 or EU_END not in years_avail:
-        continue
-
-    # VA shares
-    ind['va_total'] = ind.groupby('year')['VA_CP'].transform('sum')
-    ind['s'] = ind['VA_CP'] / ind['va_total']
-    ind = ind.sort_values(['nace_r2_code', 'year'])
-    ind['s_bar'] = ind.groupby('nace_r2_code')['s'].transform(
-        lambda x: x.rolling(2).mean())
-
-    # Base-period shares: Törnqvist average at first year > EU_START
-    base_year = min(y for y in years_avail if y > EU_START)
-    base_shares = (ind[ind['year'] == base_year][['nace_r2_code', 's_bar']]
-                   .rename(columns={'s_bar': 's_base'}))
-    ind = pd.merge(ind, base_shares, on='nace_r2_code', how='left')
-
-    # Active years (exclude start year where Törnqvist is undefined)
-    active = ind[(ind['year'] > EU_START) & ind['s_bar'].notna() & ind['s_base'].notna()]
-    if len(active) == 0:
-        continue
-
-    # Aggregate capital share (include EU_START year for rolling average
-    # so that alpha_bar is defined from 2001 onward, not 2002)
-    alpha_by_year = (ind.groupby('year')['CAP'].sum()
-                     / ind.groupby('year')['VA_CP'].sum())
-    alpha_bar_by_year = alpha_by_year.rolling(2).mean()
-
-    # Within / Baumol / total at year level (in pp)
-    active = active.copy()
-    active['dlnA'] = active['s_bar'] * active['VAConTFP']
-    active['within'] = active['s_base'] * active['VAConTFP']
-    active['baumol'] = (active['s_bar'] - active['s_base']) * active['VAConTFP']
-
-    yr = active.groupby('year').agg(
-        dlnA=('dlnA', 'sum'), within=('within', 'sum'), baumol=('baumol', 'sum')
-    )
-    yr = yr.join(alpha_bar_by_year.rename('alpha_bar'))
-    yr = yr.dropna(subset=['alpha_bar'])
-
-    if len(yr) < 10:
-        continue
-
-    # Amplify by 1/(1 - alpha_bar)
-    yr['within_lp'] = yr['within'] / (1 - yr['alpha_bar'])
-    yr['baumol_lp'] = yr['baumol'] / (1 - yr['alpha_bar'])
-    n_yrs = len(yr)
-
-    # Aggregate LP growth from the same sector system.
-    # EU-KLEMS reports sector LP growth as d ln(Y/L) = d ln Y - d ln L,
-    # so sector labor-input growth is VA_G - LP1_G.
-    lp_ind = ga_raw[(ga_raw['geo_code'] == country) &
-                    (ga_raw['nace_r2_code'].isin(RAW_SECTIONS)) &
-                    (ga_raw['year'] >= EU_START) &
-                    (ga_raw['year'] <= EU_END)].copy()
-    lp_ind = lp_ind.dropna(subset=['VA_CP', 'LAB', 'VA_G', 'LP1_G'])
-    if lp_ind.empty:
-        continue
-    lp_ind = lp_ind.sort_values(['nace_r2_code', 'year'])
-    lp_ind['labor_growth'] = lp_ind['VA_G'] - lp_ind['LP1_G']
-
-    lp_ind['va_total'] = lp_ind.groupby('year')['VA_CP'].transform('sum')
-    lp_ind['s'] = lp_ind['VA_CP'] / lp_ind['va_total']
-    lp_ind['s_bar'] = lp_ind.groupby('nace_r2_code')['s'].transform(
-        lambda x: x.rolling(2).mean())
-
-    lp_ind['labor_total'] = lp_ind.groupby('year')['LAB'].transform('sum')
-    lp_ind['omega_l'] = lp_ind['LAB'] / lp_ind['labor_total']
-    lp_ind['omega_l_bar'] = lp_ind.groupby('nace_r2_code')['omega_l'].transform(
-        lambda x: x.rolling(2).mean())
-
-    lp_active = lp_ind[(lp_ind['year'] > EU_START) &
-                       lp_ind['s_bar'].notna() &
-                       lp_ind['omega_l_bar'].notna()].copy()
-    if lp_active.empty:
-        continue
-
-    lp_active['dlnY_term'] = lp_active['s_bar'] * lp_active['VA_G']
-    lp_active['dlnL_term'] = lp_active['omega_l_bar'] * lp_active['labor_growth']
-    lp_yearly = lp_active.groupby('year').agg(
-        dlnY=('dlnY_term', 'sum'),
-        dlnL=('dlnL_term', 'sum'),
-    )
-    lp_yearly['dlnYL'] = lp_yearly['dlnY'] - lp_yearly['dlnL']
-
-    lp_ann = lp_yearly.loc[lp_yearly.index.isin(yr.index), 'dlnYL'].mean()
-    within_ann = yr['within_lp'].sum() / n_yrs
-    baumol_ann = yr['baumol_lp'].sum() / n_yrs
-    ky_ann = lp_ann - within_ann - baumol_ann  # residual ensures identity
-
-    intl_results.append({
-        'code': country,
-        'name': country_names.get(country, country),
-        'lp': lp_ann,
-        'within_lp': within_ann,
-        'baumol_lp': baumol_ann,
-        'ky': ky_ann,
-    })
-    print(f'  {country:3s} ({country_names.get(country, ""):15s}): '
-          f'LP={lp_ann:+5.2f}  Within={within_ann:+5.2f}  '
-          f'Baumol={baumol_ann:+5.2f}  K/Y={ky_ann:+5.2f}')
-
-# --- Canadian row: aggregate to NACE for comparability ---
-df_nace = aggregate_to_nace(df)
-decomp_nace = compute_tfp_decomposition(df_nace, 2000, 2019, 's_2000')
-decomp_nace_lp = amplify_decomp(decomp_nace, yearly, 2000)
-ca_within = annualize_decomp(decomp_nace_lp, 'within_lp', 2000, 2019)
-ca_baumol = annualize_decomp(decomp_nace_lp, 'baumol_lp', 2000, 2019)
-ca_ky = lp[3] - ca_within - ca_baumol
-
-intl_results.append({
-    'code': 'CA',
-    'name': 'Canada',
-    'lp': lp[3],
-    'within_lp': ca_within,
-    'baumol_lp': ca_baumol,
-    'ky': ca_ky,
-})
-
-intl = pd.DataFrame(intl_results).sort_values('lp', ascending=False)
-print(f'\nCountries with valid decomposition: {len(intl)} (incl. Canada)')
-
-########################################################################
-# 13b. PWT level decomposition: Y/L = TFP component × K/Y component   #
-########################################################################
-
-print('\n--- PWT Level Decomposition ---')
-
-ISO3_TO_ISO2 = {
-    'AUT': 'AT', 'BEL': 'BE', 'BGR': 'BG', 'CAN': 'CA', 'CYP': 'CY',
-    'CZE': 'CZ', 'DEU': 'DE', 'DNK': 'DK', 'EST': 'EE', 'GRC': 'EL',
-    'ESP': 'ES', 'FIN': 'FI', 'FRA': 'FR', 'HRV': 'HR', 'HUN': 'HU',
-    'IRL': 'IE', 'ITA': 'IT', 'JPN': 'JP', 'LTU': 'LT', 'LUX': 'LU',
-    'LVA': 'LV', 'MLT': 'MT', 'NLD': 'NL', 'POL': 'PL', 'PRT': 'PT',
-    'ROU': 'RO', 'SWE': 'SE', 'SVN': 'SI', 'SVK': 'SK', 'GBR': 'UK',
-    'USA': 'US',
+COUNTRY_FR = {
+    'AUT': 'Autriche', 'BEL': 'Belgique', 'CAN': r'\textbf{Canada}',
+    'CHE': 'Suisse', 'DEU': 'Allemagne', 'DNK': 'Danemark',
+    'ESP': 'Espagne', 'FRA': 'France',
+    'GBR': 'Royaume-Uni', 'GRC': r"Gr\`ece", 'HUN': 'Hongrie',
+    'IRL': 'Irlande', 'ISL': 'Islande', 'ITA': 'Italie',
+    'LUX': 'Luxembourg', 'NLD': 'Pays-Bas', 'NOR': r'Norv\`ege',
+    'PRT': 'Portugal', 'SWE': r'Su\`ede',
+    'TUR': 'Turquie', 'USA': r"\'Etats-Unis",
 }
 
-PWT_URL = 'https://dataverse.nl/api/access/datafile/354098'
-pwt_path = ROOT_DIR / 'Data' / 'pwt1001.xlsx'  # Stata format despite .xlsx extension
-
 if not pwt_path.exists():
-    print('Downloading Penn World Table 10.01...')
+    print(f'Downloading Penn World Table {PWT_VERSION}...')
     urllib.request.urlretrieve(PWT_URL, pwt_path)
     print(f'  Saved ({pwt_path.stat().st_size / 1e6:.1f} MB)')
 else:
-    print(f'Using cached PWT: {pwt_path}')
+    print(f'Using cached PWT {PWT_VERSION}: {pwt_path}')
 
 pwt = pd.read_stata(pwt_path)
-p19 = pwt[pwt['year'] == 2019][['countrycode', 'rgdpo', 'emp', 'avh', 'ck', 'labsh']].copy()
-p19 = p19.dropna(subset=['rgdpo', 'emp', 'avh', 'ck'])
-p19['iso2'] = p19['countrycode'].map(ISO3_TO_ISO2)
-p19 = p19.dropna(subset=['iso2'])
+pwt_oecd = pwt[pwt['countrycode'].isin(OECD_CODES)].copy()
 
-# Y/L and K/Y from PWT (at chained PPPs)
-p19['yl'] = p19['rgdpo'] / (p19['emp'] * p19['avh'])
-p19['ky'] = p19['ck'] / p19['rgdpo']
-us_row = p19[p19['iso2'] == 'US'].iloc[0]
-alpha_us = 1 - us_row['labsh']  # US capital share
+# --- Table 2: 2019 level comparison ---
+p19 = pwt_oecd[pwt_oecd['year'] == PWT_LEVEL_YEAR][
+    ['countrycode', 'country', 'cgdpo', 'emp', 'avh', 'ck', 'labsh']
+].copy()
+p19 = p19.dropna(subset=['cgdpo', 'emp', 'avh', 'ck', 'labsh'])
+p19 = p19[(p19[['cgdpo', 'emp', 'avh', 'ck']] > 0).all(axis=1)].copy()
 
-# Level decomposition relative to US (Klenow-Rodriguez-Clare):
-#   Y/L_rel = A_comp × KY_comp / 100
-# K/Y computed directly; TFP is the residual.
+# For cross-country levels at a single date, use cgdpo rather than rgdpo.
+# PWT's ck is a cross-sectional current-PPP measure of capital services
+# (normalized to USA = 1), which is usable for relative levels but not
+# for time-series growth accounting.
+p19['yl'] = p19['cgdpo'] / (p19['emp'] * p19['avh'])
+p19['ky'] = p19['ck'] / p19['cgdpo']
+p19['kl'] = p19['ck'] / (p19['emp'] * p19['avh'])
+us_row = p19[p19['countrycode'] == 'USA'].iloc[0]
+alpha_us = 1 - us_row['labsh']
+
 p19['yl_rel'] = 100 * p19['yl'] / us_row['yl']
 p19['ky_rel'] = p19['ky'] / us_row['ky']
+p19['kl_rel'] = 100 * p19['kl'] / us_row['kl']
 p19['ky_comp'] = 100 * p19['ky_rel'] ** (alpha_us / (1 - alpha_us))
-p19['a_comp'] = p19['yl_rel'] * 100 / p19['ky_comp']  # TFP as residual
+p19['a_comp'] = p19['yl_rel'] * 100 / p19['ky_comp']
+p19['level_rank'] = p19['yl_rel'].rank(ascending=False, method='min').astype(int)
 
-# Build lookup dicts keyed by ISO-2
-level_data = p19.set_index('iso2')[['yl_rel', 'a_comp', 'ky_comp']].to_dict('index')
+intl_levels = p19.sort_values('yl_rel', ascending=False).reset_index(drop=True)
 
-# Attach to international results
-intl['yl_level'] = intl['code'].map(lambda c: level_data[c]['yl_rel'] if c in level_data else np.nan)
-intl['a_level'] = intl['code'].map(lambda c: level_data[c]['a_comp'] if c in level_data else np.nan)
-intl['ky_level'] = intl['code'].map(lambda c: level_data[c]['ky_comp'] if c in level_data else np.nan)
-
-print(f'PWT level data available for {intl["yl_level"].notna().sum()}/{len(intl)} countries')
+print(f'PWT level data available for {len(intl_levels)}/{len(OECD_CODES)} OECD countries')
 print(f'  US alpha = {alpha_us:.3f}, amplification = {1/(1-alpha_us):.3f}')
-ca_lev = intl[intl['code'] == 'CA'].iloc[0]
-print(f'  Canada: Y/L={ca_lev["yl_level"]:.0f}, PTF={ca_lev["a_level"]:.0f}, K/Y={ca_lev["ky_level"]:.0f}')
+ca_lev = intl_levels[intl_levels['countrycode'] == 'CAN'].iloc[0]
+print(f'  Canada: Y/L={ca_lev["yl_rel"]:.0f}, '
+      f'prod. resid.={ca_lev["a_comp"]:.0f}, '
+      f'K/Y={ca_lev["ky_comp"]:.0f}, K/L={ca_lev["kl_rel"]:.0f}, '
+      f'rank={int(ca_lev["level_rank"])}/{len(intl_levels)}')
+
+# --- Figure 5: Rank change in labor productivity levels, 2000 vs 2019 ---
+rank_years = [2000, 2019]
+rank_frames = []
+for year in rank_years:
+    py = pwt_oecd[pwt_oecd['year'] == year][['countrycode', 'country', 'cgdpo', 'emp', 'avh']].copy()
+    py = py.dropna(subset=['cgdpo', 'emp', 'avh'])
+    py = py[(py[['cgdpo', 'emp', 'avh']] > 0).all(axis=1)].copy()
+    py['yl'] = py['cgdpo'] / (py['emp'] * py['avh'])
+    py['rank'] = py['yl'].rank(ascending=False, method='min').astype(int)
+    py = py[['countrycode', 'rank']].rename(columns={'rank': f'rank_{year}'})
+    rank_frames.append(py)
+
+rank_compare = rank_frames[0].merge(rank_frames[1], on='countrycode', how='inner')
+rank_compare = rank_compare.sort_values('rank_2019').reset_index(drop=True)
+
+fig, ax = plt.subplots(figsize=(8, 7.5))
+fig.patch.set_alpha(0.0)
+ax.patch.set_alpha(0.0)
+
+for _, r in rank_compare.iterrows():
+    code = r['countrycode']
+    x = [0, 1]
+    y = [r['rank_2000'], r['rank_2019']]
+    if code == 'CAN':
+        color = PALETTE[0]
+        lw = 2.8
+        alpha = 1.0
+        zorder = 3
+    else:
+        color = '0.75'
+        lw = 1.1
+        alpha = 0.9
+        zorder = 1
+    ax.plot(x, y, color=color, linewidth=lw, alpha=alpha, zorder=zorder)
+    ax.scatter(x, y, color=color, s=28 if code == 'CAN' else 16, alpha=alpha, zorder=zorder)
+
+can_rank = rank_compare[rank_compare['countrycode'] == 'CAN'].iloc[0]
+ax.text(-0.08, can_rank['rank_2000'], 'Canada', color=PALETTE[0],
+        fontsize=11, fontweight='bold', ha='right', va='center')
+ax.text(1.08, can_rank['rank_2019'], 'Canada', color=PALETTE[0],
+        fontsize=11, fontweight='bold', ha='left', va='center')
+ax.text(-0.08, can_rank['rank_2000'] - 0.55, f'{int(can_rank["rank_2000"])}e rang',
+        color=PALETTE[0], fontsize=9, ha='right', va='center')
+ax.text(1.08, can_rank['rank_2019'] - 0.55, f'{int(can_rank["rank_2019"])}e rang',
+        color=PALETTE[0], fontsize=9, ha='left', va='center')
+
+ax.text(0.00, 0.75, '2000', fontsize=12, fontweight='bold', ha='center', va='bottom')
+ax.text(0.94, 0.75, '2019', fontsize=12, fontweight='bold', ha='center', va='bottom')
+ax.set_xlim(-0.35, 1.35)
+ax.set_ylim(len(rank_compare) + 0.5, 0.5)
+ax.set_xticks([])
+ax.set_yticks(range(1, len(rank_compare) + 1))
+ax.set_yticklabels([f'{i}' for i in range(1, len(rank_compare) + 1)], fontsize=9)
+ax.set_ylabel('Rang de productivité du travail', fontsize=11)
+ax.grid(True, axis='y', color='0.88', linestyle=':', linewidth=0.6)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+
+finalize_figure(fig, ax, FIG_DIR / 'note_oecd_rankings.png')
+print('Figure 5: Original OECD labor-productivity rankings saved.')
+print(f'  Canada rank: {int(can_rank["rank_2000"])} in 2000 -> {int(can_rank["rank_2019"])} in 2019')
+
+# --- Table 3: LP growth decomposition, 2000-2019 ---
+# For time-series growth accounting, use rkna rather than ck. rkna is the
+# PWT time-series measure of capital services at constant national prices.
+required_years = set(range(PWT_START, PWT_END + 1))
+intl_growth_rows = []
+for code in OECD_CODES:
+    g = pwt_oecd[(pwt_oecd['countrycode'] == code) &
+                 (pwt_oecd['year'] >= PWT_START) &
+                 (pwt_oecd['year'] <= PWT_END)][
+        ['countrycode', 'country', 'year', 'rgdpo', 'emp', 'avh', 'rkna']
+    ].copy()
+    if set(g['year']) != required_years:
+        continue
+    g = g.dropna(subset=['rgdpo', 'emp', 'avh', 'rkna']).sort_values('year')
+    if len(g) != len(required_years):
+        continue
+    if (g[['rgdpo', 'emp', 'avh', 'rkna']] <= 0).any().any():
+        continue
+
+    g['yl'] = g['rgdpo'] / (g['emp'] * g['avh'])
+    g['ky'] = g['rkna'] / g['rgdpo']
+    lp_ann = 100 * (np.log(g['yl'].iloc[-1]) - np.log(g['yl'].iloc[0])) / (PWT_END - PWT_START)
+    ky_growth = 100 * (np.log(g['ky'].iloc[-1]) - np.log(g['ky'].iloc[0])) / (PWT_END - PWT_START)
+    ky_ann = 100 * (alpha_us / (1 - alpha_us)) * (
+        np.log(g['ky'].iloc[-1]) - np.log(g['ky'].iloc[0])
+    ) / (PWT_END - PWT_START)
+    prod_ann = lp_ann - ky_ann
+
+    intl_growth_rows.append({
+        'countrycode': code,
+        'country': g['country'].iloc[0],
+        'lp_growth': lp_ann,
+        'prod_term': prod_ann,
+        'ky_term': ky_ann,
+        'ky_growth': ky_growth,
+    })
+
+intl_growth = pd.DataFrame(intl_growth_rows).sort_values('lp_growth', ascending=False).reset_index(drop=True)
+intl_growth['lp_rank'] = np.arange(1, len(intl_growth) + 1)
+
+print('\n--- PWT LP Growth Decomposition ---')
+print(f'PWT growth data available for {len(intl_growth)}/{len(OECD_CODES)} OECD countries')
+if not intl_growth.empty and (intl_growth['countrycode'] == 'CAN').any():
+    ca_growth = intl_growth[intl_growth['countrycode'] == 'CAN'].iloc[0]
+    print(f'  Canada: LP={ca_growth["lp_growth"]:+.2f}, '
+          f'prod. resid.={ca_growth["prod_term"]:+.2f}, '
+          f'K/Y term={ca_growth["ky_term"]:+.2f} '
+          f'({int(ca_growth["lp_rank"])}/{len(intl_growth)})')
 
 ########################################################################
 # 14. LaTeX tables: International comparison                            #
 ########################################################################
-
-# Country name mapping for LaTeX
-COUNTRY_FR = {
-    "CA": r"\textbf{Canada}", "AT": "Autriche", "BE": "Belgique", "BG": "Bulgarie", "CY": "Chypre",
-    "CZ": r"Tch\'equie", "DE": "Allemagne", "DK": "Danemark", "EE": "Estonie",
-    "EL": r"Gr\`ece", "ES": "Espagne", "FI": "Finlande", "FR": "France",
-    "HR": "Croatie", "HU": "Hongrie", "IE": "Irlande", "IT": "Italie",
-    "JP": "Japon", "LT": "Lituanie", "LU": "Luxembourg", "LV": "Lettonie",
-    "MT": "Malte", "NL": "Pays-Bas", "PL": "Pologne", "PT": "Portugal",
-    "RO": "Roumanie", "SE": r"Su\`ede", "SI": r"Slov\'enie", "SK": "Slovaquie",
-    "UK": "Royaume-Uni", "US": r"\'Etats-Unis",
-}
-
-# --- Table 2: Level decomposition (sorted by Y/L, descending) ---
-intl_levels = intl.dropna(subset=['yl_level']).sort_values('yl_level', ascending=False)
 
 with open(TAB_DIR / 'note_lp_levels.tex', 'w') as f:
     lines = [
         r'\begin{table}[H]',
         r'\centering',
         r'\sffamily',
-        r'\small',
-        r'\renewcommand{\arraystretch}{1.15}',
+        r'\footnotesize',
+        r'\renewcommand{\arraystretch}{1.06}',
         r'\begin{threeparttable}',
-        r"\caption{D\'ecomposition en niveau de la productivit\'e du travail, 2019 (\'Etats-Unis = 100)}",
+        r"\caption{Niveau de la productivit\'e du travail en 2019, membres originels de l'OCDE (\'Etats-Unis = 100)}",
         r'\label{tab:note_lp_levels}',
-        r'\begin{tabular}{l *{3}{r}}',
+        r'\begin{tabular}{l *{4}{r}}',
         r'\toprule',
-        r"& $Y/L$ & PTF & $K/Y$ \\",
+        r"& $Y/L$ & Prod.\ r\'esid. & $K/Y$ & $K/L$ \\",
         r'\midrule',
     ]
     for _, r in intl_levels.iterrows():
-        code = r['code']
-        name = COUNTRY_FR.get(code, r['name'])
-        if code == 'CA':
+        code = r['countrycode']
+        name = COUNTRY_FR.get(code, r['country']).replace('&', r'\&')
+        if code == 'CAN':
             lines.append(
-                f'{name} & \\textbf{{{r["yl_level"]:.0f}}} '
-                f'& \\textbf{{{r["a_level"]:.0f}}} '
-                f'& \\textbf{{{r["ky_level"]:.0f}}} \\\\'
+                f'{name} & \\textbf{{{r["yl_rel"]:.0f}}} '
+                f'& \\textbf{{{r["a_comp"]:.0f}}} '
+                f'& \\textbf{{{r["ky_comp"]:.0f}}} '
+                f'& \\textbf{{{r["kl_rel"]:.0f}}} \\\\'
             )
         else:
             lines.append(
-                f'{name} & {r["yl_level"]:.0f} & {r["a_level"]:.0f} & {r["ky_level"]:.0f} \\\\'
+                f'{name} & {r["yl_rel"]:.0f} & {r["a_comp"]:.0f} '
+                f'& {r["ky_comp"]:.0f} & {r["kl_rel"]:.0f} \\\\'
             )
     lines += [
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
-        r"\item \textit{Note}\,: $Y/L$ = PIB par heure travaill\'ee \`a PPA (2017\,US\$). "
-        r"$K/Y$ = composante du ratio capital-production, $(K/Y)^{\bar\alpha/(1-\bar\alpha)}$, "
-        r"calcul\'ee directement avec $\bar\alpha$ = part du capital am\'ericaine en 2019 "
-        r"(normalisation \`a la Klenow--Rodr\'iguez-Clare). "
-        r"PTF = r\'esidu, $Y/L$ divis\'e par $K/Y$. "
+        r"\item \textit{Note}\,: $Y/L$ = PIB par heure travaill\'ee, calcul\'e comme "
+        r"$cgdpo/(emp \times avh)$ en 2019. "
+        r"$K/Y$ = composante du ratio services du capital/production, "
+        r"$(K/Y)^{\bar\alpha/(1-\bar\alpha)}$, calcul\'ee \`a partir de $ck$ "
+        r"(services du capital aux PPA courantes, normalis\'es \`a "
+        r"\'Etats-Unis $=1$) avec la part du capital am\'ericaine en 2019. "
+        r"La productivit\'e r\'esiduelle = $Y/L$ divis\'e par $K/Y$. "
+        r"Elle est donc conditionnelle \`a cette mesure des services du capital. "
+        r"$K/L$ = services du capital par heure travaill\'ee, rapport\'es au niveau am\'ericain. "
         r"Toutes les colonnes sont index\'ees aux \'Etats-Unis ($=100$). "
-        r"Source\,: Penn World Table 10.01.",
+        r"\'Echantillon\,: 20 membres originels de l'OCDE. "
+        r"Source\,: Penn World Table 11.0.",
         r'\end{tablenotes}',
         r'\end{threeparttable}',
         r'\end{table}'
     ]
     f.write('\n'.join(lines))
 
-print(f'Table 2 (level decomposition) saved to {TAB_DIR / "note_lp_levels.tex"}')
+print(f'Table 2 (OECD levels) saved to {TAB_DIR / "note_lp_levels.tex"}')
 
-# --- Table 3: Growth decomposition (sorted by LP growth, descending) ---
 with open(TAB_DIR / 'note_international.tex', 'w') as f:
     lines = [
         r'\begin{table}[H]',
         r'\centering',
         r'\sffamily',
-        r'\small',
-        r'\renewcommand{\arraystretch}{1.15}',
+        r'\footnotesize',
+        r'\renewcommand{\arraystretch}{1.06}',
         r'\begin{threeparttable}',
-        r"\caption{D\'ecomposition internationale de la croissance de la productivit\'e du travail, 2001--2019 (\%)}",
+        r"\caption{D\'ecomposition de la croissance annuelle moyenne de la productivit\'e du travail, membres originels de l'OCDE, 2000--2019 (\%)}",
         r'\label{tab:note_international}',
         r'\begin{tabular}{l *{4}{r}}',
         r'\toprule',
-        r"& $\Delta \ln(Y/L)$ & PTF intra & R\'ealloc. & Capital \\",
+        r"& $\Delta \ln(Y/L)$ & Terme prod.\ r\'esid. & Terme $K/Y$ & Rang \\",
         r'\midrule',
     ]
-    for _, r in intl.iterrows():
-        code = r['code']
-        name = COUNTRY_FR.get(code, r['name'])
-        if code == 'CA':
+    for _, r in intl_growth.iterrows():
+        code = r['countrycode']
+        name = COUNTRY_FR.get(code, r['country']).replace('&', r'\&')
+        if code == 'CAN':
             lines.append(
-                f'{name} & \\textbf{{{r["lp"]:.2f}}} & \\textbf{{{r["within_lp"]:.2f}}} '
-                f'& \\textbf{{{r["baumol_lp"]:.2f}}} & \\textbf{{{r["ky"]:.2f}}} \\\\'
+                f'{name} & \\textbf{{{r["lp_growth"]:.2f}}} '
+                f'& \\textbf{{{r["prod_term"]:.2f}}} '
+                f'& \\textbf{{{r["ky_term"]:.2f}}} '
+                f'& \\textbf{{{int(r["lp_rank"])}}} \\\\'
             )
         else:
             lines.append(
-                f'{name} & {r["lp"]:.2f} & {r["within_lp"]:.2f} '
-                f'& {r["baumol_lp"]:.2f} & {r["ky"]:.2f} \\\\'
+                f'{name} & {r["lp_growth"]:.2f} & {r["prod_term"]:.2f} '
+                f'& {r["ky_term"]:.2f} & {int(r["lp_rank"])} \\\\'
             )
     lines += [
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
-        r"\item \textit{Note}\,: Croissance annuelle moyenne en points de "
-        r"pourcentage, 2001--2019. Classification\,: 15 secteurs NACE (O et P exclus). "
-        r"La croissance agr\'eg\'ee de la productivit\'e du travail est calcul\'ee "
-        r"comme la croissance de la VA moins celle du travail, chacune agr\'eg\'ee "
-        r"par indices de T\"ornqvist sur les m\^emes 15 secteurs. "
-        r"La PTF intra-industries et la r\'eallocation sont amplifi\'ees "
-        r"par $1/(1-\bar\alpha)$; la composante capital est le r\'esidu. "
-        r"Source\,: EU-KLEMS 2025, module Growth Accounts Basic.",
+        r"\item \textit{Note}\,: Croissance annuelle moyenne en points de pourcentage, 2000--2019. "
+        r"Pour chaque pays, la d\'ecomposition suit l'identit\'e agr\'eg\'ee "
+        r"$\Delta \ln(Y/L) = \text{Terme prod.\ r\'esid.} + \frac{\bar\alpha}{1-\bar\alpha}\Delta \ln(K/Y)$, "
+        r"en utilisant la m\^eme part de capital de r\'ef\'erence que dans le tableau~\ref{tab:note_lp_levels}, "
+        r"soit la part du capital am\'ericaine en 2019. Le terme de productivit\'e est obtenu "
+        r"comme r\'esidu afin d'assurer l'identit\'e. $Y/L$ est calcul\'e \`a partir de "
+        r"$rgdpo/(emp \times avh)$ et le terme $K/Y$ \`a partir de $rkna/rgdpo$, o\`u $rkna$ "
+        r"mesure les services du capital en prix nationaux constants. Le classement "
+        r"et le terme r\'esiduel restent sensibles au concept de PIB retenu dans la PWT; "
+        r"ce tableau doit donc \^etre lu comme un exercice de contexte plut\^ot que "
+        r"comme une d\'ecomposition structurelle d\'efinitive. "
+        r"\'Echantillon\,: 20 membres originels de l'OCDE. "
+        r"Source\,: Penn World Table 11.0.",
         r'\end{tablenotes}',
         r'\end{threeparttable}',
         r'\end{table}'
     ]
     f.write('\n'.join(lines))
 
-print(f'Table 3 (growth decomposition) saved to {TAB_DIR / "note_international.tex"}')
+print(f'Table 3 (OECD LP growth decomposition) saved to {TAB_DIR / "note_international.tex"}')
 print('\nDone. Figures saved to Figures/, tables saved to Tables/.')
