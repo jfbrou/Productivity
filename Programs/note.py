@@ -32,10 +32,11 @@ DATA SOURCES
 
 OUTPUTS
 -------
-- Figures/note_labor_productivity.png   (Figure 1: 3-term LP decomposition)
+- Figures/note_labor_productivity.png   (Figure 1: LP slowdown bridge, 1980-2000 to 2000-2019)
 - Figures/note_tfp_decomposition.png    (Figure 2: TFP with/without Baumol)
-- Figures/note_baumol_scatter.png       (Figure 3: VA share vs TFP growth)
-- Figures/note_tfp_slowdown.png         (Figure 4: Industry TFP slowdown)
+- Figures/note_hulten_contributors.png  (Figure 3: Industry LP contributors)
+- Figures/note_baumol_scatter.png       (Figure 4: VA share vs TFP growth)
+- Figures/note_tfp_slowdown.png         (Figure 5: Industry TFP slowdown)
 - Tables/note_decomposition.tex         (Table 1: Canadian decomposition)
 - Tables/note_decomposition_kl.tex      (Diagnostic: K/L version of the decomposition)
 - Figures/note_oecd_rankings.png        (Figure 5: Original OECD LP rank change)
@@ -70,13 +71,36 @@ def setup_figure():
     return fig, ax
 
 
-def finalize_figure(fig, ax, filepath):
+def finalize_figure(fig, ax, filepath, source='Statistique Canada', bbox_inches='tight'):
     """Add source attribution, save to disk, and close."""
-    ax.text(1, 1.01, 'Source : Statistique Canada', fontsize=8,
-            color='k', ha='right', va='bottom', transform=ax.transAxes)
-    fig.tight_layout()
-    fig.savefig(filepath, transparent=True, dpi=300)
+    if ax is None:
+        fig.text(0.99, 0.995, f'Source : {source}', fontsize=8,
+                 color='k', ha='right', va='top')
+        fig.tight_layout(rect=[0, 0, 1, 0.985])
+    else:
+        ax.text(1, 1.01, f'Source : {source}', fontsize=8,
+                color='k', ha='right', va='bottom', transform=ax.transAxes)
+        fig.tight_layout()
+    fig.savefig(filepath, transparent=True, dpi=300, bbox_inches=bbox_inches)
     plt.close()
+
+
+def format_fr_number(value, digits=2):
+    """Format a number with French decimal commas."""
+    rounded_zero = 0.5 * 10 ** (-digits)
+    if abs(value) < rounded_zero:
+        value = 0.0
+    return f'{value:.{digits}f}'.replace('.', ',')
+
+
+def format_fr_rank(value):
+    """Format an integer rank in French."""
+    return f'{int(value)}e'
+
+
+def latex_escape(text):
+    """Escape the subset of LaTeX special characters used in labels."""
+    return text.replace('&', r'\&')
 
 
 def annualize(series_or_df, col, start, end):
@@ -155,18 +179,67 @@ def amplify_decomp(decomp, yearly_df, start):
     return merged
 
 
-def industry_within_lp_contrib(df_ind, yearly_df, start, end, base_col):
-    """Annualized industry contributions to within-industry LP growth.
+def industry_lp_contrib(df_ind, yearly_df, start, end, base_col,
+                        capital_method='capital_cost_share',
+                        capital_base_col=None):
+    """Annualized industry contributions to aggregate LP growth.
 
-    Uses the same base-period shares and aggregate amplification factor as the
-    main three-term decomposition, then annualizes each industry's direct
-    within-industry contribution over the requested subperiod.
+    The productivity component is decomposed exactly into:
+      - within-industry LP: S_{i,t0} * d ln A_{it} / (1 - alpha_bar_t)
+      - Baumol LP: (S_bar_{it} - S_{i,t0}) * d ln A_{it} / (1 - alpha_bar_t)
+
+    The capital term allocates the aggregate K/Y contribution across industries
+    using one of two exact methods:
+      - capital_cost_share: alpha_bar/(1-alpha_bar) * omega^K_bar_i * (d ln K_i - d ln Y)
+      - base_period_capital_share: base-period capital-cost share times the
+        aggregate K/Y contribution in each year
     """
-    active = df_ind.loc[(df_ind['year'] > start) & (df_ind['year'] <= end),
-                        ['year', 'industry', base_col, 'tfp_growth']].copy()
-    active = pd.merge(active, yearly_df[['year', 'alpha_bar']], on='year', how='left')
-    active['within_lp_term'] = active[base_col] * active['tfp_growth'] / (1 - active['alpha_bar'])
-    return 100 * active.groupby('industry')['within_lp_term'].sum() / (end - start)
+    cols = ['year', 'industry', 's_bar', base_col, 'tfp_growth',
+            'omega_k_bar', 'capital_growth']
+    if capital_base_col is not None and capital_base_col not in cols:
+        cols.append(capital_base_col)
+
+    active = df_ind.loc[(df_ind['year'] > start) & (df_ind['year'] <= end), cols].copy()
+    active = pd.merge(active, yearly_df[['year', 'alpha_bar', 'dlnY', 'ky_contrib']],
+                      on='year', how='left')
+
+    active['within_lp_term'] = (
+        active[base_col] * active['tfp_growth'] / (1 - active['alpha_bar'])
+    )
+    active['baumol_lp_term'] = (
+        (active['s_bar'] - active[base_col]) * active['tfp_growth'] / (1 - active['alpha_bar'])
+    )
+
+    if capital_method == 'capital_cost_share':
+        active['capital_lp_term'] = (
+            active['alpha_bar'] / (1 - active['alpha_bar'])
+            * active['omega_k_bar']
+            * (active['capital_growth'] - active['dlnY'])
+        )
+    elif capital_method == 'base_period_capital_share':
+        if capital_base_col is None:
+            raise ValueError('capital_base_col is required for base_period_capital_share')
+        active['capital_weight'] = (
+            active[capital_base_col]
+            / active.groupby('year')[capital_base_col].transform('sum')
+        )
+        active['capital_lp_term'] = active['capital_weight'] * active['ky_contrib']
+    else:
+        raise ValueError(f'Unknown capital allocation method: {capital_method}')
+
+    contrib = (
+        100
+        * active.groupby('industry')[['within_lp_term', 'baumol_lp_term', 'capital_lp_term']].sum()
+        / (end - start)
+    )
+    contrib = contrib.rename(columns={
+        'within_lp_term': 'within_lp',
+        'baumol_lp_term': 'baumol_lp',
+        'capital_lp_term': 'capital_lp',
+    })
+    contrib['tfp_lp'] = contrib['within_lp'] + contrib['baumol_lp']
+    contrib['total_lp'] = contrib['tfp_lp'] + contrib['capital_lp']
+    return contrib
 
 
 def aggregate_to_nace(df):
@@ -261,6 +334,12 @@ rc('text.latex', preamble=r'\usepackage[sfdefault,light]{FiraSans}'
 
 PALETTE = ['#002855', '#26d07c', '#ff585d', '#f3d03e',
            '#0072ce', '#eb6fbd', '#00aec7', '#888b8d']
+
+CAPITAL_ALLOCATION_METHOD = 'capital_cost_share'
+CAPITAL_ALLOCATION_LABELS = {
+    'capital_cost_share': 'parts contemporaines de co\\^ut du capital',
+    'base_period_capital_share': 'parts de co\\^ut du capital du d\\\'ebut de sous-p\\\'eriode',
+}
 
 ########################################################################
 # Constants: industry classification and variable selection             #
@@ -368,6 +447,54 @@ RELEVANT_VARS = [
     'Capital cost'                                     # Nominal capital cost ($)
 ]
 
+INDUSTRY_ABBREV = {
+    'Accommodation and food services': r'H\'ebergement et restauration',
+    'Administrative and support, waste management and remediation services': r'Soutien, d\'echets et assainissement',
+    'Arts, entertainment and recreation': r'Arts, spectacles et loisirs',
+    'Beverage and tobacco product manufacturing': r'Boissons et tabac',
+    'Chemical manufacturing': r'Produits chimiques',
+    'Clothing, Leather and allied product manufacturing': r'V\^etements et cuir',
+    'Computer and electronic product manufacturing': r'Informatique et \'electronique',
+    'Construction': 'Construction',
+    'Crop and animal production': r'Cultures et \'elevage',
+    'Electrical equipment, appliance and component manufacturing': r'Mat\'eriel \'electrique',
+    'Fabricated metal product manufacturing': r'Produits m\'etalliques',
+    'Finance, insurance, real estate and renting and leasing': r'Finance, assurance et immobilier',
+    'Fishing, hunting and trapping': r'P\^eche, chasse et pi\'egeage',
+    'Food manufacturing': 'Aliments',
+    'Forestry and logging': r'Foresterie et exploitation',
+    'Furniture and related product manufacturing': r'Meubles et produits connexes',
+    'Health care and social assistance (except hospitals)': r'Sant\'e et assistance sociale',
+    'Information and cultural industries': r'Information et culture',
+    'Machinery manufacturing': 'Machines',
+    'Mining (except oil and gas)': r'Mines (hors p\'etrole et gaz)',
+    'Miscellaneous manufacturing': r'Fabrication diverse',
+    'Non-metallic mineral product manufacturing': r'Min\'eraux non m\'etalliques',
+    'Oil and gas extraction': r'Extraction de p\'etrole et de gaz',
+    'Other services (except public administration)': r'Autres services',
+    'Paper manufacturing': 'Papier',
+    'Petroleum and coal products manufacturing': r'P\'etrole et charbon',
+    'Plastics and rubber products manufacturing': r'Plastique et caoutchouc',
+    'Primary metal manufacturing': r'M\'etaux primaires',
+    'Printing and related support activities': r'Impression et soutien',
+    'Professional, scientific and technical services': r'Services prof., sci. et tech.',
+    'Retail trade': r'Commerce de d\'etail',
+    'Support activities for agriculture and forestry': r'Soutien agricole et forestier',
+    'Support activities for mining and oil and gas extraction': r'Soutien minier et p\'etrolier',
+    'Textile and textile product mills': 'Textiles',
+    'Transportation and warehousing': r'Transport et entreposage',
+    'Transportation equipment manufacturing': r'Mat\'eriel de transport',
+    'Utilities': r'Services publics',
+    'Wholesale trade': r'Commerce de gros',
+    'Wood product manufacturing': r'Produits du bois',
+}
+
+
+def clean_industry_label(name):
+    """Strip NAICS codes and shorten long industry labels for LaTeX figures."""
+    base = re.sub(r'\s*\[.*?\]', '', name)
+    return latex_escape(INDUSTRY_ABBREV.get(base, base))
+
 ########################################################################
 # 1. Fetch, clean, and validate the data                                #
 ########################################################################
@@ -459,6 +586,14 @@ df['omega_l_bar'] = df.groupby('naics')['omega_l'].transform(lambda x: x.rolling
 for base_year, label in [(1962, 's_1961'), (1980, 's_1980'), (2000, 's_2000')]:
     base_shares = df.loc[df['year'] == base_year, ['naics', 's_bar']].rename(columns={'s_bar': label})
     df = pd.merge(df, base_shares, on='naics', how='left')
+
+# --- Base-period capital-cost shares for capital-allocation diagnostics ---
+# We use the same reference years as for the VA shares above.
+for base_year, label in [(1962, 'omega_k_1961'), (1980, 'omega_k_1980'), (2000, 'omega_k_2000')]:
+    base_capital = df.loc[df['year'] == base_year, ['naics', 'omega_k_bar']].rename(
+        columns={'omega_k_bar': label}
+    )
+    df = pd.merge(df, base_capital, on='naics', how='left')
 
 # --- Validate Tornqvist weights ---
 # Shares should sum to ~1 across industries for each year (1962+).
@@ -625,6 +760,42 @@ DECOMPS_LP = [decomp_full_lp, decomp_61_80_lp, decomp_80_00_lp, decomp_00_19_lp]
 within_lp = [annualize_decomp(d, 'within_lp', s, e) for d, (s, e) in zip(DECOMPS_LP, PERIODS)]
 baumol_lp = [annualize_decomp(d, 'baumol_lp', s, e) for d, (s, e) in zip(DECOMPS_LP, PERIODS)]
 
+lp_slowdown_mid_late = lp[2] - lp[3]
+within_slowdown_mid_late = within_lp[2] - within_lp[3]
+baumol_worsening_mid_late = abs(baumol_lp[3] - baumol_lp[2])
+capital_offset_mid_late = ky_c[3] - ky_c[2]
+counterfactual_productivity_gap_2019 = (
+    100 * (np.exp((lp_slowdown_mid_late / 100) * (PERIODS[3][1] - PERIODS[3][0])) - 1)
+)
+
+INDUSTRY_LP_PERIODS = [
+    ('1961--1980', 1961, 1980, 's_1961', 'omega_k_1961', tfp_c[1], ky_c[1], lp[1]),
+    ('1980--2000', 1980, 2000, 's_1980', 'omega_k_1980', tfp_c[2], ky_c[2], lp[2]),
+    ('2000--2019', 2000, 2019, 's_2000', 'omega_k_2000', tfp_c[3], ky_c[3], lp[3]),
+]
+industry_lp_contrib_by_period = {}
+print('\nIndustry LP contribution method: '
+      f'{CAPITAL_ALLOCATION_LABELS[CAPITAL_ALLOCATION_METHOD]}')
+for label, start, end, base_col, capital_base_col, tfp_target, ky_target, lp_target in INDUSTRY_LP_PERIODS:
+    contrib = industry_lp_contrib(
+        df,
+        yearly,
+        start,
+        end,
+        base_col,
+        capital_method=CAPITAL_ALLOCATION_METHOD,
+        capital_base_col=capital_base_col,
+    ).sort_values('total_lp')
+    tfp_residual = abs(contrib['tfp_lp'].sum() - tfp_target)
+    capital_residual = abs(contrib['capital_lp'].sum() - ky_target)
+    total_residual = abs(contrib['total_lp'].sum() - lp_target)
+    print(f'Industry LP contributions ({label}) — residuals: '
+          f'TFP={tfp_residual:.2e}, capital={capital_residual:.2e}, total={total_residual:.2e}')
+    assert tfp_residual < 1e-10, f'Industry TFP contributions fail for {label}'
+    assert capital_residual < 1e-10, f'Industry capital contributions fail for {label}'
+    assert total_residual < 1e-10, f'Industry LP contributions fail for {label}'
+    industry_lp_contrib_by_period[label] = contrib
+
 # Print summary
 print('\n--- Annualized growth rates (%) ---')
 header = f'{"":30s} {"1961-2019":>10s} {"1961-1980":>10s} {"1980-2000":>10s} {"2000-2019":>10s}'
@@ -727,65 +898,74 @@ for i, (s, e) in enumerate(PERIODS):
 print('Panel A-B consistency check (d ln A same in both): passed for all periods')
 
 ########################################################################
-# 7. Figure 1: Labor productivity decomposition (stacked bars)         #
+# 7. Figure 1: LP slowdown bridge (1980-2000 to 2000-2019)             #
 ########################################################################
 
 fig, ax = setup_figure()
 
-# Sub-period annualized growth rates (indices 1,2,3 = the three sub-periods).
-period_labels = ['1961--1980', '1980--2000', '2000--2019']
-within_vals = np.array([within_lp[1], within_lp[2], within_lp[3]])
-baumol_vals = np.array([baumol_lp[1], baumol_lp[2], baumol_lp[3]])
-ky_vals     = np.array([ky_c[1], ky_c[2], ky_c[3]])
+bridge_labels = [
+    '1980--2000',
+    'Recul de la\nPTF intra-industries',
+    'Frein Baumol\nsuppl\'ementaire',
+    'Soutien accru\ndu capital',
+    '2000--2019',
+]
+x = np.arange(len(bridge_labels))
+width = 0.72
 
-x = np.arange(len(period_labels))
-width = 0.5
-
-# Stack: positives above zero, negatives below zero.
-components = [
-    (within_vals, PALETTE[0], 'PTF intra-industries'),
-    (baumol_vals, PALETTE[4], r'R\'eallocation (Baumol)'),
-    (ky_vals, PALETTE[1], 'Approfondissement du capital'),
+start_level = lp[2]
+steps = [-within_slowdown_mid_late, -baumol_worsening_mid_late, capital_offset_mid_late]
+step_colors = [PALETTE[0], PALETTE[2], PALETTE[1]]
+step_labels = [
+    format_fr_number(-within_slowdown_mid_late, 2),
+    format_fr_number(-baumol_worsening_mid_late, 2),
+    '+' + format_fr_number(capital_offset_mid_late, 2),
 ]
 
-for i in range(len(x)):
-    pos_bottom = 0
-    neg_bottom = 0
-    for vals, color, label in components:
-        v = vals[i]
-        if v >= 0:
-            ax.bar(x[i], v, width, bottom=pos_bottom, color=color,
-                   label=label if i == 0 else '')
-            ax.text(x[i], pos_bottom + v / 2, f'{v:.2f}',
-                    ha='center', va='center', fontsize=10, fontweight='bold',
-                    color='white')
-            pos_bottom += v
-        else:
-            ax.bar(x[i], v, width, bottom=neg_bottom, color=color,
-                   label=label if i == 0 else '')
-            ax.text(x[i], neg_bottom + v / 2, f'{v:.2f}',
-                    ha='center', va='center', fontsize=10, fontweight='bold',
-                    color='white')
-            neg_bottom += v
+ax.bar(x[0], start_level, width, color=PALETTE[7], alpha=0.95)
+ax.text(x[0], start_level + 0.05, format_fr_number(start_level, 2),
+        ha='center', va='bottom', fontsize=11, fontweight='bold')
 
-# Total LP growth above each bar
-for i in range(len(x)):
-    total = within_vals[i] + baumol_vals[i] + ky_vals[i]
-    top = sum(v for v in [within_vals[i], baumol_vals[i], ky_vals[i]] if v > 0)
-    ax.text(x[i], top + 0.04, f'{total:.2f}',
-            ha='center', va='bottom', fontsize=11, fontweight='bold',
-            color='k')
+current_level = start_level
+connector_levels = [start_level]
+for idx, (step, color, label) in enumerate(zip(steps, step_colors, step_labels), start=1):
+    bar_bottom = current_level if step >= 0 else current_level + step
+    bar_height = abs(step)
+    ax.bar(x[idx], bar_height, width, bottom=bar_bottom, color=color)
+    if step >= 0:
+        y_text = bar_bottom + bar_height + 0.04
+        va = 'bottom'
+    else:
+        y_text = bar_bottom - 0.04
+        va = 'top'
+    ax.text(x[idx], y_text, label, ha='center', va=va, fontsize=10, fontweight='bold')
+    current_level += step
+    connector_levels.append(current_level)
 
-ax.axhline(0, color='k', linewidth=0.8)
+ax.bar(x[-1], lp[3], width, color=PALETTE[0], alpha=0.98)
+ax.text(x[-1], lp[3] + 0.05, format_fr_number(lp[3], 2),
+        ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+for i in range(len(connector_levels)):
+    ax.plot([x[i] + width / 2, x[i + 1] - width / 2],
+            [connector_levels[i], connector_levels[i]],
+            color=PALETTE[7], linewidth=1.1)
+
+ax.text(0.98, 0.88,
+        f'Ralentissement total : {format_fr_number(lp_slowdown_mid_late, 2)} p.p.',
+        transform=ax.transAxes, ha='right', va='top',
+        fontsize=10, color=PALETTE[0], fontweight='bold')
+
 ax.set_xticks(x)
-ax.set_xticklabels(period_labels, fontsize=11)
-yticks = ax.get_yticks()
+ax.set_xticklabels(bridge_labels, fontsize=10.5)
+ymax_bridge = 0.25 * np.ceil((max(start_level, lp[3]) + 0.3) / 0.25)
+ax.set_ylim(0, ymax_bridge)
+yticks = np.arange(0, ymax_bridge + 0.001, 0.25)
 ax.set_yticks(yticks)
-ax.set_yticklabels([f'{tick:g}' for tick in yticks], fontsize=11)
-ax.set_ylabel(r'Croissance annualisée (\%)', fontsize=11, rotation=0, ha='left')
+ax.set_yticklabels([format_fr_number(tick, 2) for tick in yticks], fontsize=11)
+ax.set_ylabel(r'Croissance annualis\'ee (p.p.)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-ax.legend(frameon=False, fontsize=10, loc='upper right')
 
 finalize_figure(fig, ax, FIG_DIR / 'note_labor_productivity.png')
 
@@ -817,16 +997,106 @@ ax.set_yticklabels([f'{int(t)}' for t in yticks], fontsize=11)
 ax.set_ylabel('PTF agrégée (1961=100)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
-ax.legend(frameon=False, fontsize=10)
+
+green_x = 2007.5
+green_y = np.interp(green_x, decomp_full['year'], tfp_within_index) + 2.4
+blue_x = 2013.8
+blue_y = np.interp(blue_x, decomp_full['year'], tfp_total_index) + 1.8
+label_box = dict(facecolor='white', edgecolor='none', alpha=0.9, pad=0.2)
+
+ax.text(green_x, green_y,
+        r'Sans effet Baumol'
+        + f' ({format_fr_number(tfp_within_index.iloc[-1], 0)})',
+        color=PALETTE[1], fontsize=9.5, fontweight='bold', ha='left', va='center',
+        bbox=label_box)
+ax.text(blue_x, blue_y,
+        f'Total ({format_fr_number(tfp_total_index.iloc[-1], 0)})',
+        color=PALETTE[0], fontsize=9.5, fontweight='bold', ha='left', va='center',
+        bbox=label_box)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_decomposition.png')
 
 ########################################################################
-# 9. Figure 3: Baumol scatter (VA share change vs TFP growth)          #
+# 9. Figure 3: Industry LP contributors by subperiod                   #
+########################################################################
+
+fig, axes = plt.subplots(3, 1, figsize=(8.4, 11.4), sharex=True)
+fig.patch.set_alpha(0.0)
+
+panel_data = []
+panel_bound = 0.0
+for label, contrib in industry_lp_contrib_by_period.items():
+    selected_idx = pd.Index(contrib['total_lp'].nsmallest(5).index)
+    selected_idx = selected_idx.append(pd.Index(contrib['total_lp'].nlargest(5).index))
+    selected = contrib.loc[selected_idx.unique()].sort_values('total_lp')
+    panel_data.append((label, selected, contrib['total_lp'].sum()))
+    panel_bound = max(panel_bound, selected['total_lp'].abs().max())
+
+tick_step = 0.25 if panel_bound <= 1.5 else 0.5
+x_bound = tick_step * np.ceil((panel_bound + 0.2) / tick_step)
+xticks = np.arange(-x_bound, x_bound + 0.001, tick_step)
+label_pad = max(0.04 * x_bound, 0.04)
+
+for ax, (label, panel, total_lp_panel) in zip(axes, panel_data):
+    ax.patch.set_alpha(0.0)
+    y_pos = np.arange(len(panel))
+    totals = panel['total_lp'].to_numpy()
+    labels = [clean_industry_label(name) for name in panel.index]
+    colors = [PALETTE[2] if value < 0 else PALETTE[0] for value in totals]
+    ax.barh(y_pos, totals, color=colors, height=0.65)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.axvline(0, color='k', linewidth=0.8)
+    ax.set_title(
+        f'{label}  |  croissance agr\\\'eg\\\'ee : {format_fr_number(total_lp_panel, 2)}',
+        loc='left', fontsize=11.5, fontweight='bold', color=PALETTE[0], pad=6
+    )
+    ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
+    for idx, value in enumerate(totals):
+        if value >= 0:
+            x_text = value + label_pad
+            ha = 'left'
+        else:
+            x_text = value - label_pad
+            ha = 'right'
+        ax.text(
+            x_text,
+            idx,
+            format_fr_number(value, 2),
+            fontsize=8.5,
+            ha=ha,
+            va='center',
+            color='k',
+        )
+
+axes[-1].set_xlabel(
+    'Contribution annualis\\\'ee \\`a la croissance de la productivit\\\'e du travail (p.p.)',
+    fontsize=11,
+)
+for ax in axes:
+    ax.set_xlim(-x_bound, x_bound)
+    ax.set_xticks(xticks)
+    ax.set_xticklabels([format_fr_number(tick, 2) for tick in xticks], fontsize=10)
+
+finalize_figure(fig, None, FIG_DIR / 'note_hulten_contributors.png')
+print('Figure 3: industry LP contributors by subperiod saved.')
+for label, panel, _ in panel_data:
+    print(f'  {label}: top positive contributors')
+    for name, row in panel.nlargest(3, 'total_lp').iterrows():
+        clean_name = re.sub(r'\s*\[.*?\]', '', name)
+        print(f'    {clean_name}: total={row["total_lp"]:+.2f} pp '
+              f'(PTF={row["tfp_lp"]:+.2f}, capital={row["capital_lp"]:+.2f})')
+
+########################################################################
+# 10. Figure 4: Baumol scatter (VA share change vs TFP growth)         #
 ########################################################################
 
 # For each industry, compute:
-# x = cumulative TFP growth from 1961 to 2019 (sum of d ln A_i, in %)
+# x = cumulative TFP growth from 1961 to 2019 (sum of d ln A_i, in log points x 100)
 # y = change in nominal VA share (s_{2019} - s_{1961}, in percentage points)
 # The expected negative correlation is the Baumol effect: high-TFP-growth
 # industries see falling relative prices and declining nominal VA shares.
@@ -835,7 +1105,7 @@ s_2019 = df[df['year'] == 2019].set_index('naics')['s']
 cum_tfp_by_industry = df[df['year'] > 1961].groupby('naics')['tfp_growth'].sum()
 
 scatter_data = pd.DataFrame({
-    'cum_tfp': 100 * cum_tfp_by_industry,        # approximate %
+    'cum_tfp': 100 * cum_tfp_by_industry,
     'delta_s': 100 * (s_2019 - s_1961)            # percentage points
 }).dropna()
 
@@ -854,7 +1124,7 @@ x_fit = np.array(xlim)
 ax.plot(x_fit, z[0] * x_fit + z[1], '-', color=PALETTE[1], linewidth=1.5, zorder=2)
 ax.set_xlim(xlim)
 
-ax.set_xlabel(r'Croissance cumulée de la PTF, 1961--2019 (\%)', fontsize=11)
+ax.set_xlabel(r'Variation logarithmique cumul\'ee de la PTF, 1961--2019 ($\times 100$)', fontsize=11)
 ax.xaxis.set_label_coords(0.5, -0.1)
 ax.set_ylabel(r'$\Delta$ part de la VA (p.p.)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
@@ -864,7 +1134,7 @@ ax.tick_params(axis='both', labelsize=11)
 finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 
 ########################################################################
-# 10. Figure 4: Industry-level TFP slowdown (horizontal bars)          #
+# 11. Figure 5: Industry-level TFP slowdown (horizontal bars)          #
 ########################################################################
 
 # For each industry, compute annualized TFP growth before and after 2000,
@@ -877,58 +1147,14 @@ ind_post = (df[(df['year'] > 2000) & (df['year'] <= 2019)]
             .sum() / (2019 - 2000))
 slowdown = 100 * (ind_post - ind_pre)
 slowdown = slowdown.sort_values(ascending=True)
+slowdown = pd.concat([slowdown.head(5), slowdown.tail(5)]).sort_values(ascending=True)
 
-# Strip NAICS codes and abbreviate long industry names for cleaner labels
-ABBREV = {
-    'Computer and electronic product manufacturing': 'Computer & electronics mfg.',
-    'Petroleum and coal products manufacturing': 'Petroleum & coal products mfg.',
-    'Beverage and tobacco product manufacturing': 'Beverage & tobacco mfg.',
-    'Mining (except oil and gas)': 'Mining (excl. oil & gas)',
-    'Miscellaneous manufacturing': 'Misc. manufacturing',
-    'Transportation equipment manufacturing': 'Transportation equip. mfg.',
-    'Chemical manufacturing': 'Chemical mfg.',
-    'Electrical equipment, appliance and component manufacturing': 'Electrical equip. & appliance mfg.',
-    'Transportation and warehousing': 'Transportation & warehousing',
-    'Plastics and rubber products manufacturing': 'Plastics & rubber mfg.',
-    'Furniture and related product manufacturing': 'Furniture & related mfg.',
-    'Non-metallic mineral product manufacturing': 'Non-metallic mineral mfg.',
-    'Fabricated metal product manufacturing': 'Fabricated metal mfg.',
-    'Primary metal manufacturing': 'Primary metal mfg.',
-    'Clothing, Leather and allied product manufacturing': 'Clothing & leather mfg.',
-    'Information and cultural industries': 'Information & cultural ind.',
-    'Textile and textile product mills': 'Textile mills',
-    'Food manufacturing': 'Food mfg.',
-    'Support activities for agriculture and forestry': 'Agric. & forestry support',
-    'Machinery manufacturing': 'Machinery mfg.',
-    'Health care and social assistance (except hospitals)': 'Health care & social assist.',
-    'Professional, scientific and technical services': 'Prof., scientific & tech. services',
-    'Wood product manufacturing': 'Wood product mfg.',
-    'Support activities for mining and oil and gas extraction': 'Mining & oil support',
-    'Paper manufacturing': 'Paper mfg.',
-    'Other services (except public administration)': 'Other services (excl. public admin.)',
-    'Printing and related support activities': 'Printing & related',
-    'Arts, entertainment and recreation': 'Arts, entertainment & recreation',
-    'Crop and animal production': 'Crop & animal production',
-    'Administrative and support, waste management and remediation services': 'Admin., waste mgmt. & remediation',
-    'Accommodation and food services': 'Accommodation & food services',
-    'Fishing, hunting and trapping': 'Fishing, hunting & trapping',
-    'Finance, insurance, real estate and renting and leasing': 'Finance, insurance & real estate',
-    'Forestry and logging': 'Forestry & logging',
-    'Oil and gas extraction': 'Oil & gas extraction',
-    'Wholesale trade': 'Wholesale trade',
-    'Retail trade': 'Retail trade',
-    'Construction': 'Construction',
-    'Utilities': 'Utilities',
-}
-# Escape '&' for LaTeX rendering (usetex=True)
-clean_labels = [ABBREV.get(re.sub(r'\s*\[.*?\]', '', name),
-                           re.sub(r'\s*\[.*?\]', '', name)).replace('&', r'\&')
-                for name in slowdown.index]
+clean_labels = [clean_industry_label(name) for name in slowdown.index]
 
 # Color: coral for slowdowns, green for accelerations
 colors = [PALETTE[2] if v < 0 else PALETTE[1] for v in slowdown.values]
 
-fig, ax = plt.subplots(figsize=(8, 9))
+fig, ax = plt.subplots(figsize=(8, 6.8))
 fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
@@ -962,12 +1188,13 @@ xmax = tick_step * np.ceil((data_max + 0.4) / tick_step)
 xticks = np.arange(xmin, xmax + 0.001, tick_step)
 ax.set_xlim(xmin, xmax)
 ax.set_xticks(xticks)
-ax.set_xticklabels([f'{tick:g}' for tick in xticks], fontsize=11)
+ax.set_xticklabels([format_fr_number(tick, 0 if float(tick).is_integer() else 1) for tick in xticks],
+                   fontsize=11)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_slowdown.png')
-print('Figure 4: Industry TFP slowdown saved.')
+print('Figure 5: Industry TFP slowdown saved.')
 print('  Industries with the sharpest TFP slowdowns:')
-for name, value in slowdown.head(8).items():
+for name, value in slowdown.head(5).items():
     clean_name = re.sub(r'\s*\[.*?\]', '', name)
     print(f'    {clean_name}: {value:+.2f} pp')
 print('  Industries with TFP acceleration:')
@@ -981,11 +1208,11 @@ for name, value in slowdown.tail(5).sort_values(ascending=False).items():
 
 def fmt(v):
     """Format a growth rate for the LaTeX table (e.g., '1.28')."""
-    return f'{v:.2f}'
+    return format_fr_number(v, 2)
 
 def fmt_bold(v):
     """Format a growth rate with bold navy for the 2000-2019 column."""
-    return r'\textbf{' + f'{v:.2f}' + '}'
+    return r'\textbf{' + format_fr_number(v, 2) + '}'
 
 def row(label, vals, bold_last=True):
     """Build a table row with optional bold last column."""
@@ -995,7 +1222,7 @@ def row(label, vals, bold_last=True):
 
 with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
     lines = [
-        r'\begin{table}[H]',
+        r'\begin{table}[tbp]',
         r'\centering',
         r'\sffamily',
         r'\renewcommand{\arraystretch}{1.3}',
@@ -1027,7 +1254,7 @@ with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
 
 with open(TAB_DIR / 'note_decomposition_kl.tex', 'w') as f:
     lines = [
-        r'\begin{table}[H]',
+        r'\begin{table}[tbp]',
         r'\centering',
         r'\sffamily',
         r'\renewcommand{\arraystretch}{1.3}',
@@ -1171,9 +1398,9 @@ ax.text(-0.08, can_rank['rank_2000'], 'Canada', color=PALETTE[0],
         fontsize=11, fontweight='bold', ha='right', va='center')
 ax.text(1.08, can_rank['rank_2019'], 'Canada', color=PALETTE[0],
         fontsize=11, fontweight='bold', ha='left', va='center')
-ax.text(-0.08, can_rank['rank_2000'] - 0.55, f'{int(can_rank["rank_2000"])}e rang',
+ax.text(-0.08, can_rank['rank_2000'] - 0.55, f'{format_fr_rank(can_rank["rank_2000"])} rang',
         color=PALETTE[0], fontsize=9, ha='right', va='center')
-ax.text(1.08, can_rank['rank_2019'] - 0.55, f'{int(can_rank["rank_2019"])}e rang',
+ax.text(1.08, can_rank['rank_2019'] - 0.55, f'{format_fr_rank(can_rank["rank_2019"])} rang',
         color=PALETTE[0], fontsize=9, ha='left', va='center')
 
 ax.text(0.00, 0.75, '2000', fontsize=12, fontweight='bold', ha='center', va='bottom')
@@ -1189,7 +1416,7 @@ ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 
-finalize_figure(fig, ax, FIG_DIR / 'note_oecd_rankings.png')
+finalize_figure(fig, ax, FIG_DIR / 'note_oecd_rankings.png', source='Penn World Table 11.0')
 print('Figure 5: Original OECD labor-productivity rankings saved.')
 print(f'  Canada rank: {int(can_rank["rank_2000"])} in 2000 -> {int(can_rank["rank_2019"])} in 2019')
 
@@ -1248,7 +1475,7 @@ if not intl_growth.empty and (intl_growth['countrycode'] == 'CAN').any():
 
 with open(TAB_DIR / 'note_lp_levels.tex', 'w') as f:
     lines = [
-        r'\begin{table}[H]',
+        r'\begin{table}[tbp]',
         r'\centering',
         r'\sffamily',
         r'\footnotesize',
@@ -1266,15 +1493,15 @@ with open(TAB_DIR / 'note_lp_levels.tex', 'w') as f:
         name = COUNTRY_FR.get(code, r['country']).replace('&', r'\&')
         if code == 'CAN':
             lines.append(
-                f'{name} & \\textbf{{{r["yl_rel"]:.0f}}} '
-                f'& \\textbf{{{r["a_comp"]:.0f}}} '
-                f'& \\textbf{{{r["ky_comp"]:.0f}}} '
-                f'& \\textbf{{{r["kl_rel"]:.0f}}} \\\\'
+                f'{name} & \\textbf{{{format_fr_number(r["yl_rel"], 0)}}} '
+                f'& \\textbf{{{format_fr_number(r["a_comp"], 0)}}} '
+                f'& \\textbf{{{format_fr_number(r["ky_comp"], 0)}}} '
+                f'& \\textbf{{{format_fr_number(r["kl_rel"], 0)}}} \\\\'
             )
         else:
             lines.append(
-                f'{name} & {r["yl_rel"]:.0f} & {r["a_comp"]:.0f} '
-                f'& {r["ky_comp"]:.0f} & {r["kl_rel"]:.0f} \\\\'
+                f'{name} & {format_fr_number(r["yl_rel"], 0)} & {format_fr_number(r["a_comp"], 0)} '
+                f'& {format_fr_number(r["ky_comp"], 0)} & {format_fr_number(r["kl_rel"], 0)} \\\\'
             )
     lines += [
         r'\bottomrule',
@@ -1302,7 +1529,7 @@ print(f'Table 2 (OECD levels) saved to {TAB_DIR / "note_lp_levels.tex"}')
 
 with open(TAB_DIR / 'note_international.tex', 'w') as f:
     lines = [
-        r'\begin{table}[H]',
+        r'\begin{table}[tbp]',
         r'\centering',
         r'\sffamily',
         r'\footnotesize',
@@ -1320,15 +1547,15 @@ with open(TAB_DIR / 'note_international.tex', 'w') as f:
         name = COUNTRY_FR.get(code, r['country']).replace('&', r'\&')
         if code == 'CAN':
             lines.append(
-                f'{name} & \\textbf{{{r["lp_growth"]:.2f}}} '
-                f'& \\textbf{{{r["prod_term"]:.2f}}} '
-                f'& \\textbf{{{r["ky_term"]:.2f}}} '
+                f'{name} & \\textbf{{{format_fr_number(r["lp_growth"], 2)}}} '
+                f'& \\textbf{{{format_fr_number(r["prod_term"], 2)}}} '
+                f'& \\textbf{{{format_fr_number(r["ky_term"], 2)}}} '
                 f'& \\textbf{{{int(r["lp_rank"])}}} \\\\'
             )
         else:
             lines.append(
-                f'{name} & {r["lp_growth"]:.2f} & {r["prod_term"]:.2f} '
-                f'& {r["ky_term"]:.2f} & {int(r["lp_rank"])} \\\\'
+                f'{name} & {format_fr_number(r["lp_growth"], 2)} & {format_fr_number(r["prod_term"], 2)} '
+                f'& {format_fr_number(r["ky_term"], 2)} & {int(r["lp_rank"])} \\\\'
             )
     lines += [
         r'\bottomrule',
@@ -1354,4 +1581,35 @@ with open(TAB_DIR / 'note_international.tex', 'w') as f:
     f.write('\n'.join(lines))
 
 print(f'Table 3 (OECD LP growth decomposition) saved to {TAB_DIR / "note_international.tex"}')
+
+with open(TAB_DIR / 'note_numbers.tex', 'w') as f:
+    lines = [
+        r'\newcommand{\LPGrowthEarly}{' + format_fr_number(lp[1], 1) + r'}',
+        r'\newcommand{\LPGrowthMid}{' + format_fr_number(lp[2], 2) + r'}',
+        r'\newcommand{\LPGrowthLate}{' + format_fr_number(lp[3], 1) + r'}',
+        r'\newcommand{\WithinContributionEarly}{' + format_fr_number(within_lp[1], 2) + r'}',
+        r'\newcommand{\WithinContributionMid}{' + format_fr_number(within_lp[2], 2) + r'}',
+        r'\newcommand{\WithinContributionLate}{' + format_fr_number(within_lp[3], 2) + r'}',
+        r'\newcommand{\LPSlowdownMidLate}{' + format_fr_number(lp_slowdown_mid_late, 2) + r'}',
+        r'\newcommand{\WithinSlowdownMidLate}{' + format_fr_number(within_slowdown_mid_late, 2) + r'}',
+        r'\newcommand{\BaumolWorseningMidLate}{' + format_fr_number(baumol_worsening_mid_late, 2) + r'}',
+        r'\newcommand{\CapitalOffsetMidLate}{' + format_fr_number(capital_offset_mid_late, 2) + r'}',
+        r'\newcommand{\CounterfactualProductivityGapLate}{' + format_fr_number(counterfactual_productivity_gap_2019, 1) + r'}',
+        r'\newcommand{\BaumolContributionEarly}{' + format_fr_number(baumol_lp[1], 2) + r'}',
+        r'\newcommand{\BaumolContributionMid}{' + format_fr_number(baumol_lp[2], 2) + r'}',
+        r'\newcommand{\BaumolContributionLate}{' + format_fr_number(baumol_lp[3], 2) + r'}',
+        r'\newcommand{\CapitalContributionMid}{' + format_fr_number(ky_c[2], 2) + r'}',
+        r'\newcommand{\CapitalContributionLate}{' + format_fr_number(ky_c[3], 2) + r'}',
+        r'\newcommand{\CanadaLPRelativeUS}{' + format_fr_number(ca_lev["yl_rel"], 0) + r'}',
+        r'\newcommand{\CanadaResidualRelativeUS}{' + format_fr_number(ca_lev["a_comp"], 0) + r'}',
+        r'\newcommand{\CanadaRankTwoThousand}{' + format_fr_rank(can_rank["rank_2000"]) + r'}',
+        r'\newcommand{\CanadaRankTwoThousandNineteen}{' + format_fr_rank(can_rank["rank_2019"]) + r'}',
+        r'\newcommand{\CanadaOecdGrowth}{' + format_fr_number(ca_growth["lp_growth"], 2) + r'}',
+        r'\newcommand{\CanadaOecdResidual}{' + format_fr_number(ca_growth["prod_term"], 2) + r'}',
+        r'\newcommand{\CanadaOecdKY}{' + format_fr_number(ca_growth["ky_term"], 2) + r'}',
+        r'\newcommand{\CanadaOecdGrowthRank}{' + format_fr_rank(ca_growth["lp_rank"]) + r'}',
+    ]
+    f.write('\n'.join(lines))
+
+print(f'Headline numbers saved to {TAB_DIR / "note_numbers.tex"}')
 print('\nDone. Figures saved to Figures/, tables saved to Tables/.')
