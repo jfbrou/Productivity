@@ -243,13 +243,13 @@ def industry_lp_contrib(df_ind, yearly_df, start, end, base_col,
 
 
 def aggregate_to_nace(df):
-    """Aggregate 39-industry panel to 15 NACE sectors via Törnqvist indices.
+    """Aggregate 39-industry panel to 15 NACE sectors via T\"ornqvist indices.
 
     Used only for the international comparison (Table 2), where Canadian
     data must match the international NACE-style aggregation used in the project.
 
     Dollar variables (va, capital_cost, labor_cost) are summed.
-    Growth rates are Törnqvist-aggregated using within-sector weights:
+    Growth rates are T\"ornqvist-aggregated using within-sector weights:
       d ln A_N = Σ_{i∈N} (s̄_i / s̄_N) * d ln A_i
       d ln K_N = Σ_{i∈N} (ω̄^K_i / ω̄^K_N) * d ln K_i
       d ln L_N = Σ_{i∈N} (ω̄^L_i / ω̄^L_N) * d ln L_i
@@ -266,7 +266,7 @@ def aggregate_to_nace(df):
         labor_cost=('labor_cost', 'sum'),
     ).reset_index()
 
-    # Within-sector sums of Törnqvist weights for growth rate aggregation
+    # Within-sector sums of T\"ornqvist weights for growth rate aggregation
     df['s_bar_N'] = df.groupby(['nace', 'year'])['s_bar'].transform('sum')
     df['omk_N'] = df.groupby(['nace', 'year'])['omega_k_bar'].transform('sum')
     df['oml_N'] = df.groupby(['nace', 'year'])['omega_l_bar'].transform('sum')
@@ -413,6 +413,119 @@ NAICS_TO_NACE = {
     '81': 'S',
 }
 
+INDUSTRY_TO_NACE = {
+    industry: NAICS_TO_NACE[naics]
+    for industry, naics in INDUSTRY_TO_NAICS.items()
+}
+
+NACE_ABBREV = {
+    'A': r'Agriculture, foresterie et p\^eche',
+    'B': r'Mines, p\'etrole et gaz',
+    'C': 'Fabrication',
+    'D-E': r'Services publics',
+    'F': 'Construction',
+    'G': 'Commerce',
+    'H': r'Transport et entreposage',
+    'I': r'H\'ebergement et restauration',
+    'J': r'Information et culture',
+    'K-L': r'Finance, assurance et immobilier',
+    'M': r'Services prof., sci. et tech.',
+    'N': r'Soutien, d\'echets et assainissement',
+    'Q': r'Sant\'e et assistance sociale',
+    'R': r'Arts, spectacles et loisirs',
+    'S': r'Autres services',
+}
+
+STATSCAN_SECTOR_FR = {
+    'Accommodation and food services [72]': r'Services d\'h\'ebergement et de restauration',
+    'Administrative and support, waste management and remediation services [56]': (
+        r'Services administratifs, de soutien, de gestion des d\'echets et d\'assainissement'
+    ),
+    'Arts, entertainment and recreation [71]': r'Arts, spectacles et loisirs',
+    'Beverage and tobacco product manufacturing [312]': 'Fabrication',
+    'Chemical manufacturing [325]': 'Fabrication',
+    'Clothing, Leather and allied product manufacturing': 'Fabrication',
+    'Computer and electronic product manufacturing [334]': 'Fabrication',
+    'Construction [23]': 'Construction',
+    'Crop and animal production': r'Agriculture, foresterie, p\^eche et chasse',
+    'Electrical equipment, appliance and component manufacturing [335]': 'Fabrication',
+    'Fabricated metal product manufacturing [332]': 'Fabrication',
+    'Finance, insurance, real estate and renting and leasing': (
+        r'Finance, assurances, services immobiliers et de location'
+    ),
+    'Fishing, hunting and trapping [114]': r'Agriculture, foresterie, p\^eche et chasse',
+    'Food manufacturing [311]': 'Fabrication',
+    'Forestry and logging [113]': r'Agriculture, foresterie, p\^eche et chasse',
+    'Furniture and related product manufacturing [337]': 'Fabrication',
+    'Health care and social assistance (except hospitals)': (
+        r'Soins de sant\'e (sauf les h\^opitaux) et assistance sociale'
+    ),
+    'Information and cultural industries [51]': r'Industrie de l\'information et industrie culturelle',
+    'Machinery manufacturing [333]': 'Fabrication',
+    'Mining (except oil and gas) [212]': (
+        r'Extraction mini\`ere, exploitation en carri\`ere, et extraction de p\'etrole et de gaz'
+    ),
+    'Miscellaneous manufacturing [339]': 'Fabrication',
+    'Non-metallic mineral product manufacturing [327]': 'Fabrication',
+    'Oil and gas extraction [211]': (
+        r'Extraction mini\`ere, exploitation en carri\`ere, et extraction de p\'etrole et de gaz'
+    ),
+    'Other services (except public administration) [81]': (
+        r'Autres services (sauf les administrations publiques)'
+    ),
+    'Paper manufacturing [322]': 'Fabrication',
+    'Petroleum and coal products manufacturing [324]': 'Fabrication',
+    'Plastics and rubber products manufacturing [326]': 'Fabrication',
+    'Primary metal manufacturing [331]': 'Fabrication',
+    'Printing and related support activities [323]': 'Fabrication',
+    'Professional, scientific and technical services [54]': (
+        r'Services professionnels, scientifiques et techniques'
+    ),
+    'Retail trade [44-45]': r'Commerce de d\'etail',
+    'Support activities for agriculture and forestry [115]': (
+        r'Agriculture, foresterie, p\^eche et chasse'
+    ),
+    'Support activities for mining and oil and gas extraction [213]': (
+        r'Extraction mini\`ere, exploitation en carri\`ere, et extraction de p\'etrole et de gaz'
+    ),
+    'Textile and textile product mills': 'Fabrication',
+    'Transportation and warehousing [48-49]': r'Transport et entreposage',
+    'Transportation equipment manufacturing [336]': 'Fabrication',
+    'Utilities [221]': r'Services publics',
+    'Wholesale trade [41]': r'Commerce de gros',
+    'Wood product manufacturing [321]': 'Fabrication',
+}
+
+STATSCAN_SECTOR_DISPLAY_FR = {
+    r'Agriculture, foresterie, p\^eche et chasse': (
+        r'Agriculture, foresterie,' '\n' r'p\^eche et chasse'
+    ),
+    r'Extraction mini\`ere, exploitation en carri\`ere, et extraction de p\'etrole et de gaz': (
+        r'Extraction mini\`ere,' '\n' r'carri\`eres, p\'etrole et gaz'
+    ),
+    r'Services administratifs, de soutien, de gestion des d\'echets et d\'assainissement': (
+        r'Services administratifs,' '\n' r'soutien, d\'echets' '\n' r'et assainissement'
+    ),
+    r'Industrie de l\'information et industrie culturelle': (
+        r'Information et' '\n' r'industrie culturelle'
+    ),
+    r'Finance, assurances, services immobiliers et de location': (
+        r'Finance, assurances,' '\n' r'immobilier et location'
+    ),
+    r'Services professionnels, scientifiques et techniques': (
+        r'Services prof., sci.' '\n' r'et techniques'
+    ),
+    r'Soins de sant\'e (sauf les h\^opitaux) et assistance sociale': (
+        r'Soins de sant\'e' '\n' r'(sauf h\^opitaux) et' '\n' r'assistance sociale'
+    ),
+    r'Services d\'h\'ebergement et de restauration': (
+        r'H\'ebergement et' '\n' r'restauration'
+    ),
+    r'Autres services (sauf les administrations publiques)': (
+        r'Autres services' '\n' r'(sauf admin. publiques)'
+    ),
+}
+
 # Sectors to drop: aggregate industries and sub-industries that overlap
 # with the 39 leaf-level industries above.
 DROP_LIST = [
@@ -494,6 +607,16 @@ def clean_industry_label(name):
     """Strip NAICS codes and shorten long industry labels for LaTeX figures."""
     base = re.sub(r'\s*\[.*?\]', '', name)
     return latex_escape(INDUSTRY_ABBREV.get(base, base))
+
+
+def clean_nace_label(code):
+    """Format a broad-sector NACE label for LaTeX figures."""
+    return latex_escape(NACE_ABBREV.get(code, code))
+
+
+def clean_statscan_sector_label(label):
+    """Format a StatsCan broad-sector label for LaTeX figures."""
+    return latex_escape(STATSCAN_SECTOR_DISPLAY_FR.get(label, label))
 
 ########################################################################
 # 1. Fetch, clean, and validate the data                                #
@@ -905,9 +1028,9 @@ fig, ax = setup_figure()
 
 bridge_labels = [
     '1980--2000',
-    'Recul de la\nPTF intra-industries',
-    'Frein Baumol\nsuppl\'ementaire',
-    'Soutien accru\ndu capital',
+    'PTF intra-\nsectorielle',
+    r"R\'eallocation",
+    'Capital',
     '2000--2019',
 ]
 x = np.arange(len(bridge_labels))
@@ -915,14 +1038,14 @@ width = 0.72
 
 start_level = lp[2]
 steps = [-within_slowdown_mid_late, -baumol_worsening_mid_late, capital_offset_mid_late]
-step_colors = [PALETTE[0], PALETTE[2], PALETTE[1]]
+step_colors = [PALETTE[2], PALETTE[2], PALETTE[1]]
 step_labels = [
     format_fr_number(-within_slowdown_mid_late, 2),
     format_fr_number(-baumol_worsening_mid_late, 2),
     '+' + format_fr_number(capital_offset_mid_late, 2),
 ]
 
-ax.bar(x[0], start_level, width, color=PALETTE[7], alpha=0.95)
+ax.bar(x[0], start_level, width, color=PALETTE[0], alpha=0.95)
 ax.text(x[0], start_level + 0.05, format_fr_number(start_level, 2),
         ha='center', va='bottom', fontsize=11, fontweight='bold')
 
@@ -949,7 +1072,7 @@ ax.text(x[-1], lp[3] + 0.05, format_fr_number(lp[3], 2),
 for i in range(len(connector_levels)):
     ax.plot([x[i] + width / 2, x[i + 1] - width / 2],
             [connector_levels[i], connector_levels[i]],
-            color=PALETTE[7], linewidth=1.1)
+            color='#4B5563', linewidth=0.9, linestyle=':')
 
 ax.text(0.98, 0.88,
         f'Ralentissement total : {format_fr_number(lp_slowdown_mid_late, 2)} p.p.',
@@ -957,10 +1080,9 @@ ax.text(0.98, 0.88,
         fontsize=10, color=PALETTE[0], fontweight='bold')
 
 ax.set_xticks(x)
-ax.set_xticklabels(bridge_labels, fontsize=10.5)
-ymax_bridge = 0.25 * np.ceil((max(start_level, lp[3]) + 0.3) / 0.25)
-ax.set_ylim(0, ymax_bridge)
-yticks = np.arange(0, ymax_bridge + 0.001, 0.25)
+ax.set_xticklabels(bridge_labels, fontsize=10)
+ax.set_ylim(0, 1.50)
+yticks = np.arange(0, 1.50 + 0.001, 0.25)
 ax.set_yticks(yticks)
 ax.set_yticklabels([format_fr_number(tick, 2) for tick in yticks], fontsize=11)
 ax.set_ylabel(r'Croissance annualis\'ee (p.p.)', fontsize=11, rotation=0, ha='left')
@@ -970,7 +1092,7 @@ ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.
 finalize_figure(fig, ax, FIG_DIR / 'note_labor_productivity.png')
 
 ########################################################################
-# 8. Figure 2: TFP decomposition (Baumol effect)                       #
+# 8. Figure 2: TFP decomposition (composition effect)                  #
 ########################################################################
 
 fig, ax = setup_figure()
@@ -982,7 +1104,7 @@ ax.plot(decomp_full['year'], tfp_total_index,
         label='Total', color=PALETTE[0], linewidth=2)
 # Counterfactual: TFP if economic structure stayed at 1961 shares.
 ax.plot(decomp_full['year'], tfp_within_index,
-        label='Sans effet Baumol', color=PALETTE[1], linewidth=2)
+        label=r"Sans effet de r\'eallocation", color=PALETTE[1], linewidth=2)
 
 ax.set_xlim(1961, 2019)
 ax.set_xticks(range(1965, 2015 + 1, 5))
@@ -994,7 +1116,7 @@ yticks = np.arange(ymin, ymax + ystep, ystep)
 ax.set_ylim(ymin, ymax)
 ax.set_yticks(yticks)
 ax.set_yticklabels([f'{int(t)}' for t in yticks], fontsize=11)
-ax.set_ylabel('PTF agrégée (1961=100)', fontsize=11, rotation=0, ha='left')
+ax.set_ylabel('PTF agr\'eg\'ee (1961=100)', fontsize=11, rotation=0, ha='left')
 ax.yaxis.set_label_coords(0, 1.02)
 ax.grid(True, which='major', axis='y', color='gray', linestyle=':', linewidth=0.5)
 
@@ -1005,7 +1127,7 @@ blue_y = np.interp(blue_x, decomp_full['year'], tfp_total_index) + 1.8
 label_box = dict(facecolor='white', edgecolor='none', alpha=0.9, pad=0.2)
 
 ax.text(green_x, green_y,
-        r'Sans effet Baumol'
+        r"Sans effet de r\'eallocation"
         + f' ({format_fr_number(tfp_within_index.iloc[-1], 0)})',
         color=PALETTE[1], fontsize=9.5, fontweight='bold', ha='left', va='center',
         bbox=label_box)
@@ -1134,73 +1256,95 @@ ax.tick_params(axis='both', labelsize=11)
 finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 
 ########################################################################
-# 11. Figure 5: Industry-level TFP slowdown (horizontal bars)          #
+# 11. Figure 5: Broad-sector change in productivity contributions      #
 ########################################################################
 
-# For each industry, compute annualized TFP growth before and after 2000,
-# then show the change (post minus pre) as a horizontal bar chart.
-ind_pre = (df[(df['year'] > 1961) & (df['year'] <= 2000)]
-           .groupby('industry')['tfp_growth']
-           .sum() / (2000 - 1961))
-ind_post = (df[(df['year'] > 2000) & (df['year'] <= 2019)]
-            .groupby('industry')['tfp_growth']
-            .sum() / (2019 - 2000))
-slowdown = 100 * (ind_post - ind_pre)
-slowdown = slowdown.sort_values(ascending=True)
-slowdown = pd.concat([slowdown.head(5), slowdown.tail(5)]).sort_values(ascending=True)
+# Aggregate the industry-level productivity contributions to broad
+# StatsCan sectors and compare 1980--2000 with 2000--2019. The figure
+# preserves the note's accounting logic exactly because it sums the
+# original industry contribution terms inside each broad sector.
+pre_contrib = industry_lp_contrib_by_period['1980--2000'][['within_lp', 'baumol_lp']].copy()
+post_contrib = industry_lp_contrib_by_period['2000--2019'][['within_lp', 'baumol_lp']].copy()
 
-clean_labels = [clean_industry_label(name) for name in slowdown.index]
+for contrib in (pre_contrib, post_contrib):
+    contrib['sector_fr'] = contrib.index.map(STATSCAN_SECTOR_FR)
+    assert contrib['sector_fr'].notna().all(), 'Missing StatsCan broad-sector mapping'
 
-# Color: coral for slowdowns, green for accelerations
-colors = [PALETTE[2] if v < 0 else PALETTE[1] for v in slowdown.values]
+pre_sector = pre_contrib.groupby('sector_fr')[['within_lp', 'baumol_lp']].sum()
+post_sector = post_contrib.groupby('sector_fr')[['within_lp', 'baumol_lp']].sum()
+broad_change = post_sector.subtract(pre_sector, fill_value=0.0)
+broad_change['total_change'] = broad_change['within_lp'] + broad_change['baumol_lp']
+broad_change = broad_change.sort_values('total_change')
 
-fig, ax = plt.subplots(figsize=(8, 6.8))
+aggregate_productivity_change = (
+    (within_lp[3] + baumol_lp[3]) - (within_lp[2] + baumol_lp[2])
+)
+assert abs(broad_change['total_change'].sum() - aggregate_productivity_change) < 1e-10, (
+    'Broad-sector productivity contributions do not add up to the aggregate change'
+)
+
+clean_labels = [clean_statscan_sector_label(label) for label in broad_change.index]
+y_pos = np.arange(len(broad_change))
+
+fig, ax = plt.subplots(figsize=(8.4, 9.2))
 fig.patch.set_alpha(0.0)
 ax.patch.set_alpha(0.0)
 
-ax.barh(range(len(slowdown)), slowdown.values, color=colors, height=0.7)
+totals = broad_change['total_change'].to_numpy()
+colors = [PALETTE[2] if value < 0 else PALETTE[1] for value in totals]
+ax.barh(y_pos, totals, color=colors, height=0.66)
 
-ax.set_yticks(range(len(slowdown)))
-ax.set_yticklabels(clean_labels, fontsize=9)
+bound = np.max(np.abs(totals))
+tick_step = 0.1 if bound <= 0.6 else 0.2
+xmin = tick_step * np.floor((totals.min() - 0.08) / tick_step)
+xmax = 0.6
+xticks = np.arange(xmin, xmax + 0.001, tick_step)
+label_pad = max(0.03 * max(abs(xmin), abs(xmax)), 0.025)
+
+for idx, value in enumerate(totals):
+    if value >= 0:
+        x_text = value + label_pad
+        ha = 'left'
+    else:
+        x_text = value - label_pad
+        ha = 'right'
+    ax.text(
+        x_text,
+        idx,
+        format_fr_number(value, 2),
+        fontsize=8.5,
+        ha=ha,
+        va='center',
+        color='k',
+    )
+
+ax.set_yticks(y_pos)
+ax.set_yticklabels(clean_labels, fontsize=9.5)
 ax.invert_yaxis()
 ax.axvline(0, color='k', linewidth=0.8)
+ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
 
-# Axis formatting
-ax.set_xlabel(r'Variation de la croissance annualisée de la PTF (p.p.)',
-              fontsize=11, ha='center')
-ax.xaxis.set_label_coords(0.5, -0.04)
-ax.tick_params(axis='x', labelsize=11)
+ax.set_xlabel(
+    r'Variation de contribution \`a la croissance de la productivit\'e du travail (p.p.)',
+    fontsize=11,
+)
+ax.tick_params(axis='x', labelsize=10.5)
+ax.set_xlim(xmin, xmax)
+ax.set_xticks(xticks)
+ax.set_xticklabels([format_fr_number(tick, 1) for tick in xticks], fontsize=10.5)
 
-# Spines
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 
-# Gridlines: vertical only
-ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
-
-# Explicit x-limits and ticks with a small margin around the data
-data_min = slowdown.min()
-data_max = slowdown.max()
-tick_step = 1 if (data_max - data_min) <= 10 else 2
-xmin = tick_step * np.floor((data_min - 0.4) / tick_step)
-xmax = tick_step * np.ceil((data_max + 0.4) / tick_step)
-xticks = np.arange(xmin, xmax + 0.001, tick_step)
-ax.set_xlim(xmin, xmax)
-ax.set_xticks(xticks)
-ax.set_xticklabels([format_fr_number(tick, 0 if float(tick).is_integer() else 1) for tick in xticks],
-                   fontsize=11)
-
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_slowdown.png')
-print('Figure 5: Industry TFP slowdown saved.')
-print('  Industries with the sharpest TFP slowdowns:')
-for name, value in slowdown.head(5).items():
-    clean_name = re.sub(r'\s*\[.*?\]', '', name)
-    print(f'    {clean_name}: {value:+.2f} pp')
-print('  Industries with TFP acceleration:')
-for name, value in slowdown.tail(5).sort_values(ascending=False).items():
-    clean_name = re.sub(r'\s*\[.*?\]', '', name)
-    print(f'    {clean_name}: {value:+.2f} pp')
+print('Figure 5: Broad-sector productivity contribution change saved.')
+print('  Broad sectors that became larger drags after 2000:')
+for label, row in broad_change.head(5).iterrows():
+    print(f'    {label}: total={row["total_change"]:+.2f} pp')
+print('  Broad sectors that improved their contribution after 2000:')
+for label, row in broad_change.tail(5).sort_values('total_change', ascending=False).iterrows():
+    print(f'    {label}: total={row["total_change"]:+.2f} pp')
 
 ########################################################################
 # 12. LaTeX table: Summary decomposition                                #
@@ -1227,25 +1371,21 @@ with open(TAB_DIR / 'note_decomposition.tex', 'w') as f:
         r'\sffamily',
         r'\renewcommand{\arraystretch}{1.3}',
         r'\begin{threeparttable}',
-        r"\caption{D\'ecomposition de la croissance annuelle moyenne de la productivit\'e du travail (\%)}",
+        r"\caption{D\'ecomposition de la croissance de la productivit\'e du travail (\%)}",
         r'\label{tab:note_decomposition}',
         r'\begin{tabular}{l*{4}{c}}',
         r'\toprule',
         r'& 1961--2019 & 1961--1980 & 1980--2000 & \textbf{2000--2019} \\',
         r'\midrule',
         row(r'$\Delta \ln(Y/L)$', lp),
-        row(r'\quad Terme PTF intra-ind.', within_lp),
-        row(r"\quad Terme r\'ealloc. (Baumol)", baumol_lp),
-        row(r'\quad Terme capital', ky_c),
+        row(r'\quad PTF intra-sectorielle', within_lp),
+        row(r"\quad R\'eallocation", baumol_lp),
+        row(r'\quad Capital', ky_c),
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
         r"\item \textit{Note}\,: Croissance annuelle moyenne en points de "
-        r"pourcentage. Les trois composantes s'additionnent exactement "
-        r"\`a $\Delta \ln(Y/L)$. Les contributions de la PTF intra-industries "
-        r"et de la r\'eallocation sont amplifi\'ees par le facteur $1/(1-\bar\alpha) > 1$, qui refl\`ete "
-        r"l'effet indirect de la PTF sur l'accumulation du capital (voir annexe~A). "
-        r"Source\,: Statistique Canada, tableau 36-10-0217-01.",
+        r"pourcentage. Source\,: Statistique Canada, tableau 36-10-0217-01.",
         r'\end{tablenotes}',
         r'\end{threeparttable}',
         r'\end{table}'
@@ -1266,9 +1406,9 @@ with open(TAB_DIR / 'note_decomposition_kl.tex', 'w') as f:
         r'& 1961--2019 & 1961--1980 & 1980--2000 & \textbf{2000--2019} \\',
         r'\midrule',
         row(r'$\Delta \ln(Y/L)$', lp),
-        row(r'\quad Terme PTF intra-ind.', within),
-        row(r"\quad Terme r\'ealloc. (Baumol)", baumol),
-        row(r'\quad Terme capital ($K/L$)', kl_c),
+        row(r'\quad PTF intra-sectorielle', within),
+        row(r"\quad R\'eallocation", baumol),
+        row(r'\quad Capital ($K/L$)', kl_c),
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
@@ -1296,21 +1436,59 @@ PWT_START, PWT_END = 2000, 2019
 PWT_LEVEL_YEAR = 2019
 pwt_path = ROOT_DIR / 'Data' / 'pwt110.dta'
 
-# Original OECD members (1961), used to keep the comparison historically consistent.
-OECD_CODES = [
+# Current OECD members, used for the cross-sectional level comparison in 2019.
+OECD_CURRENT_CODES = [
+    'AUS', 'AUT', 'BEL', 'CAN', 'CHL', 'COL', 'CRI', 'CZE', 'DNK', 'EST',
+    'FIN', 'FRA', 'DEU', 'GRC', 'HUN', 'ISL', 'IRL', 'ISR', 'ITA', 'JPN',
+    'KOR', 'LVA', 'LTU', 'LUX', 'MEX', 'NLD', 'NZL', 'NOR', 'POL', 'PRT',
+    'SVK', 'SVN', 'ESP', 'SWE', 'CHE', 'TUR', 'GBR', 'USA',
+]
+
+# Original OECD members (1961), kept for the historical rank comparison.
+OECD_ORIGINAL_CODES = [
     'AUT', 'BEL', 'CAN', 'DNK', 'FRA', 'DEU', 'GRC', 'ISL', 'IRL', 'ITA',
     'LUX', 'NLD', 'NOR', 'PRT', 'ESP', 'SWE', 'CHE', 'TUR', 'GBR', 'USA',
 ]
 
 COUNTRY_FR = {
-    'AUT': 'Autriche', 'BEL': 'Belgique', 'CAN': r'\textbf{Canada}',
-    'CHE': 'Suisse', 'DEU': 'Allemagne', 'DNK': 'Danemark',
-    'ESP': 'Espagne', 'FRA': 'France',
-    'GBR': 'Royaume-Uni', 'GRC': r"Gr\`ece", 'HUN': 'Hongrie',
-    'IRL': 'Irlande', 'ISL': 'Islande', 'ITA': 'Italie',
-    'LUX': 'Luxembourg', 'NLD': 'Pays-Bas', 'NOR': r'Norv\`ege',
-    'PRT': 'Portugal', 'SWE': r'Su\`ede',
-    'TUR': 'Turquie', 'USA': r"\'Etats-Unis",
+    'AUS': 'Australie',
+    'AUT': 'Autriche',
+    'BEL': 'Belgique',
+    'CAN': r'\textbf{Canada}',
+    'CHE': 'Suisse',
+    'CHL': 'Chili',
+    'COL': 'Colombie',
+    'CRI': 'Costa Rica',
+    'CZE': 'Tchéquie',
+    'DEU': 'Allemagne',
+    'DNK': 'Danemark',
+    'ESP': 'Espagne',
+    'EST': 'Estonie',
+    'FIN': 'Finlande',
+    'FRA': 'France',
+    'GBR': 'Royaume-Uni',
+    'GRC': 'Grèce',
+    'HUN': 'Hongrie',
+    'IRL': 'Irlande',
+    'ISL': 'Islande',
+    'ISR': 'Israël',
+    'ITA': 'Italie',
+    'JPN': 'Japon',
+    'KOR': 'Corée du Sud',
+    'LTU': 'Lituanie',
+    'LUX': 'Luxembourg',
+    'LVA': 'Lettonie',
+    'MEX': 'Mexique',
+    'NLD': 'Pays-Bas',
+    'NOR': 'Norvège',
+    'NZL': 'Nouvelle-Zélande',
+    'POL': 'Pologne',
+    'PRT': 'Portugal',
+    'SVK': 'Slovaquie',
+    'SVN': 'Slovénie',
+    'SWE': 'Suède',
+    'TUR': 'Turquie',
+    'USA': 'États-Unis',
 }
 
 if not pwt_path.exists():
@@ -1321,19 +1499,20 @@ else:
     print(f'Using cached PWT {PWT_VERSION}: {pwt_path}')
 
 pwt = pd.read_stata(pwt_path)
-pwt_oecd = pwt[pwt['countrycode'].isin(OECD_CODES)].copy()
+pwt_oecd = pwt[pwt['countrycode'].isin(OECD_CURRENT_CODES)].copy()
 
 # --- Table 2: 2019 level comparison ---
 p19 = pwt_oecd[pwt_oecd['year'] == PWT_LEVEL_YEAR][
-    ['countrycode', 'country', 'cgdpo', 'emp', 'avh', 'ck', 'labsh']
+    ['countrycode', 'country', 'cgdpo', 'emp', 'avh', 'ck', 'ctfp', 'labsh']
 ].copy()
-p19 = p19.dropna(subset=['cgdpo', 'emp', 'avh', 'ck', 'labsh'])
-p19 = p19[(p19[['cgdpo', 'emp', 'avh', 'ck']] > 0).all(axis=1)].copy()
+p19 = p19.dropna(subset=['cgdpo', 'emp', 'avh', 'ck', 'ctfp', 'labsh'])
+p19 = p19[(p19[['cgdpo', 'emp', 'avh', 'ck', 'ctfp']] > 0).all(axis=1)].copy()
 
 # For cross-country levels at a single date, use cgdpo rather than rgdpo.
 # PWT's ck is a cross-sectional current-PPP measure of capital services
-# (normalized to USA = 1), which is usable for relative levels but not
-# for time-series growth accounting.
+# (normalized to USA = 1), and ctfp is the corresponding direct TFP level
+# measure. Both are usable for relative levels but not for time-series
+# growth accounting.
 p19['yl'] = p19['cgdpo'] / (p19['emp'] * p19['avh'])
 p19['ky'] = p19['ck'] / p19['cgdpo']
 p19['kl'] = p19['ck'] / (p19['emp'] * p19['avh'])
@@ -1341,27 +1520,31 @@ us_row = p19[p19['countrycode'] == 'USA'].iloc[0]
 alpha_us = 1 - us_row['labsh']
 
 p19['yl_rel'] = 100 * p19['yl'] / us_row['yl']
-p19['ky_rel'] = p19['ky'] / us_row['ky']
+p19['tfp_rel'] = 100 * p19['ctfp'] / us_row['ctfp']
+p19['ky_rel'] = 100 * p19['ky'] / us_row['ky']
 p19['kl_rel'] = 100 * p19['kl'] / us_row['kl']
-p19['ky_comp'] = 100 * p19['ky_rel'] ** (alpha_us / (1 - alpha_us))
-p19['a_comp'] = p19['yl_rel'] * 100 / p19['ky_comp']
-p19['level_rank'] = p19['yl_rel'].rank(ascending=False, method='min').astype(int)
+p19['yl_rank'] = p19['yl_rel'].rank(ascending=False, method='min').astype(int)
+p19['tfp_rank'] = p19['tfp_rel'].rank(ascending=False, method='min').astype(int)
+p19['ky_rank'] = p19['ky_rel'].rank(ascending=False, method='min').astype(int)
+p19['kl_rank'] = p19['kl_rel'].rank(ascending=False, method='min').astype(int)
 
 intl_levels = p19.sort_values('yl_rel', ascending=False).reset_index(drop=True)
 
-print(f'PWT level data available for {len(intl_levels)}/{len(OECD_CODES)} OECD countries')
+print(f'PWT level data available for {len(intl_levels)}/{len(OECD_CURRENT_CODES)} OECD countries')
 print(f'  US alpha = {alpha_us:.3f}, amplification = {1/(1-alpha_us):.3f}')
 ca_lev = intl_levels[intl_levels['countrycode'] == 'CAN'].iloc[0]
 print(f'  Canada: Y/L={ca_lev["yl_rel"]:.0f}, '
-      f'prod. resid.={ca_lev["a_comp"]:.0f}, '
-      f'K/Y={ca_lev["ky_comp"]:.0f}, K/L={ca_lev["kl_rel"]:.0f}, '
-      f'rank={int(ca_lev["level_rank"])}/{len(intl_levels)}')
+      f'TFP={ca_lev["tfp_rel"]:.0f}, '
+      f'K/Y={ca_lev["ky_rel"]:.0f}, K/L={ca_lev["kl_rel"]:.0f}, '
+      f'rangs=({int(ca_lev["yl_rank"])}, {int(ca_lev["tfp_rank"])}, '
+      f'{int(ca_lev["ky_rank"])}, {int(ca_lev["kl_rank"])})/{len(intl_levels)}')
 
 # --- Figure 5: Rank change in labor productivity levels, 2000 vs 2019 ---
 rank_years = [2000, 2019]
 rank_frames = []
 for year in rank_years:
-    py = pwt_oecd[pwt_oecd['year'] == year][['countrycode', 'country', 'cgdpo', 'emp', 'avh']].copy()
+    py = pwt_oecd[(pwt_oecd['countrycode'].isin(OECD_ORIGINAL_CODES)) &
+                  (pwt_oecd['year'] == year)][['countrycode', 'country', 'cgdpo', 'emp', 'avh']].copy()
     py = py.dropna(subset=['cgdpo', 'emp', 'avh'])
     py = py[(py[['cgdpo', 'emp', 'avh']] > 0).all(axis=1)].copy()
     py['yl'] = py['cgdpo'] / (py['emp'] * py['avh'])
@@ -1410,7 +1593,7 @@ ax.set_ylim(len(rank_compare) + 0.5, 0.5)
 ax.set_xticks([])
 ax.set_yticks(range(1, len(rank_compare) + 1))
 ax.set_yticklabels([f'{i}' for i in range(1, len(rank_compare) + 1)], fontsize=9)
-ax.set_ylabel('Rang de productivité du travail', fontsize=11)
+ax.set_ylabel('Rang de productivit\'e du travail', fontsize=11)
 ax.grid(True, axis='y', color='0.88', linestyle=':', linewidth=0.6)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
@@ -1425,7 +1608,7 @@ print(f'  Canada rank: {int(can_rank["rank_2000"])} in 2000 -> {int(can_rank["ra
 # PWT time-series measure of capital services at constant national prices.
 required_years = set(range(PWT_START, PWT_END + 1))
 intl_growth_rows = []
-for code in OECD_CODES:
+for code in OECD_ORIGINAL_CODES:
     g = pwt_oecd[(pwt_oecd['countrycode'] == code) &
                  (pwt_oecd['year'] >= PWT_START) &
                  (pwt_oecd['year'] <= PWT_END)][
@@ -1461,11 +1644,11 @@ intl_growth = pd.DataFrame(intl_growth_rows).sort_values('lp_growth', ascending=
 intl_growth['lp_rank'] = np.arange(1, len(intl_growth) + 1)
 
 print('\n--- PWT LP Growth Decomposition ---')
-print(f'PWT growth data available for {len(intl_growth)}/{len(OECD_CODES)} OECD countries')
+print(f'PWT growth data available for {len(intl_growth)}/{len(OECD_ORIGINAL_CODES)} OECD countries')
 if not intl_growth.empty and (intl_growth['countrycode'] == 'CAN').any():
     ca_growth = intl_growth[intl_growth['countrycode'] == 'CAN'].iloc[0]
     print(f'  Canada: LP={ca_growth["lp_growth"]:+.2f}, '
-          f'prod. resid.={ca_growth["prod_term"]:+.2f}, '
+          f'PTF={ca_growth["prod_term"]:+.2f}, '
           f'K/Y term={ca_growth["ky_term"]:+.2f} '
           f'({int(ca_growth["lp_rank"])}/{len(intl_growth)})')
 
@@ -1475,17 +1658,20 @@ if not intl_growth.empty and (intl_growth['countrycode'] == 'CAN').any():
 
 with open(TAB_DIR / 'note_lp_levels.tex', 'w') as f:
     lines = [
-        r'\begin{table}[tbp]',
+        r'\begin{table}[p]',
         r'\centering',
         r'\sffamily',
-        r'\footnotesize',
-        r'\renewcommand{\arraystretch}{1.06}',
+        r'\scriptsize',
+        r'\setlength{\tabcolsep}{4.4pt}',
+        r'\renewcommand{\arraystretch}{1.03}',
         r'\begin{threeparttable}',
-        r"\caption{Niveau de la productivit\'e du travail en 2019, membres originels de l'OCDE (\'Etats-Unis = 100)}",
+        r"\caption{Niveaux relatifs et rangs dans l'OCDE en 2019 (États-Unis = 100)}",
         r'\label{tab:note_lp_levels}',
-        r'\begin{tabular}{l *{4}{r}}',
+        r'\begin{tabular}{l *{4}{rr}}',
         r'\toprule',
-        r"& $Y/L$ & Prod.\ r\'esid. & $K/Y$ & $K/L$ \\",
+        r'& \multicolumn{2}{c}{$Y/L$} & \multicolumn{2}{c}{PTF} & \multicolumn{2}{c}{$K/Y$} & \multicolumn{2}{c}{$K/L$} \\',
+        r'\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9}',
+        r'& Ratio & Rang & Ratio & Rang & Ratio & Rang & Ratio & Rang \\',
         r'\midrule',
     ]
     for _, r in intl_levels.iterrows():
@@ -1494,30 +1680,29 @@ with open(TAB_DIR / 'note_lp_levels.tex', 'w') as f:
         if code == 'CAN':
             lines.append(
                 f'{name} & \\textbf{{{format_fr_number(r["yl_rel"], 0)}}} '
-                f'& \\textbf{{{format_fr_number(r["a_comp"], 0)}}} '
-                f'& \\textbf{{{format_fr_number(r["ky_comp"], 0)}}} '
-                f'& \\textbf{{{format_fr_number(r["kl_rel"], 0)}}} \\\\'
+                f'& \\textbf{{{int(r["yl_rank"])}}} '
+                f'& \\textbf{{{format_fr_number(r["tfp_rel"], 0)}}} '
+                f'& \\textbf{{{int(r["tfp_rank"])}}} '
+                f'& \\textbf{{{format_fr_number(r["ky_rel"], 0)}}} '
+                f'& \\textbf{{{int(r["ky_rank"])}}} '
+                f'& \\textbf{{{format_fr_number(r["kl_rel"], 0)}}} '
+                f'& \\textbf{{{int(r["kl_rank"])}}} \\\\'
             )
         else:
             lines.append(
-                f'{name} & {format_fr_number(r["yl_rel"], 0)} & {format_fr_number(r["a_comp"], 0)} '
-                f'& {format_fr_number(r["ky_comp"], 0)} & {format_fr_number(r["kl_rel"], 0)} \\\\'
+                f'{name} & {format_fr_number(r["yl_rel"], 0)} & {int(r["yl_rank"])} '
+                f'& {format_fr_number(r["tfp_rel"], 0)} & {int(r["tfp_rank"])} '
+                f'& {format_fr_number(r["ky_rel"], 0)} & {int(r["ky_rank"])} '
+                f'& {format_fr_number(r["kl_rel"], 0)} & {int(r["kl_rank"])} \\\\'
             )
     lines += [
         r'\bottomrule',
         r'\end{tabular}',
         r'\begin{tablenotes}\footnotesize',
-        r"\item \textit{Note}\,: $Y/L$ = PIB par heure travaill\'ee, calcul\'e comme "
-        r"$cgdpo/(emp \times avh)$ en 2019. "
-        r"$K/Y$ = composante du ratio services du capital/production, "
-        r"$(K/Y)^{\bar\alpha/(1-\bar\alpha)}$, calcul\'ee \`a partir de $ck$ "
-        r"(services du capital aux PPA courantes, normalis\'es \`a "
-        r"\'Etats-Unis $=1$) avec la part du capital am\'ericaine en 2019. "
-        r"La productivit\'e r\'esiduelle = $Y/L$ divis\'e par $K/Y$. "
-        r"Elle est donc conditionnelle \`a cette mesure des services du capital. "
-        r"$K/L$ = services du capital par heure travaill\'ee, rapport\'es au niveau am\'ericain. "
-        r"Toutes les colonnes sont index\'ees aux \'Etats-Unis ($=100$). "
-        r"\'Echantillon\,: 20 membres originels de l'OCDE. "
+        r"\item \textit{Note}\,: Ratios relatifs aux États-Unis ($=100$) et rangs calculés sur 38 membres de l'OCDE. "
+        r"Les colonnes sont comparables comme ratios relatifs, mais elles ne correspondent pas au même objet économique\: "
+        r"$Y/L$ et $K/L$ sont des niveaux par heure, la PTF est un indice de niveau, et $K/Y$ un ratio capital/production. "
+        r"Voir l'annexe pour les définitions et les détails de construction. "
         r"Source\,: Penn World Table 11.0.",
         r'\end{tablenotes}',
         r'\end{threeparttable}',
@@ -1592,20 +1777,26 @@ with open(TAB_DIR / 'note_numbers.tex', 'w') as f:
         r'\newcommand{\WithinContributionLate}{' + format_fr_number(within_lp[3], 2) + r'}',
         r'\newcommand{\LPSlowdownMidLate}{' + format_fr_number(lp_slowdown_mid_late, 2) + r'}',
         r'\newcommand{\WithinSlowdownMidLate}{' + format_fr_number(within_slowdown_mid_late, 2) + r'}',
-        r'\newcommand{\BaumolWorseningMidLate}{' + format_fr_number(baumol_worsening_mid_late, 2) + r'}',
+        r'\newcommand{\ReallocationWorseningMidLate}{' + format_fr_number(baumol_worsening_mid_late, 2) + r'}',
         r'\newcommand{\CapitalOffsetMidLate}{' + format_fr_number(capital_offset_mid_late, 2) + r'}',
         r'\newcommand{\CounterfactualProductivityGapLate}{' + format_fr_number(counterfactual_productivity_gap_2019, 1) + r'}',
-        r'\newcommand{\BaumolContributionEarly}{' + format_fr_number(baumol_lp[1], 2) + r'}',
-        r'\newcommand{\BaumolContributionMid}{' + format_fr_number(baumol_lp[2], 2) + r'}',
-        r'\newcommand{\BaumolContributionLate}{' + format_fr_number(baumol_lp[3], 2) + r'}',
+        r'\newcommand{\ReallocationContributionEarly}{' + format_fr_number(baumol_lp[1], 2) + r'}',
+        r'\newcommand{\ReallocationContributionMid}{' + format_fr_number(baumol_lp[2], 2) + r'}',
+        r'\newcommand{\ReallocationContributionLate}{' + format_fr_number(baumol_lp[3], 2) + r'}',
         r'\newcommand{\CapitalContributionMid}{' + format_fr_number(ky_c[2], 2) + r'}',
         r'\newcommand{\CapitalContributionLate}{' + format_fr_number(ky_c[3], 2) + r'}',
         r'\newcommand{\CanadaLPRelativeUS}{' + format_fr_number(ca_lev["yl_rel"], 0) + r'}',
-        r'\newcommand{\CanadaResidualRelativeUS}{' + format_fr_number(ca_lev["a_comp"], 0) + r'}',
+        r'\newcommand{\CanadaTFPRelativeUS}{' + format_fr_number(ca_lev["tfp_rel"], 0) + r'}',
+        r'\newcommand{\CanadaKYRelativeUS}{' + format_fr_number(ca_lev["ky_rel"], 0) + r'}',
+        r'\newcommand{\CanadaKLRelativeUS}{' + format_fr_number(ca_lev["kl_rel"], 0) + r'}',
+        r'\newcommand{\CanadaLPRankOECD}{' + format_fr_rank(ca_lev["yl_rank"]) + r'}',
+        r'\newcommand{\CanadaTFPRankOECD}{' + format_fr_rank(ca_lev["tfp_rank"]) + r'}',
+        r'\newcommand{\CanadaKYRankOECD}{' + format_fr_rank(ca_lev["ky_rank"]) + r'}',
+        r'\newcommand{\CanadaKLRankOECD}{' + format_fr_rank(ca_lev["kl_rank"]) + r'}',
         r'\newcommand{\CanadaRankTwoThousand}{' + format_fr_rank(can_rank["rank_2000"]) + r'}',
         r'\newcommand{\CanadaRankTwoThousandNineteen}{' + format_fr_rank(can_rank["rank_2019"]) + r'}',
         r'\newcommand{\CanadaOecdGrowth}{' + format_fr_number(ca_growth["lp_growth"], 2) + r'}',
-        r'\newcommand{\CanadaOecdResidual}{' + format_fr_number(ca_growth["prod_term"], 2) + r'}',
+        r'\newcommand{\CanadaOecdTFP}{' + format_fr_number(ca_growth["prod_term"], 2) + r'}',
         r'\newcommand{\CanadaOecdKY}{' + format_fr_number(ca_growth["ky_term"], 2) + r'}',
         r'\newcommand{\CanadaOecdGrowthRank}{' + format_fr_rank(ca_growth["lp_rank"]) + r'}',
     ]

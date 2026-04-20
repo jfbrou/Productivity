@@ -133,6 +133,9 @@
 %  DOCUMENT
 % ====================================================================
 \begin{document}
+\makeatletter
+\@fileswtrue
+\makeatother
 
 % -- Title page -----------------------------------------------------
 \thispagestyle{empty}
@@ -151,34 +154,13 @@
 \hspace{0.8cm}%
 \begin{minipage}{0.85\textwidth}
    \raggedright
-   {\fontsize{28}{34}\selectfont\bfseries\textcolor{HECnavy}{La panne canadienne}}
-   \\[14pt]
-   {\Large\textcolor{HECnavy}{Au sein des industries, plus qu'entre les secteurs (1961--2019)}}
+   {\fontsize{28}{34}\selectfont\bfseries\textcolor{HECnavy}{L'anatomie sectorielle du ralentissement de la productivité canadienne}}
    \\[14pt]
    {\color{HECgreen}\rule{3cm}{2pt}}
    \\[14pt]
-   {\Large\textcolor{HECnavy}{Note de politique}}
-   \\[8pt]
    {\large\textcolor{HECgray}{Jean-Félix Brouillette}}
    \\[8pt]
-   {\textcolor{HECgray}{Février 2026}}
-\end{minipage}
-
-\vspace{1.4cm}
-
-\hspace{0.8cm}%
-\begin{minipage}{0.82\textwidth}
-\begin{tcolorbox}[
-   colback=HEClightgray,
-   colframe=white,
-   boxrule=0pt,
-   arc=4pt,
-   left=10pt, right=10pt, top=8pt, bottom=8pt
-]
-\small
-\textcolor{HECtext}{Si le rythme de croissance observé entre 1980--2000 avait simplement persisté après 2000, le niveau de productivité du travail du secteur des entreprises serait aujourd'hui environ \CounterfactualProductivityGapLate\,\% plus élevé.
-Cette note montre que le décrochage canadien provient d'abord d'un affaiblissement des gains de productivité à l'intérieur des industries, davantage que d'un simple problème de composition sectorielle.}
-\end{tcolorbox}
+   {\textcolor{HECgray}{Avril 2026}}
 \end{minipage}
 
 \vfill
@@ -193,14 +175,10 @@ Cette note montre que le décrochage canadien provient d'abord d'un affaiblissem
 
 \begin{execbox}
 \begin{itemize}\small
-  \item \`A plus long terme, le Canada passe de \LPGrowthEarly\,\% de croissance annuelle de la productivité du travail entre 1961--1980 à \LPGrowthLate\,\% entre 2000--2019.
-  \item Le diagnostic central compare toutefois 1980--2000 à 2000--2019\,: la croissance tombe de \LPGrowthMid\,\% à \LPGrowthLate\,\% par année, soit un ralentissement de \LPSlowdownMidLate{} point de pourcentage.
-  \item Si le rythme de 1980--2000 avait été maintenu après 2000, le niveau de productivité du travail serait environ \CounterfactualProductivityGapLate\,\% plus élevé en 2019.
-  \item Le ralentissement depuis 2000 vient surtout du terme PTF intra-industries, dont la contribution passe de \WithinContributionMid{} à \WithinContributionLate{} point de pourcentage.
-  \item La réallocation sectorielle agit bien comme un frein, mais son aggravation entre 1980--2000 et 2000--2019 n'est que de \BaumolWorseningMidLate{} point de pourcentage, tandis que le terme capital se raffermit de \CapitalOffsetMidLate{} point.
+  \item Le Canada est passé de \LPGrowthEarly\,\% de croissance annuelle de la productivité du travail entre 1961--1980 à seulement \LPGrowthLate\,\% entre 2000--2019.
+  \item Le ralentissement depuis 2000 vient principalement d'un ralentissement de la croissance de la productivité totale des facteurs (PTF) à l'intérieur des secteurs, dont la contribution passe de \WithinContributionMid{} à \WithinContributionLate{} point de pourcentage.
+  \item Une réallocation défavorable de l'activité économique à travers les secteurs freine la croissance de la productivité du travail, mais son aggravation entre 1980--2000 et 2000--2019 n'est que de \ReallocationWorseningMidLate{} point de pourcentage.
 \end{itemize}
-\small
-\textcolor{HECtext}{La note propose donc un diagnostic comptable additif, non une estimation causale\,: elle indique surtout que le premier endroit o\`u chercher l'origine de la panne est \`a l'int\'erieur des industries.}
 \end{execbox}
 
 \vspace{6pt}
@@ -212,196 +190,63 @@ Cette note montre que le décrochage canadien provient d'abord d'un affaiblissem
 \section{Introduction}
 \label{sec:introduction}
 
-Entre 1980--2000 et 2000--2019, la croissance annualisée de la productivité du travail canadienne passe de \LPGrowthMid\,\% \`a \LPGrowthLate\,\%, soit un ralentissement de \LPSlowdownMidLate{} point de pourcentage par ann\'ee.
-Si le rythme ant\'erieur avait simplement persist\'e apr\`es 2000, le niveau de productivit\'e du travail du secteur des entreprises serait environ \CounterfactualProductivityGapLate\,\% plus \'elev\'e en 2019.
-Pour une \'economie avanc\'ee, un tel \'ecart p\`ese sur les salaires, la base fiscale et la marge de manoeuvre budg\'etaire.
+Entre 1980--2000 et 2000--2019, la croissance annualisée de la productivité du travail canadienne passe de \LPGrowthMid\,\% à \LPGrowthLate\,\%, soit un ralentissement de \LPSlowdownMidLate{} point de pourcentage par année. Si le rythme antérieur avait simplement persisté après 2000, le niveau de productivité du travail du secteur des entreprises serait environ \CounterfactualProductivityGapLate\,\% plus élevé en 2019. Pour une économie avancée, un tel écart pèse sur les salaires, le pouvoir d'achat et la marge de manoeuvre budgétaire.
 
-La question de politique publique est alors simple.
-Le Canada souffre-t-il surtout d'une mauvaise composition sectorielle, ou bien d'un affaiblissement des gains d'efficacit\'e \`a l'int\'erieur m\^eme des industries ?
-Cette note apporte un premier diagnostic comptable \`a cette question.
-Elle combine l'identit\'e de croissance de la productivit\'e du travail avec une d\'ecomposition sectorielle afin de distinguer trois forces\,: la PTF intra-industries, la r\'eallocation sectorielle de type Baumol et l'approfondissement du capital.
+Mais d'où provient ce ralentissement ? Le Canada souffre-t-il d'un manque d'investissements en capital, d'une composition sectorielle de l'activité économique défavorable, ou bien d'un affaiblissement des gains de productivité à l'intérieur même des secteurs ? Cette note apporte un diagnostic comptable à cette question. Elle présente une décomposition de la croissance de la productivité du travail en trois contributions additives\,: (i) la productivité totale des facteurs (PTF) intra-sectorielle, (ii) la réallocation de l'activité économique à travers les secteurs, et (iii) l'approfondissement du capital.
 
-Le coeur du message est le suivant.
-La r\'eallocation sectorielle compte, mais le ralentissement canadien depuis 2000 semble d'abord provenir d'un affaiblissement de la productivit\'e totale des facteurs (PTF) au sein des industries.
-La comparaison avec l'OCDE sert ensuite de rep\`ere de contexte, non de substitut \`a cette d\'ecomposition canadienne.
-Il s'agit d'un diagnostic comptable additif plut\^ot que d'une identification causale.
-Comme les donn\'ees mobilis\'ees ici sont nationales, une prochaine \'etape naturelle pour le CPP est d'en proposer une d\'eclinaison qu\'eb\'ecoise.
+Nos résultats démontrent que le ralentissement canadien depuis 2000 provient principalement d'un affaiblissement de la croissance de la PTF généralisé à travers la plupart des grands secteurs d'activités. Bien qu'une réallocation de l'activité économique vers des secteurs à plus faible croissance de la productivité freine la croissance agrégée, son aggravation entre 1980--2000 et 2000--2019 n'est que de \ReallocationWorseningMidLate{} point de pourcentage. Pour sa part, la contribution de l'approfondissement du capital s'est au contraire renforcée de \CapitalOffsetMidLate{} point de pourcentage au courant de la même période, compensant ainsi une partie du ralentissement agrégé.
 
 % ====================================================================
 
 \section{Le diagnostic canadien}
 
-La productivité du travail peut progresser pour trois raisons.
-Certaines industries peuvent devenir plus efficientes dans leur utilisation du capital et du travail.
-L'activité économique peut aussi se déplacer vers des secteurs où la croissance de la productivité est plus rapide.
-Enfin, l'économie peut bénéficier d'un stock plus important de capital productif.
-Le tableau~\ref{tab:note_decomposition} résume ces trois mécanismes pour le Canada.
+La productivité du travail peut croître pour trois raisons. Certains secteurs peuvent devenir plus efficients dans leur utilisation de facteurs de production tels que le capital et le travail (i.e., la productivité totale des facteurs). L'activité économique peut se déplacer vers des secteurs où la croissance de la productivité est plus rapide. Enfin, l'économie peut bénéficier d'un stock plus important de capital productif. Le tableau~\ref{tab:note_decomposition} quantifie ces trois contributions pour le Canada.
 
 \includetables{note_decomposition}
 
-Entre 1980--2000 et 2000--2019, la croissance annualisée de la productivité du travail ralentit de \LPSlowdownMidLate{} point de pourcentage par année.
-La baisse du terme PTF intra-industries atteint \WithinSlowdownMidLate{} point de pourcentage, soit plus que la totalité du recul observé.
-L'effet Baumol se détériore un peu (\BaumolWorseningMidLate{}), tandis que le terme capital se raffermit et compense \CapitalOffsetMidLate{} point de pourcentage.
-Autrement dit, le ralentissement depuis 2000 ne semble pas d'abord provenir d'un basculement brutal vers des secteurs structurellement moins productifs.
-Il reflète surtout un affaiblissement des gains d'efficacité à l'intérieur des industries.
-La figure~\ref{fig:labor_productivity} montre directement l'arithmétique de cette rupture entre 1980--2000 et 2000--2019.
-La question centrale n'est donc pas seulement de savoir pourquoi l'effet Baumol existe, mais pourquoi les gains de productivité au sein des branches se sont autant essoufflés.
+Entre 1980--2000 et 2000--2019, la croissance annualisée de la productivité du travail ralentit de \LPSlowdownMidLate{} point de pourcentage par année. Le ralentissement de la croissance de la PTF intra-sectorielle s'élève à \WithinSlowdownMidLate{} points de pourcentage, soit plus que la totalité du recul observé. L'effet de réallocation se détériore un peu (\ReallocationWorseningMidLate{} points de pourcentage), tandis que l'approfondissement du capital se raffermit de \CapitalOffsetMidLate{} points de pourcentage.
 
-\begin{figure}[tbp]
+Autrement dit, le ralentissement depuis 2000 ne semble pas provenir d'un basculement vers des secteurs structurellement moins productifs ni d'un manque chronique d'investissement en capital. Il reflète surtout un affaiblissement généralisé des gains de productivité à l'intérieur de la plupart des secteurs d'activités canadiens. La figure~\ref{fig:labor_productivity} illustre directement l'arithmétique de cette rupture entre 1980--2000 et 2000--2019.
+
+\begin{figure}[h!]
     \centering
     \includegraphics[width=\textwidth]{note_labor_productivity.png}
-    \caption{Pont de ralentissement entre 1980--2000 et 2000--2019. La baisse de la PTF intra-industries explique l'essentiel du recul de la croissance de la productivité du travail, l'effet Baumol l'accentue un peu, et le capital en amortit une partie.}
+    \caption{Pont de ralentissement entre 1980--2000 et 2000--2019. Le ralentissement de la croissance de la PTF intra-sectorielle explique l'essentiel du recul de la croissance de la productivité du travail agrégée.}
     \label{fig:labor_productivity}
 \end{figure}
-
-\takeaway{Sur un ralentissement de \LPSlowdownMidLate{} point de pourcentage par année entre 1980--2000 et 2000--2019, la baisse du terme PTF intra-industries en explique l'essentiel.}
-
-% ====================================================================
-
-\section{Les principales contributions sectorielles à la productivité du travail}
-
-Après le diagnostic agrégé, la question suivante est simple : quelles industries soutiennent encore la croissance agrégée de la productivité du travail ?
-La figure~\ref{fig:industry_lp_contributors} retient, pour chaque sous-période, les cinq plus fortes contributions positives et les cinq plus faibles.
-Chaque barre montre la contribution totale d'une industrie, obtenue en additionnant la PTF intra-industries, la composante de réallocation de type Baumol et un terme capital alloué au niveau des industries.
-Les titres de panneaux rappellent le total agrégé de la sous-période, et la somme des 39 contributions industrielles redonne exactement la croissance agrégée du tableau~\ref{tab:note_decomposition}.
-
-Le contraste entre les trois panneaux est net.
-Avant 2000, la croissance agrégée reposait sur un ensemble plus large de contributeurs positifs.
-Après 2000, les contributions positives deviennent plus faibles et plus concentrées, tandis que plusieurs branches basculent vers des contributions nulles ou négatives.
-Apr\`es 2000, les contributions positives viennent surtout de la finance, de l'assurance et de l'immobilier, puis du commerce de gros et du commerce de d\'etail.
-Cette concentration n'est pas anodine\,: les gains agr\'eg\'es reposent davantage sur quelques services, alors que plusieurs branches manufacturi\`eres cessent de porter la croissance.
-Ce n'est pas en soi un verdict contre les services.
-Mais cela d\'eplace l'attention vers la capacit\'e des secteurs \'echangeables \`a renouer avec des gains de productivit\'e durables.
-
-\begin{figure}[p]
-    \centering
-    \includegraphics[width=0.93\textwidth]{note_hulten_contributors.png}
-    \caption{Contributions annualisées totales des industries à la croissance agrégée de la productivité du travail, par sous-période. Chaque panneau indique aussi le total agrégé correspondant, et la somme des 39 industries redonne exactement ce total.}
-    \label{fig:industry_lp_contributors}
-\end{figure}
-
-\takeaway{Apr\`es 2000, les contributions positives \`a la croissance agr\'eg\'ee deviennent \`a la fois plus rares, plus petites et plus concentr\'ees, surtout dans la finance et le commerce.}
 
 % ====================================================================
 
 \section{Où le ralentissement se concentre-t-il ?}
 
-La figure~\ref{fig:tfp_slowdown} complète la lecture précédente en se concentrant non plus sur la contribution agrégée, mais sur la variation du rythme propre de PTF.
-Elle retient les cinq ralentissements les plus marqués et les cinq accélérations les plus nettes entre 1980--2000 et 2000--2019.
-Elle permet ainsi d'identifier rapidement les branches où le diagnostic canadien semble se jouer.
+Le diagnostic agrégé du tableau~\ref{tab:note_decomposition} montre que la rupture après 2000 provient d'abord d'un ralentissement de la croissance de la PTF intra-sectorielle. La question suivante est donc de savoir quels grands secteurs ont le plus pesé dans cette détérioration. La figure~\ref{fig:tfp_slowdown} montre la variation de la contribution de 16 grands secteurs d'activités à la croissance agrégée de la productivité totale des facteurs entre 1980--2000 et 2000--2019.
 
-Le ralentissement apparaît particulièrement prononcé dans plusieurs branches manufacturières et extractives.
-Cette cartographie suggère que la perte d'élan canadienne ne se réduit pas à un simple glissement vers les services.
-Elle touche aussi des activités industrielles où les gains de productivité étaient auparavant plus soutenus.
-Les plus fortes pertes se concentrent notamment dans l'informatique et l'\'electronique, les produits du p\'etrole et du charbon, les boissons et le tabac, les mines et la fabrication diverse.
-Toutes les branches ne d\'ecrochent pas pour autant\,: la finance, l'assurance et l'immobilier acc\'el\`erent au contraire nettement.
-Le tableau d'ensemble est donc celui d'un ralentissement h\'et\'erog\`ene, et non d'un malaise uniforme.
+Le résultat principal est net. Le ralentissement se concentre d'abord dans le secteur manufacturier (fabrication), de loin le principal foyer du décrochage. Les mines, le pétrole et le gaz arrivent ensuite, puis plus loin derrière le commerce de gros, le transport et entreposage et les services publics. Autrement dit, les secteurs qui pèsent le plus dans la rupture récente ne sont pas seulement quelques cas extrêmes isolés\,: ce sont de grands blocs de l'économie canadienne. À l'inverse, la finance, l'assurance et l'immobilier ont une contribution nettement plus élevée après 2000, ce qui les place à l'autre extrême du spectre.
 
-\begin{figure}[p]
+\begin{figure}[h!]
     \centering
     \includegraphics[width=\textwidth]{note_tfp_slowdown.png}
-    \caption{Cinq plus forts ralentissements et cinq plus fortes accélérations de la croissance annualisée de la PTF par industrie (2000--2019 moins 1980--2000, en points de pourcentage).}
+    \caption{Variation de la contribution des 16 grands secteurs à la croissance agrégée de la productivité totale des facteurs entre 1980--2000 et 2000--2019 (points de pourcentage), hors capital.}
     \label{fig:tfp_slowdown}
 \end{figure}
 
-Cette cartographie appelle un programme de recherche plus microéconomique.
-La comptabilité agrégée repère les industries où les gains de productivité se sont essoufflés, mais elle n'identifie pas directement les freins en cause.
-Les prochaines étapes consistent donc à examiner, au niveau des entreprises, le rôle de l'adoption des technologies numériques, de l'automatisation, de la diffusion des pratiques de gestion, de l'intensité concurrentielle et de l'accès aux marchés d'exportation.
-
-\takeaway{Le ralentissement touche surtout plusieurs branches manufacturi\`eres et extractives, tandis que la finance devient un moteur positif plus important qu'auparavant.}
-
 % ====================================================================
 
-\section{La réallocation sectorielle : un frein réel, mais pas la rupture de l'après-2000}
-
-Une fois identifiées les branches qui soutiennent encore la croissance, il faut vérifier si le diagnostic canadien pourrait malgré tout s'expliquer surtout par un effet de composition sectorielle.
-Le Canada est bien exposé à un mécanisme de type \citet{Baumol_1967}.
-Les secteurs à forte croissance de la productivité ont tendance à voir leurs prix relatifs baisser, ce qui réduit progressivement leur poids dans le PIB nominal au profit de secteurs à progression plus lente.
-
-Cette force de composition agit comme un vent contraire pour la croissance agrégée de la productivité du travail.
-La figure~\ref{fig:baumol_scatter} en montre la signature la plus simple\,: les industries qui enregistrent les gains de PTF les plus élevés ont tendance à perdre du poids dans le PIB nominal.
-Au niveau agrégé, le terme Baumol passe de \BaumolContributionEarly{} point de pourcentage par année en 1961--1980 à \BaumolContributionLate{} en 2000--2019.
-Il s'intensifie donc à long terme.
-Le point décisif pour la rupture récente est ailleurs\,: entre 1980--2000 et 2000--2019, son aggravation n'est que de \BaumolWorseningMidLate{} point de pourcentage, très loin derrière la baisse du terme intra-industries.
-
-\begin{figure}[tbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{note_baumol_scatter.png}
-    \caption{Les industries qui accumulent les plus forts gains de PTF tendent aussi \`a perdre du poids dans le PIB nominal. Cette pente n\'egative est la signature classique de l'effet Baumol.}
-    \label{fig:baumol_scatter}
-\end{figure}
-
-La figure~\ref{fig:tfp_decomposition} compare la trajectoire observée de la PTF agrégée à un contrefactuel où la structure productive serait restée fixée à ses parts de 1961.
-L'écart entre les deux courbes représente l'effet Baumol.
-Il est réel, mais le changement le plus frappant après 2000 vient de l'affaiblissement de la composante intra-industries elle-même.
-La s\'erie contrefactuelle devient plus volatile apr\`es 2008 parce que les poids fixes de 1961 surpond\`erent les branches manufacturi\`eres et extractives ensuite frapp\'ees par le cycle des mati\`eres premi\`eres.
-Cela ne change pas le message\,: Baumol est un frein persistant, pas la cause principale de la rupture r\'ecente.
-
-\begin{figure}[tbp]
-    \centering
-    \includegraphics[width=\textwidth]{note_tfp_decomposition.png}
-    \caption{PTF agr\'eg\'ee observ\'ee et contrefactuel sans effet Baumol, 1961--2019. L'effet de composition freine la trajectoire observ\'ee, mais la rupture apr\`es 2000 vient surtout de l'affaiblissement de la composante intra-industries. La volatilité accrue du contrefactuel apr\`es 2008 refl\`ete la forte pond\'eration fixe accord\'ee aux branches manufacturi\`eres et extractives de 1961.}
-    \label{fig:tfp_decomposition}
-\end{figure}
-
-\takeaway{L'effet Baumol freine durablement la productivit\'e agr\'eg\'ee et s'intensifie \`a long terme, mais il ne se d\'egrade pas assez apr\`es 2000 pour expliquer \`a lui seul la rupture r\'ecente.}
-
-% ====================================================================
-
-\section{Le recul canadien en contexte OCDE}
+\section{Comparaisons internationales}
 \label{sec:international}
 
-Une fois le diagnostic canadien établi, les comparaisons internationales servent surtout à situer le Canada parmi ses pairs.
-Elles ne reproduisent pas la décomposition sectorielle canadienne.
-Il faut donc les lire comme un exercice de contexte, non comme une comparaison structurelle terme à terme.
+Les sections précédentes montrent que le ralentissement canadien depuis 2000 provient d'abord d'un affaiblissement de la productivité à l'intérieur des secteurs. Où ce mauvais rendement nous a-t-il conduits par rapport aux autres économies avancées ? Cette section répond à cette question en situant le Canada dans l'OCDE en 2019.
 
-Le tableau~\ref{tab:note_lp_levels} montre qu'en 2019 le Canada se situe à \CanadaLPRelativeUS\,\% du niveau américain en termes de productivité du travail et à \CanadaResidualRelativeUS\,\% du niveau américain en termes de productivité résiduelle.
-Parmi les 20 membres originels de l'OCDE, cela correspond au \CanadaRankTwoThousandNineteen{} rang.
-Ce repère de niveau confirme donc un retard réel, sans pointer vers un déficit de capital particulièrement marqué.
-Dans ce cadre harmonis\'e, le retard canadien ressemble donc davantage \`a un probl\`eme de productivit\'e qu'\`a un simple manque de capital.
-La mesure internationale de productivit\'e r\'esiduelle est toutefois plus large que le terme intra-industries de la d\'ecomposition canadienne\,: elle n'isole pas explicitement les effets de r\'eallocation sectorielle et doit \^etre interpr\'et\'ee comme un signal de contexte.
+Le tableau~\ref{tab:note_lp_levels} montre d'abord que le Canada affiche un faible niveau de productivité du travail dans l'OCDE. Il atteint \CanadaLPRelativeUS\,\% du niveau américain et se classe au \CanadaLPRankOECD{} rang. Ce retard s'accompagne surtout d'une faiblesse de la PTF, qui ne représente que \CanadaTFPRelativeUS\,\% du niveau américain (\CanadaTFPRankOECD{} rang). Le capital par heure travaillée est lui aussi peu élevé en comparaison internationale\: le Canada atteint \CanadaKLRelativeUS\,\% du niveau américain et se situe au \CanadaKLRankOECD{} rang. Autrement dit, la faible productivité du travail du Canada apparaît d'abord liée à une faiblesse de la productivité, sans être compensée par un niveau particulièrement élevé de capital par heure travaillée.
 
 \includetables{note_lp_levels}
-
-La figure~\ref{fig:oecd_rankings} montre que le Canada passe du \CanadaRankTwoThousand{} rang en 2000 au \CanadaRankTwoThousandNineteen{} rang en 2019.
-Pris comme exercice de contexte, ce reclassement renforce l'id\'ee que le retard canadien n'appara\^it pas d'abord comme un simple d\'eficit de capital.
-
-\begin{figure}[tbp]
-    \centering
-    \includegraphics[width=0.88\textwidth]{note_oecd_rankings.png}
-    \caption{Le Canada recule dans le classement de la productivité du travail entre 2000 et 2019, membres originels de l'OCDE.}
-    \label{fig:oecd_rankings}
-\end{figure}
-
-\takeaway{Dans un cadre international harmonisé, le retard canadien ressemble davantage à un problème de productivité qu'à un simple déficit de capital.}
-
-% ====================================================================
-
-\section{Trois implications pour les politiques publiques}
-
-Le diagnostic posé dans cette note n'identifie pas, à lui seul, le mécanisme microéconomique exact à l'origine du ralentissement.
-Il permet toutefois d'ordonner plus clairement ce que les politiques publiques devraient faire, ce qu'elles ne devraient pas conclure trop vite et ce qu'il faut encore mesurer.
-
-\begin{enumerate}
-    \item \textbf{Diffuser et adopter davantage dans les entreprises existantes.} Si le coeur du problème se situe dans la PTF au sein des secteurs, il faut mieux cibler des instruments comme le SR\&ED, les programmes d'adoption num\'erique, les march\'es publics d'innovation et l'accompagnement manag\'erial vers l'adoption, la diffusion et les investissements compl\'ementaires dans les entreprises en place, surtout les firmes interm\'ediaires.
-    \item \textbf{Renforcer la concurrence et la mise \`a l'\'echelle.} La composition sectorielle ne dispara\^it pas du diagnostic, mais elle n'en est pas le noyau. Une politique de concurrence plus vigoureuse, moins de barri\`eres au commerce int\'erieur, et un soutien plus cibl\'e \`a l'expansion et \`a l'exportation des firmes productives sont donc plus prometteurs qu'une simple politique de d\'eplacement sectoriel.
-    \item \textbf{Mesurer au niveau des firmes et des provinces.} Les sections pr\'ec\'edentes identifient les branches o\`u les contributions positives \`a la productivit\'e se sont le plus affaiblies. La prochaine \'etape est d'y croiser donn\'ees d'entreprises, pratiques de gestion, adoption technologique et obstacles \`a l'expansion. Pour le CPP, cela inclut une d\'eclinaison qu\'eb\'ecoise de cette m\^eme d\'ecomposition.
-\end{enumerate}
-
-Dans cette perspective, la note sugg\`ere surtout un ordre de priorit\'e pour le diagnostic public.
-Avant de chercher \`a d\'eplacer l'\'economie d'un secteur \`a l'autre, il faut d'abord comprendre pourquoi les entreprises canadiennes g\'en\`erent moins de gains de productivit\'e qu'auparavant \`a l'int\'erieur m\^eme des secteurs.
-
-\takeaway{La priorit\'e n'est pas d'abord de r\'eallouer l'\'economie entre secteurs, mais de relancer la diffusion, la concurrence et la mont\'ee en gamme \`a l'int\'erieur des secteurs.}
 
 % ====================================================================
 
 \section{Conclusion}
 
 Le message d'ensemble est simple.
-Entre 1980--2000 et 2000--2019, la croissance de la productivité du travail ralentit de \LPSlowdownMidLate{} point de pourcentage par année.
-Si le rythme ant\'erieur avait \'et\'e maintenu, le niveau de productivit\'e du travail serait aujourd'hui environ \CounterfactualProductivityGapLate\,\% plus \'elev\'e.
-Ce ralentissement semble d'abord provenir d'une panne de la PTF au sein des industries, et non d'un effondrement du terme capital ni d'une d\'egradation suffisamment brutale de la composition sectorielle pour tout expliquer.
-L'ordre des priorit\'es en d\'ecoule\,: d'abord comprendre pourquoi les gains de productivit\'e se sont affaiblis \`a l'int\'erieur des branches, ensuite identifier les freins micro\'economiques dans les secteurs o\`u les contributions positives se sont le plus contract\'ees, puis d\'ecliner ce diagnostic au niveau des firmes et du Qu\'ebec, et seulement ensuite discuter des arbitrages de composition sectorielle.
+Entre 1980--2000 et 2000--2019, la croissance de la productivité du travail ralentit de \LPSlowdownMidLate{} point de pourcentage par année. Si le rythme antérieur avait été maintenu, le niveau de productivité du travail serait aujourd'hui environ \CounterfactualProductivityGapLate\,\% plus élevé. Ce ralentissement semble d'abord provenir d'une panne de la croissance de la PTF au sein des secteurs, et non d'un effondrement de l'investissement en capital ni d'une réallocation défavorable de l'activité économique vers des secteurs moins productifs.
 
 % ====================================================================
 
@@ -431,9 +276,9 @@ où $\bar\alpha$ est la part moyenne du capital dans la valeur ajoutée.
 
 \subsection{Décomposition à trois termes}
 
-En substituant la décomposition de Hulten $\mathrm{d}\ln A_t = \text{Intra} + \text{Baumol}$ dans~\eqref{eq:lp_decomp}, on obtient la décomposition unifiée du tableau~\ref{tab:note_decomposition}\,:
+En substituant la décomposition de Hulten $\mathrm{d}\ln A_t = \text{Intra} + \text{Réallocation}$ dans~\eqref{eq:lp_decomp}, on obtient la décomposition unifiée du tableau~\ref{tab:note_decomposition}\,:
 \begin{equation*}
-    \Delta \ln\!\left(\frac{Y}{L}\right) = \underbrace{\frac{1}{1-\bar\alpha}\,\text{Intra}}_{\text{PTF intra-industries}} + \underbrace{\frac{1}{1-\bar\alpha}\,\text{Baumol}}_{\text{Réallocation}} + \underbrace{\frac{\bar\alpha}{1-\bar\alpha}\,\Delta\ln\!\left(\frac{K}{Y}\right)}_{\text{Capital}}.
+    \Delta \ln\!\left(\frac{Y}{L}\right) = \underbrace{\frac{1}{1-\bar\alpha}\,\text{Intra}}_{\text{PTF intra-sectorielle}} + \underbrace{\frac{1}{1-\bar\alpha}\,\text{Réallocation}}_{\text{Réallocation}} + \underbrace{\frac{\bar\alpha}{1-\bar\alpha}\,\Delta\ln\!\left(\frac{K}{Y}\right)}_{\text{Capital}}.
 \end{equation*}
 Les trois termes s'additionnent exactement à $\Delta\ln(Y/L)$. Le facteur d'amplification $1/(1-\bar\alpha) > 1$ appliqué aux deux premiers termes reflète l'effet indirect de la PTF sur l'accumulation du capital\,: une hausse de la PTF accroît la productivité marginale du capital, stimulant l'investissement et augmentant $Y$ plus que proportionnellement à $A$.
 
@@ -445,24 +290,27 @@ Les agrégats sont construits par indices de Törnqvist \citep{Diewert_1976}. La
 
 En décomposant les poids courants $\bar{S}_{it}$ autour des poids d'une période de référence $S_{i,t_0}$\,:
 \begin{equation*}
-    \sum_{t=t_0}^{t_1} \mathrm{d}\ln A_t = \underbrace{\sum_{t}\sum_i S_{i,t_0}\,\mathrm{d}\ln A_{it}}_{\text{Intra-industries}} + \underbrace{\sum_{t}\sum_i (\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}_{\text{Composition (Baumol)}}.
+    \sum_{t=t_0}^{t_1} \mathrm{d}\ln A_t = \underbrace{\sum_{t}\sum_i S_{i,t_0}\,\mathrm{d}\ln A_{it}}_{\text{Intra-sectorielle}} + \underbrace{\sum_{t}\sum_i (\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}_{\text{Réallocation}}.
 \end{equation*}
 Les parts de référence sont réinitialisées au début de chaque sous-période\,: $t_0 = 1961$ pour 1961--1980, $t_0 = 1980$ pour 1980--2000, et $t_0 = 2000$ pour 2000--2019.
 Pour la figure des contributions sectorielles à la productivité du travail, on définit ensuite pour chaque industrie $i$ et chaque année $t$ la contribution directe
 \begin{equation*}
     c_{it}^{Y/L} = \frac{S_{i,t_0}\,\mathrm{d}\ln A_{it}}{1-\bar\alpha_t} + \frac{(\bar{S}_{it} - S_{i,t_0})\,\mathrm{d}\ln A_{it}}{1-\bar\alpha_t} + \frac{\bar\alpha_t}{1-\bar\alpha_t}\,\bar\omega^K_{it}\,\bigl(\mathrm{d}\ln K_{it} - \mathrm{d}\ln Y_t\bigr).
 \end{equation*}
-Les deux premiers termes redonnent respectivement la composante intra-industries et la composante de réallocation.
+Les deux premiers termes redonnent respectivement la composante intra-sectorielle et la composante de réallocation.
 Le troisième répartit le terme agrégé $K/Y$ selon les parts contemporaines de coût du capital, ce qui garantit que $\sum_i c_{it}^{Y/L} = \Delta\ln(Y_t/L_t)$ année par année.
 Le script offre aussi, en sensibilité, une variante qui répartit le terme capital agrégé selon les parts de coût du capital du début de sous-période.
 La contribution annualisée de l'industrie $i$ sur une sous-période est alors $\frac{100}{t_1-t_0}\sum_{t=t_0+1}^{t_1} c_{it}^{Y/L}$.
 La figure principale ne montre que cette somme totale par industrie, puis retient les cinq contributions les plus élevées et les cinq plus faibles de chaque sous-période.
 
-Les donn\'ees canadiennes proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 39 industries SCIAN couvrant la p\'eriode 1961--2019.
+Les données canadiennes proviennent du tableau 36-10-0217-01 de Statistique Canada, qui fournit des indices de PTF, de capital et de travail pour 39 industries SCIAN couvrant la période 1961--2019.
 La comparaison internationale utilise la Penn World Table 11.0 pour les 20 membres originels de l'OCDE.
-Le tableau~\ref{tab:note_lp_levels} et la figure~\ref{fig:oecd_rankings} mobilisent $cgdpo$, $emp$, $avh$, $ck$ et $labsh$ pour construire les niveaux relatifs de $Y/L$, la composante $K/Y$, la productivit\'e r\'esiduelle et $K/L$ par rapport aux \'Etats-Unis, o\`u $ck$ mesure les services du capital aux PPA courantes.
-Ces comparaisons internationales fournissent un point de rep\`ere harmonis\'e, mais non une d\'ecomposition structurelle pleinement identifi\'ee.
-Le script \texttt{note.py} reproduit l'ensemble des r\'esultats.
+Le tableau~\ref{tab:note_lp_levels} mobilise $cgdpo$, $emp$, $avh$, $ck$ et $ctfp$ pour construire les niveaux relatifs de $Y/L$, de la PTF, de $K/Y$ et de $K/L$ par rapport aux États-Unis, ainsi que les rangs correspondants parmi les 38 membres de l'OCDE en 2019.
+Les quatre colonnes reportées sont donc toutes comparables comme ratios relatifs aux États-Unis ($=100$), mais elles ne sont pas dans la même unité avant normalisation\: $Y/L$ et $K/L$ sont mesurés par heure, la PTF est un indice de niveau, et $K/Y$ un ratio capital/production.
+Comme $ck$ et $ctfp$ sont déjà normalisés à États-Unis $=1$ dans la PWT, seules les comparaisons relatives aux États-Unis doivent être interprétées.
+Dans ce tableau, $K/Y$ et $K/L$ sont présentés comme ratios bruts relatifs, et non comme termes de contribution transformés.
+Ces comparaisons internationales fournissent un point de repère harmonisé, mais non une décomposition structurelle pleinement identifiée.
+Le script \texttt{note.py} reproduit l'ensemble des résultats.
 
 \subsection{Diagnostic complémentaire avec \texorpdfstring{$K/L$}{K/L}}
 
