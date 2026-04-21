@@ -242,6 +242,31 @@ def industry_lp_contrib(df_ind, yearly_df, start, end, base_col,
     return contrib
 
 
+def industry_tfp_contrib(df_ind, start, end, base_col):
+    """Annualized industry contributions to aggregate TFP growth.
+
+    Returns the raw Hulten within-industry and Baumol components,
+    annualized over the requested subperiod.
+    """
+    cols = ['year', 'industry', 's_bar', base_col, 'tfp_growth']
+    active = df_ind.loc[(df_ind['year'] > start) & (df_ind['year'] <= end), cols].copy()
+
+    active['within_term'] = active[base_col] * active['tfp_growth']
+    active['baumol_term'] = (active['s_bar'] - active[base_col]) * active['tfp_growth']
+
+    contrib = (
+        100
+        * active.groupby('industry')[['within_term', 'baumol_term']].sum()
+        / (end - start)
+    )
+    contrib = contrib.rename(columns={
+        'within_term': 'within_tfp',
+        'baumol_term': 'baumol_tfp',
+    })
+    contrib['total_tfp'] = contrib['within_tfp'] + contrib['baumol_tfp']
+    return contrib
+
+
 def aggregate_to_nace(df):
     """Aggregate 39-industry panel to 15 NACE sectors via T\"ornqvist indices.
 
@@ -1259,28 +1284,28 @@ finalize_figure(fig, ax, FIG_DIR / 'note_baumol_scatter.png')
 # 11. Figure 5: Broad-sector change in productivity contributions      #
 ########################################################################
 
-# Aggregate the industry-level productivity contributions to broad
+# Aggregate the industry-level Hulten TFP contributions to broad
 # StatsCan sectors and compare 1980--2000 with 2000--2019. The figure
-# preserves the note's accounting logic exactly because it sums the
-# original industry contribution terms inside each broad sector.
-pre_contrib = industry_lp_contrib_by_period['1980--2000'][['within_lp', 'baumol_lp']].copy()
-post_contrib = industry_lp_contrib_by_period['2000--2019'][['within_lp', 'baumol_lp']].copy()
+# preserves the raw TFP accounting because it sums the original
+# within-industry and Baumol terms inside each broad sector.
+pre_contrib = industry_tfp_contrib(df, 1980, 2000, 's_1980')[['within_tfp', 'baumol_tfp']].copy()
+post_contrib = industry_tfp_contrib(df, 2000, 2019, 's_2000')[['within_tfp', 'baumol_tfp']].copy()
 
 for contrib in (pre_contrib, post_contrib):
     contrib['sector_fr'] = contrib.index.map(STATSCAN_SECTOR_FR)
     assert contrib['sector_fr'].notna().all(), 'Missing StatsCan broad-sector mapping'
 
-pre_sector = pre_contrib.groupby('sector_fr')[['within_lp', 'baumol_lp']].sum()
-post_sector = post_contrib.groupby('sector_fr')[['within_lp', 'baumol_lp']].sum()
+pre_sector = pre_contrib.groupby('sector_fr')[['within_tfp', 'baumol_tfp']].sum()
+post_sector = post_contrib.groupby('sector_fr')[['within_tfp', 'baumol_tfp']].sum()
 broad_change = post_sector.subtract(pre_sector, fill_value=0.0)
-broad_change['total_change'] = broad_change['within_lp'] + broad_change['baumol_lp']
+broad_change['total_change'] = broad_change['within_tfp'] + broad_change['baumol_tfp']
 broad_change = broad_change.sort_values('total_change')
 
-aggregate_productivity_change = (
-    (within_lp[3] + baumol_lp[3]) - (within_lp[2] + baumol_lp[2])
+aggregate_tfp_change = (
+    (within[3] + baumol[3]) - (within[2] + baumol[2])
 )
-assert abs(broad_change['total_change'].sum() - aggregate_productivity_change) < 1e-10, (
-    'Broad-sector productivity contributions do not add up to the aggregate change'
+assert abs(broad_change['total_change'].sum() - aggregate_tfp_change) < 1e-10, (
+    'Broad-sector TFP contributions do not add up to the aggregate change'
 )
 
 clean_labels = [clean_statscan_sector_label(label) for label in broad_change.index]
@@ -1297,7 +1322,7 @@ ax.barh(y_pos, totals, color=colors, height=0.66)
 bound = np.max(np.abs(totals))
 tick_step = 0.1 if bound <= 0.6 else 0.2
 xmin = tick_step * np.floor((totals.min() - 0.08) / tick_step)
-xmax = 0.6
+xmax = tick_step * np.ceil((totals.max() + 0.08) / tick_step)
 xticks = np.arange(xmin, xmax + 0.001, tick_step)
 label_pad = max(0.03 * max(abs(xmin), abs(xmax)), 0.025)
 
@@ -1325,7 +1350,7 @@ ax.axvline(0, color='k', linewidth=0.8)
 ax.grid(True, which='major', axis='x', color='gray', linestyle=':', linewidth=0.5)
 
 ax.set_xlabel(
-    r'Variation de contribution \`a la croissance de la productivit\'e du travail (p.p.)',
+    r'Variation de contribution \`a la croissance agr\'eg\'ee de la PTF (p.p.)',
     fontsize=11,
 )
 ax.tick_params(axis='x', labelsize=10.5)
@@ -1338,7 +1363,7 @@ ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(False)
 
 finalize_figure(fig, ax, FIG_DIR / 'note_tfp_slowdown.png')
-print('Figure 5: Broad-sector productivity contribution change saved.')
+print('Figure 5: Broad-sector TFP contribution change saved.')
 print('  Broad sectors that became larger drags after 2000:')
 for label, row in broad_change.head(5).iterrows():
     print(f'    {label}: total={row["total_change"]:+.2f} pp')
